@@ -4,11 +4,12 @@ const BuildABundlePage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedItems, setSelectedItems] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("Houseplant Products");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [bundleCount, setBundleCount] = useState(0);
-  const [showCategoryOptions, setShowCategoryOptions] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const pageTopRef = useRef(null);
+  const bundleSectionRef = useRef(null);
   
   // Background gradient styles for each product card
   const cardBackgrounds = [
@@ -128,6 +129,44 @@ const BuildABundlePage = () => {
     fetchAllProducts();
   }, []);
 
+  // Use IntersectionObserver to detect when bundle section is out of view
+  useEffect(() => {
+    const options = {
+      root: null, // use viewport as root
+      rootMargin: '0px',
+      threshold: 0.1 // trigger when 10% of the element is visible
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        // Show floating summary when bundle section is NOT intersecting (not visible)
+        setIsScrolled(!entry.isIntersecting);
+      });
+    }, options);
+    
+    if (bundleSectionRef.current) {
+      observer.observe(bundleSectionRef.current);
+    }
+    
+    // Also add scroll listener as fallback
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      // Force hide when at the top of the page
+      if (scrollPosition < 100) {
+        setIsScrolled(false);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      if (bundleSectionRef.current) {
+        observer.unobserve(bundleSectionRef.current);
+      }
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   // Function to make API calls to Shopify Storefront API
   const fetchFromStorefrontAPI = async (query) => {
     // API URL for Shopify Storefront API
@@ -195,6 +234,7 @@ const BuildABundlePage = () => {
                         currencyCode
                       }
                       availableForSale
+                      quantityAvailable
                       sku
                       compareAtPrice {
                         amount
@@ -268,6 +308,7 @@ const BuildABundlePage = () => {
       price: parseFloat(edge.node.price.amount),
       compareAtPrice: edge.node.compareAtPrice ? parseFloat(edge.node.compareAtPrice.amount) : null,
       available: edge.node.availableForSale,
+      quantity: edge.node.quantityAvailable || 0,
       sku: edge.node.sku || "",
       options: edge.node.selectedOptions || [],
       image: edge.node.image ? edge.node.image.transformedSrc : null
@@ -543,10 +584,11 @@ const BuildABundlePage = () => {
 
   // Function to get available stock for a product
   const getAvailableStock = (product) => {
-    // In a real implementation, this would get data from Shopify
-    // For now, we'll use a simplified approach
-    const variant = product.variants.find(v => v.title.includes('8 oz') || v.title.includes('8 Ounces'));
-    return variant && variant.available ? 10 : 0; // Default stock limit for available products
+    // Find the 8 oz variant or default to first variant
+    const variant = product.variants.find(v => v.title.includes('8 oz') || v.title.includes('8 Ounces')) || product.variants[0];
+    
+    // Return actual quantity if available, otherwise 0
+    return variant && variant.available ? (variant.quantity > 0 ? variant.quantity : 10) : 0;
   };
 
   // Filter the variants to only include 8 ounce options
@@ -612,11 +654,23 @@ const BuildABundlePage = () => {
   
   // Filter products based on selected category
   const filteredProducts = products
+    // First filter by category if one is selected
     .filter(product => selectedCategory ? product.category === selectedCategory : true)
+    // Then filter by search term within the selected category
     .filter(product => {
       if (!searchTerm) return true;
       // Check if product name matches search term
       return product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    })
+    // Sort products by popularity (review count) when showing all products
+    .sort((a, b) => {
+      if (!selectedCategory) {
+        // Sort by best seller status first, then by review count
+        if (a.bestSeller && !b.bestSeller) return -1;
+        if (!a.bestSeller && b.bestSeller) return 1;
+        return b.reviews - a.reviews; // Higher review count first
+      }
+      return 0; // Don't change order when category is selected
     });
 
   // Handler for category selection
@@ -635,18 +689,6 @@ const BuildABundlePage = () => {
       top: 0,
       behavior: 'smooth'
     });
-  };
-
-  // Toggle category options visibility
-  const toggleCategoryOptions = () => {
-    setShowCategoryOptions(!showCategoryOptions);
-  };
-
-  // Handle category selection from the overlay
-  const handleOverlayCategorySelect = (category) => {
-    setSelectedCategory(category);
-    scrollToTop();
-    setShowCategoryOptions(false);
   };
 
   // Product card component for the available products
@@ -739,7 +781,7 @@ const BuildABundlePage = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col lg:flex-row">
           {/* Bundle Section - Will be first on mobile and right on desktop */}
-          <div className="w-full lg:w-[30%] pt-6 pl-0 lg:pl-6 order-first lg:order-last mb-8 lg:mb-0">
+          <div className="w-full lg:w-[30%] pt-6 pl-0 lg:pl-6 order-first lg:order-last mb-8 lg:mb-0" ref={bundleSectionRef}>
             <div className="bg-[#fffbef] rounded-2xl p-6 shadow-sm border border-gray-200 lg:sticky lg:top-[140px]">
               <h2 className="text-2xl font-bold text-center mb-1">Your Bundle</h2>
               <p className="text-center text-gray-600 mb-6">Make a bundle of 3 or 5!</p>
@@ -818,10 +860,20 @@ const BuildABundlePage = () => {
                   className="flex-shrink-0 text-center w-[85px] cursor-pointer"
                   onClick={() => handleCategoryClick(category.category)}
                 >
-                  <div className={`overflow-hidden rounded-lg mb-2 mx-auto w-16 h-16 sm:w-20 sm:h-20 ${selectedCategory === category.category ? 'ring-2 ring-[#ff6b57]' : ''}`}>
+                  <div className={`overflow-hidden rounded-lg mb-2 mx-auto w-16 h-16 sm:w-20 sm:h-20 ${
+                    // If no category is selected (empty string), highlight the ALL PRODUCTS tile (category.category is also empty string)
+                    // Otherwise, highlight the matched category
+                    (selectedCategory === '' && category.category === '') || selectedCategory === category.category
+                      ? 'ring-2 ring-[#ff6b57]' 
+                      : ''
+                  }`}>
                     <img src={category.image} alt={category.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
                   </div>
-                  <p className={`text-xs leading-tight ${selectedCategory === category.category ? 'font-bold' : ''}`}>{category.name}</p>
+                  <p className={`text-xs leading-tight ${
+                    (selectedCategory === '' && category.category === '') || selectedCategory === category.category
+                      ? 'font-bold text-[#ff6b57]' 
+                      : ''
+                  }`}>{category.name}</p>
                 </div>
               ))}
             </div>
@@ -868,37 +920,58 @@ const BuildABundlePage = () => {
         </div>
       </div>
 
-      {/* Bottom Right Overlay */}
-      <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end">
-        {showCategoryOptions && (
-          <div className="mb-4 bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="p-2">
-              {categories.map(category => (
-                <div 
-                  key={category.id}
-                  onClick={() => handleOverlayCategorySelect(category.category)}
-                  className={`flex items-center p-2 rounded cursor-pointer ${selectedCategory === category.category ? 'bg-[#fff3e0] font-bold' : 'hover:bg-gray-100'}`}
-                >
-                  <div className="w-8 h-8 rounded overflow-hidden mr-2">
-                    <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
-                  </div>
-                  <span className="text-sm">{category.name}</span>
-                </div>
-              ))}
+      {/* Floating mobile bundle summary - shows when scrolling on mobile */}
+      {(
+        <div className={`fixed bottom-20 left-0 right-0 z-40 px-4 transition-transform duration-300 lg:hidden ${isScrolled ? 'translate-y-0' : 'translate-y-full'}`}>
+          <div className="bg-[#fffbef] rounded-2xl shadow-sm p-4 mx-auto max-w-md border border-gray-200">
+            <div className="flex flex-col items-center">
+              <div className="flex justify-center space-x-4 mb-3 w-full">
+                {[0, 1, 2].map((index) => {
+                  const item = selectedItems[index];
+                  return (
+                    <div 
+                      key={`floating-${index}`} 
+                      className="relative w-[70px] h-[70px] flex items-center justify-center bg-[#f5f0e6] border border-dashed border-gray-400 rounded-lg"
+                    >
+                      {item && (
+                        <>
+                          <img src={item.product.image} alt={item.product.name} className="h-[80%] w-[80%] object-contain" />
+                          <div className="absolute -bottom-3 left-0 right-0 flex justify-center">
+                            <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200">
+                              <button 
+                                onClick={() => removeFromBundle(item.product.id)}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-gray-700 font-medium"
+                              >
+                                -
+                              </button>
+                              <span className="text-xs font-bold mx-1">{item.quantity}</span>
+                              <button 
+                                onClick={() => addToBundle(item.product)}
+                                className={`w-6 h-6 rounded-full flex items-center justify-center font-medium ${bundleCount < 3 ? 'text-gray-700' : 'text-gray-400'}`}
+                                disabled={bundleCount >= 3}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <div className="border border-gray-300 rounded-full py-2 px-8 bg-[#fffbef] text-center w-full">
+                <p className="font-medium text-gray-800 text-sm">{bundleCount}/3 SELECTED</p>
+              </div>
             </div>
           </div>
-        )}
-        
+        </div>
+      )}
+
+      {/* Bottom Right Overlay */}
+      <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end">
         <div className="flex space-x-2">
-          <button 
-            onClick={toggleCategoryOptions}
-            className="bg-[#ff6b57] text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-[#ff5a5a] transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-            </svg>
-          </button>
-          
           <button 
             onClick={scrollToTop}
             className="bg-[#ff6b57] text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-[#ff5a5a] transition-colors"

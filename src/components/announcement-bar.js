@@ -2,7 +2,7 @@ import React, { useRef, useLayoutEffect, useState, useEffect } from 'react';
 
 const messages = [
   'Free Shipping Over $15',
-  'Buy 3 Save $10',
+  { text: 'Buy 3 Save $10', link: '/build-bundle' },
 ];
 
 const AnnouncementBar = () => {
@@ -46,8 +46,24 @@ const AnnouncementBar = () => {
        }`
     : '';
 
+  // Render message function to handle both string and object messages
+  const renderMessage = (msg, key) => {
+    if (typeof msg === 'string') {
+      return <div key={key} className="px-8 uppercase">{msg}</div>;
+    } else {
+      return (
+        <div key={key} className="px-8 uppercase">
+          {msg.text}
+        </div>
+      );
+    }
+  };
+
   return (
-    <div className="bg-coral-500 text-white py-3 overflow-hidden font-bold tracking-wide">
+    <a 
+      href="/build-bundle" 
+      className="block bg-coral-500 text-white py-3 overflow-hidden font-bold tracking-wide hover:bg-coral-600 transition-colors cursor-pointer"
+    >
       {contentWidth > 0 && (
         <style>{marqueeStyle}</style>
       )}
@@ -64,27 +80,20 @@ const AnnouncementBar = () => {
         >
           {/* Original content to measure */}
           <div ref={contentRef} className="flex">
-            {messages.map((msg, idx) => (
-              <div key={`original-${idx}`} className="px-8 uppercase">{msg}</div>
-            ))}
+            {messages.map((msg, idx) => renderMessage(msg, `original-${idx}`))}
           </div>
           
           {/* Multiple copies for seamless loop */}
           {Array.from({ length: copies - 1 }).map((_, copyIdx) => (
             <div key={`copy-${copyIdx}`} className="flex">
               {messages.map((msg, msgIdx) => (
-                <div 
-                  key={`copy-${copyIdx}-msg-${msgIdx}`} 
-                  className="px-8 uppercase"
-                >
-                  {msg}
-                </div>
+                renderMessage(msg, `copy-${copyIdx}-msg-${msgIdx}`)
               ))}
             </div>
           ))}
         </div>
       </div>
-    </div>
+    </a>
   );
 };
 
