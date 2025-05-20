@@ -1,3 +1,49 @@
+# TPS Plant Foods
+
+A React application with Tailwind CSS 3.4.
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14 or higher)
+- npm
+
+### Installation
+
+1. Clone the repository:
+```
+git clone <repository-url>
+cd tpsplantfoods
+```
+
+2. Install dependencies:
+```
+npm install
+```
+
+### Running the Application
+
+To start the development server:
+```
+npm start
+```
+
+The application will be available at [http://localhost:3000](http://localhost:3000).
+
+### Building for Production
+
+To create a production build:
+```
+npm run build
+```
+
+## Technologies Used
+
+- React.js
+- Tailwind CSS 3.4
+- Create React App
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
