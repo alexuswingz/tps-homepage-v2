@@ -52,6 +52,7 @@ const ProductCard = ({ product, index }) => {
   const dropdownRef = useRef(null);
   
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   
   // Initialize selected variant on component mount
   useEffect(() => {
@@ -113,10 +114,23 @@ const ProductCard = ({ product, index }) => {
     }
   };
   
-  const handleAddToCart = () => {
+  const handleAddToCart = (e) => {
+    e.stopPropagation(); // Prevent navigation when clicking add to cart
     if (activeVariant && activeVariant.available) {
       addToCart(product, activeVariant, quantity);
     }
+  };
+  
+  const handleCardClick = () => {
+    // Extract the numeric ID portion from the Shopify ID format
+    let id = product.id;
+    
+    // Check if the ID is in Shopify's gid format and extract just the numeric part
+    if (typeof id === 'string' && id.includes('gid://shopify/Product/')) {
+      id = id.split('/').pop();
+    }
+    
+    navigate(`/product/${id}`);
   };
   
   const selectVariant = (variant) => {
@@ -174,7 +188,8 @@ const ProductCard = ({ product, index }) => {
   
   return (
     <div 
-      className={`${getCategoryBackground()} rounded-lg overflow-hidden shadow-sm relative`}
+      className={`${getCategoryBackground()} rounded-lg overflow-hidden shadow-sm relative cursor-pointer`}
+      onClick={handleCardClick}
     >
       {product.bestSeller && (
         <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm">
@@ -199,7 +214,10 @@ const ProductCard = ({ product, index }) => {
         {/* Variant selection dropdown */}
         <div className="relative mb-2 sm:mb-4" ref={dropdownRef}>
           <div 
-            onClick={() => hasMultipleVariants && setDropdownOpen(!dropdownOpen)}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent card click when clicking dropdown
+              if (hasMultipleVariants) setDropdownOpen(!dropdownOpen);
+            }}
             className={`flex justify-between items-center ${hasMultipleVariants ? 'cursor-pointer' : 'cursor-default'}`}
           >
             <div className="flex flex-1 items-center justify-between border border-gray-300 rounded-full bg-white relative overflow-hidden">
@@ -231,7 +249,10 @@ const ProductCard = ({ product, index }) => {
               {product.variants.map((variant, idx) => (
                 <div 
                   key={variant.id || idx}
-                  onClick={() => selectVariant(variant)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent card click
+                    selectVariant(variant);
+                  }}
                   className={`p-2 px-4 text-xs sm:text-sm cursor-pointer transition-colors duration-150
                     ${!variant.available ? 'text-gray-400 hover:bg-gray-50' : 'hover:bg-gray-100'}
                     ${activeVariant?.id === variant.id ? 'bg-gray-100 font-medium' : ''}`}
@@ -257,7 +278,10 @@ const ProductCard = ({ product, index }) => {
             </label>
             <div className="flex items-center border border-gray-300 rounded self-start sm:self-auto">
               <button 
-                onClick={decrementQuantity}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent card click
+                  decrementQuantity();
+                }}
                 className="px-2 py-1 text-gray-600 hover:bg-gray-100"
                 disabled={quantity <= 1}
               >
@@ -270,10 +294,14 @@ const ProductCard = ({ product, index }) => {
                 max={maxQuantity}
                 value={quantity}
                 onChange={handleQuantityChange}
+                onClick={(e) => e.stopPropagation()} // Prevent card click
                 className="w-12 px-2 py-1 text-center text-sm border-x border-gray-300"
               />
               <button 
-                onClick={incrementQuantity}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent card click
+                  incrementQuantity();
+                }}
                 className="px-2 py-1 text-gray-600 hover:bg-gray-100"
                 disabled={quantity >= maxQuantity}
               >

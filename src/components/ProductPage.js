@@ -24,6 +24,11 @@ const ProductPage = () => {
   const [isSubscription, setIsSubscription] = useState(false);
   const [deliveryInterval, setDeliveryInterval] = useState(2); // Default 2 months delivery interval
 
+  // Scroll to top when component mounts or productId changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [productId]);
+
   // Function to make API calls to Shopify Storefront API
   const fetchFromStorefrontAPI = async (query) => {
     const shopifyStorefrontUrl = 'https://n3mpgz-ny.myshopify.com/api/2023-01/graphql.json';
@@ -148,8 +153,15 @@ const ProductPage = () => {
       setLoading(true);
       
       try {
+        // Check if productId is numeric or already a full Shopify ID
+        let fullShopifyId = productId;
+        
+        // If it's just a numeric ID, format it as a full Shopify ID
+        if (!productId.includes('gid://')) {
+          fullShopifyId = `gid://shopify/Product/${productId}`;
+        }
+        
         // Try to fetch from API first
-        const fullShopifyId = `gid://shopify/Product/${productId}`;
         const query = `
           {
             product(id: "${fullShopifyId}") {
