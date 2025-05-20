@@ -20,6 +20,9 @@ const ProductPage = () => {
   const [selectedBundle, setSelectedBundle] = useState('single'); // default to single
   const [variantImages, setVariantImages] = useState({});
   const [productImages, setProductImages] = useState([]);
+  const [silicaProduct, setSilicaProduct] = useState(null);
+  const [isSubscription, setIsSubscription] = useState(false);
+  const [deliveryInterval, setDeliveryInterval] = useState(2); // Default 2 months delivery interval
 
   // Function to make API calls to Shopify Storefront API
   const fetchFromStorefrontAPI = async (query) => {
@@ -289,7 +292,112 @@ const ProductPage = () => {
     };
 
     fetchProduct();
+    fetchSilicaProduct();
   }, [productId]);
+
+  // Function to fetch Silica For Plants product
+  const fetchSilicaProduct = async () => {
+    try {
+      // Query for silica product using handle
+      const query = `
+        {
+          productByHandle(handle: "silica-for-plants") {
+            id
+            title
+            description
+            priceRange {
+              minVariantPrice {
+                amount
+                currencyCode
+              }
+            }
+            images(first: 1) {
+              edges {
+                node {
+                  transformedSrc
+                  altText
+                }
+              }
+            }
+            variants(first: 1) {
+              edges {
+                node {
+                  id
+                  title
+                  price {
+                    amount
+                    currencyCode
+                  }
+                  availableForSale
+                }
+              }
+            }
+          }
+        }
+      `;
+      
+      const result = await fetchFromStorefrontAPI(query);
+      
+      if (result?.data?.productByHandle) {
+        const silicaData = result.data.productByHandle;
+        
+        // Map to our product format
+        const mappedSilicaProduct = {
+          id: silicaData.id,
+          name: silicaData.title.toUpperCase(),
+          description: "PLANT SUPPLEMENT",
+          fullDescription: silicaData.description || "Our premium silica supplement for stronger plant growth.",
+          image: silicaData.images.edges.length > 0 
+            ? silicaData.images.edges[0].node.transformedSrc 
+            : "/assets/products/silica-plant-food.png", // Fallback to local image if no API image
+          price: parseFloat(silicaData.priceRange.minVariantPrice.amount),
+          variant: silicaData.variants.edges.length > 0 
+            ? {
+                id: silicaData.variants.edges[0].node.id,
+                title: silicaData.variants.edges[0].node.title,
+                price: parseFloat(silicaData.variants.edges[0].node.price.amount),
+                available: silicaData.variants.edges[0].node.availableForSale
+              }
+            : null
+        };
+        
+        setSilicaProduct(mappedSilicaProduct);
+      } else {
+        // If API fails, use fallback data
+        setSilicaProduct({
+          id: "silica-fallback",
+          name: "SILICA FOR PLANTS",
+          description: "PLANT SUPPLEMENT",
+          fullDescription: "Our premium silica supplement strengthens cell walls for stronger, more resilient plants.",
+          image: "/assets/products/silica-plant-food.png",
+          price: 14.99,
+          variant: {
+            id: 'silica-variant1',
+            title: '8 Ounces',
+            price: 14.99,
+            available: true
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching silica product:', error);
+      // Fallback to static data if API fails
+      setSilicaProduct({
+        id: "silica-fallback",
+        name: "SILICA FOR PLANTS",
+        description: "PLANT SUPPLEMENT",
+        fullDescription: "Our premium silica supplement strengthens cell walls for stronger, more resilient plants.",
+        image: "/assets/products/silica-plant-food.png",
+        price: 14.99,
+        variant: {
+          id: 'silica-variant1',
+          title: '8 Ounces',
+          price: 14.99,
+          available: true
+        }
+      });
+    }
+  };
 
   // Mock products data - in a real app, this would come from an API
   const products = [
@@ -386,7 +494,35 @@ const ProductPage = () => {
 
   const handleAddToCart = () => {
     if (product && selectedVariant) {
-      addToCart(product, selectedVariant, quantity);
+      // Build subscription properties if selected
+      const subscriptionProps = isSubscription ? {
+        isSubscription: true,
+        interval: deliveryInterval,
+        intervalUnit: 'month',
+        discount: 15, // 15% discount for subscriptions (matches 0.85 pricing)
+      } : null;
+      
+      if (selectedBundle === 'single') {
+        // Add just the main product
+        addToCart(product, selectedVariant, quantity, subscriptionProps);
+      } else {
+        // Add both main product and silica as a bundle
+        addToCart(product, selectedVariant, quantity, subscriptionProps);
+        
+        // Only add silica if it was successfully fetched
+        if (silicaProduct && silicaProduct.variant) {
+          // Create a simplified product object for silica
+          const silicaProductForCart = {
+            id: silicaProduct.id,
+            name: silicaProduct.name,
+            description: silicaProduct.description,
+            image: silicaProduct.image,
+            price: silicaProduct.price
+          };
+          // Add silica with the same subscription settings as the main product
+          addToCart(silicaProductForCart, silicaProduct.variant, quantity, subscriptionProps);
+        }
+      }
     }
   };
 
@@ -616,7 +752,12 @@ const ProductPage = () => {
             </a>
             
             {/* Price */}
-            <div className="text-2xl font-bold mb-2">${selectedVariant ? selectedVariant.price.toFixed(2) : product.price.toFixed(2)}</div>
+            <div className="text-2xl font-bold mb-2">
+              ${selectedBundle === 'single' 
+                ? (selectedVariant ? selectedVariant.price.toFixed(2) : product.price.toFixed(2))
+                : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)).toFixed(2) : product.price.toFixed(2))
+              }
+            </div>
 
             {/* Description */}
             <p className="text-gray-700 text-sm mb-6">
@@ -691,7 +832,7 @@ const ProductPage = () => {
                     className={`relative overflow-hidden group border rounded-xl p-4 flex flex-col items-center transition-all duration-300 ${
                       selectedBundle === 'single'
                         ? 'border-2 border-[#E94F37] bg-[#FFF9F9] scale-[1.02]'
-                        : 'hover:border-[#E94F37] bg-white'
+                        : 'border-gray-200 bg-gray-100 opacity-60'
                     }`}
                   >
                     <div className="h-24 w-full mb-2 relative z-10">
@@ -714,10 +855,10 @@ const ProductPage = () => {
                     className={`relative overflow-hidden group rounded-xl p-4 flex flex-col items-center transition-all duration-300 border-2 ${
                       selectedBundle === 'bundle'
                         ? 'border-[#E94F37] bg-[#FFF3E6] scale-[1.02]'
-                        : 'border-gray-200 bg-white hover:bg-[#FFE6D6]'
+                        : 'border-gray-200 bg-gray-100 opacity-60'
                     }`}
                   >
-                    <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] bg-[#E94F37] text-white px-3 py-1 rounded-full font-medium">
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] bg-[#E94F37] text-white px-3 py-1 rounded-full font-medium z-20">
                       BETTER TOGETHER
                     </div>
                     <div className="flex justify-center items-center gap-2 h-24 mb-2 relative z-10">
@@ -734,15 +875,15 @@ const ProductPage = () => {
                       <div className="text-[#E94F37] font-bold">+</div>
                       <div className="h-full w-1/2">
                         <img 
-                          src="/assets/products/silica-plant-food.png"
-                          alt="Silica For Plants"
+                          src={silicaProduct ? silicaProduct.image : "/assets/products/silica-plant-food.png"}
+                          alt={silicaProduct ? silicaProduct.name : "Silica For Plants"}
                           className="h-full w-full object-contain"
                         />
                       </div>
                     </div>
-                    <span className="text-xs text-center font-medium">{product.name} + Silica For Plants</span>
+                    <span className="text-xs text-center font-medium">{product.name} + {silicaProduct ? silicaProduct.name : "Silica For Plants"}</span>
                     <span className="font-bold mt-2 text-[#E94F37]">
-                      ${(selectedVariant.price + 10).toFixed(2)}
+                      ${(selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)).toFixed(2)}
                     </span>
                     <div className="absolute bottom-0 left-0 w-full h-1 bg-[#E94F37] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
                   </button>
@@ -762,47 +903,115 @@ const ProductPage = () => {
             </button>
 
             {/* Purchase Options */}
-            <div className="border rounded-lg p-3">
-              {/* Modified to use grid layout for mobile and flexbox for desktop */}
-              <div className="grid grid-cols-1 sm:flex sm:justify-between sm:items-center gap-2">
+            <div className="border rounded-lg p-5 bg-[#FFFBF5]">
+              <div className="mb-3 text-center">
+                <span className="text-sm font-medium text-gray-600">CHOOSE PURCHASE OPTION</span>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
                 {/* One-time purchase option */}
-                <div className="flex items-center gap-2 sm:flex-1 sm:border-r sm:pr-4">
-                  <input 
-                    type="radio" 
-                    id="one-time"
-                    name="purchase-type"
-                    defaultChecked 
-                    className="accent-[#E94F37] w-4 h-4" 
-                  />
-                  <label htmlFor="one-time" className="text-sm font-semibold sm:text-base">ONE-TIME PURCHASE</label>
-                  <span className="ml-auto font-bold sm:ml-4 sm:text-lg">
-                    ${selectedVariant ? selectedVariant.price.toFixed(2) : '14.99'}
-                  </span>
+                <div 
+                  className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
+                    !isSubscription 
+                      ? 'border-[#E94F37] bg-white shadow-sm'
+                      : 'border-gray-200 hover:border-[#E94F37] bg-white/70'
+                  }`}
+                  onClick={() => setIsSubscription(false)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-5 h-5 flex-shrink-0">
+                      <input 
+                        type="radio" 
+                        id="one-time"
+                        name="purchase-type"
+                        checked={!isSubscription}
+                        onChange={() => setIsSubscription(false)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                      />
+                      <div className={`w-full h-full rounded-full border-2 flex items-center justify-center ${
+                        !isSubscription ? 'border-[#E94F37]' : 'border-gray-300'
+                      }`}>
+                        {!isSubscription && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#E94F37]"></div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <label htmlFor="one-time" className="font-semibold text-gray-800 block mb-0.5">ONE-TIME PURCHASE</label>
+                      <span className="text-xs text-gray-500">
+                        Pay once and receive a single delivery
+                      </span>
+                    </div>
+                    <div className="font-bold text-lg">
+                      ${selectedBundle === 'single' 
+                        ? (selectedVariant ? selectedVariant.price.toFixed(2) : '14.99')
+                        : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)).toFixed(2) : '24.99')
+                      }
+                    </div>
+                  </div>
                 </div>
                 
                 {/* Subscribe option */}
-                <div className="flex items-center gap-2 sm:flex-1 sm:pl-4 sm:relative sm:before:hidden">
-                  <input 
-                    type="radio" 
-                    id="subscribe"
-                    name="purchase-type"
-                    className="accent-[#E94F37] w-4 h-4" 
-                  />
-                  <div className="flex flex-col">
-                    <label htmlFor="subscribe" className="text-sm font-semibold sm:text-base">SUBSCRIBE • SAVE!</label>
-                    <span className="hidden sm:block text-xs text-gray-500">
-                      Delivery every <span className="font-semibold">2 months</span>
-                    </span>
+                <div 
+                  className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
+                    isSubscription 
+                      ? 'border-[#E94F37] bg-white shadow-sm'
+                      : 'border-gray-200 hover:border-[#E94F37] bg-white/70'
+                  }`}
+                  onClick={() => setIsSubscription(true)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-5 h-5 flex-shrink-0">
+                      <input 
+                        type="radio" 
+                        id="subscribe"
+                        name="purchase-type"
+                        checked={isSubscription}
+                        onChange={() => setIsSubscription(true)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                      />
+                      <div className={`w-full h-full rounded-full border-2 flex items-center justify-center ${
+                        isSubscription ? 'border-[#E94F37]' : 'border-gray-300'
+                      }`}>
+                        {isSubscription && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#E94F37]"></div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <label htmlFor="subscribe" className="font-semibold text-gray-800">SUBSCRIBE & SAVE</label>
+                        <span className="text-xs font-bold bg-[#E94F37] text-white px-1.5 py-0.5 rounded">15% OFF</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500">Delivery every</span>
+                        <select 
+                          value={deliveryInterval}
+                          onChange={(e) => setDeliveryInterval(parseInt(e.target.value))}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-xs font-medium bg-transparent border border-gray-200 rounded px-1 py-0.5 cursor-pointer"
+                        >
+                          <option value="1">1 month</option>
+                          <option value="2">2 months</option>
+                          <option value="3">3 months</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-400 line-through">
+                        ${selectedBundle === 'single'
+                          ? (selectedVariant ? selectedVariant.price.toFixed(2) : '14.99')
+                          : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)).toFixed(2) : '24.99')
+                        }
+                      </div>
+                      <div className="font-bold text-lg text-[#E94F37]">
+                        ${selectedBundle === 'single'
+                          ? (selectedVariant ? (selectedVariant.price * 0.85).toFixed(2) : '12.74')
+                          : (selectedVariant ? ((selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)) * 0.85).toFixed(2) : '21.24')
+                        }
+                      </div>
+                    </div>
                   </div>
-                  <span className="ml-auto font-bold sm:ml-4 sm:text-lg sm:text-[#E94F37]">
-                    ${selectedVariant ? (selectedVariant.price * 0.85).toFixed(2) : '12.99'}
-                  </span>
                 </div>
-              </div>
-              
-              {/* Delivery note - Only shown on mobile */}
-              <div className="text-center sm:hidden text-xs text-gray-500 mt-1">
-                Delivery every <span className="font-semibold">2 months</span>
               </div>
             </div>
           </section>

@@ -11,7 +11,8 @@ const CartDrawer = () => {
     cartCount,
     removeFromCart,
     updateQuantity,
-    addToCart
+    addToCart,
+    checkout
   } = useCart();
   
   const [suggestedProducts, setSuggestedProducts] = useState([]);
@@ -319,13 +320,34 @@ const CartDrawer = () => {
                       <div className="flex flex-col flex-1 min-w-0">
                         <h3 className="text-sm font-semibold text-gray-900 truncate">{item.name}</h3>
                         <p className="text-sm text-gray-500 mb-1">{item.variantTitle}</p>
-                        <p className="text-sm font-medium text-gray-900">${item.price.toFixed(2)}</p>
+                        
+                        {/* Show subscription details if it's a subscription item */}
+                        {item.subscription && (
+                          <div className="mb-1 bg-[#FFF2E6] rounded-md p-1 px-2 inline-flex items-center">
+                            <svg className="w-3 h-3 text-[#FF6B57] mr-1" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>
+                            </svg>
+                            <span className="text-xs font-medium text-[#FF6B57]">
+                              SUBSCRIBE • SAVE {item.subscription.discount}% • Every {item.subscription.interval} {item.subscription.intervalUnit}{item.subscription.interval > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
+                        
+                        <p className="text-sm font-medium text-gray-900">
+                          {item.subscription 
+                            ? <span className="flex items-center">
+                                <span className="line-through text-gray-400 mr-2">${item.price.toFixed(2)}</span>
+                                <span>${(item.price * (1 - item.subscription.discount/100)).toFixed(2)}</span>
+                              </span>
+                            : `$${item.price.toFixed(2)}`
+                          }
+                        </p>
                         
                         <div className="flex items-center justify-between mt-auto">
                           {/* Quantity Controls */}
                           <div className="flex items-center border rounded-full bg-white overflow-hidden">
                             <button 
-                              onClick={() => updateQuantity(item.id, item.variantId, item.quantity - 1)} 
+                              onClick={() => updateQuantity(item.id, item.variantId, item.quantity - 1, item.subscription)} 
                               className="p-1 w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-700 focus:outline-none disabled:opacity-50 transition-colors"
                               disabled={item.quantity <= 1}
                             >
@@ -333,7 +355,7 @@ const CartDrawer = () => {
                             </button>
                             <span className="px-2 text-sm font-medium min-w-[24px] text-center">{item.quantity}</span>
                             <button 
-                              onClick={() => updateQuantity(item.id, item.variantId, item.quantity + 1)} 
+                              onClick={() => updateQuantity(item.id, item.variantId, item.quantity + 1, item.subscription)} 
                               className="p-1 w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-700 focus:outline-none transition-colors"
                             >
                               <PlusIcon className="h-3 w-3" />
@@ -342,7 +364,7 @@ const CartDrawer = () => {
                           
                           {/* Remove Button */}
                           <button 
-                            onClick={() => removeFromCart(item.id, item.variantId)} 
+                            onClick={() => removeFromCart(item.id, item.variantId, item.subscription)} 
                             className="text-sm text-gray-400 hover:text-[#ff6b57] transition-colors"
                           >
                             Remove
@@ -453,12 +475,20 @@ const CartDrawer = () => {
               </div>
               
               <div className="mt-6">
-                <button className="w-full bg-[#ff6b57] hover:bg-[#ff5a43] text-white py-3 px-4 rounded-full transition-colors font-medium shadow-sm flex items-center justify-center uppercase">
+                <button 
+                  onClick={checkout}
+                  className="w-full bg-[#ff6b57] hover:bg-[#ff5a43] text-white py-3 px-4 rounded-full transition-colors font-medium shadow-sm flex items-center justify-center uppercase"
+                >
                   <span>CHECKOUT</span>
                 </button>
                 
                 <div className="mt-6 text-center">
                   <p className="text-xs text-gray-500">Shipping and Taxes Calculated at checkout</p>
+                  {cartItems.some(item => item.subscription) && (
+                    <p className="text-xs font-medium text-[#FF6B57] mt-1">
+                      Your cart contains subscription items
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
