@@ -47,6 +47,20 @@ const ProductCards = () => {
       variants: [{ id: 'variant4', title: '8 Ounces', price: 14.99, available: true }]
     }
   ];
+  
+  // Background gradient styles for each product card
+  const cardBackgrounds = [
+    'bg-gradient-to-br from-[#e6f4fa] to-[#d9eef8]', // Light blue gradient
+    'bg-gradient-to-br from-[#f2f9e7] to-[#e8f4d9]', // Light green gradient
+    'bg-gradient-to-br from-[#fef5e7] to-[#fbecd3]', // Light yellow/cream gradient
+    'bg-gradient-to-br from-[#f8effc] to-[#f1e3fa]'  // Light lavender gradient
+  ];
+
+  // Helper function to get alternating backgrounds
+  const getRandomBackground = (index) => {
+    const backgroundIndex = index % cardBackgrounds.length;
+    return cardBackgrounds[backgroundIndex];
+  };
 
   const renderStars = () => {
     return (
@@ -73,11 +87,11 @@ const ProductCards = () => {
         {/* Grid for all screen sizes */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* First 4 products for all screen sizes */}
-          {products.slice(0, 4).map((product) => (
+          {products.slice(0, 4).map((product, index) => (
             <Link
               to={`/product/${product.id}`}
               key={product.id}
-              className="block bg-gradient-to-br from-[#e0f5ed] to-[#d0f0e5] rounded-lg overflow-hidden shadow-sm relative hover:shadow-md transition-shadow"
+              className={`block ${getRandomBackground(index)} rounded-lg overflow-hidden shadow-sm relative hover:shadow-md transition-shadow`}
             >
               {product.bestSeller && (
                 <div className="absolute top-4 left-4 bg-[#ff6b57] text-white font-bold py-1 px-4 rounded-full text-sm">
@@ -143,11 +157,11 @@ const ProductCards = () => {
           </div>
           
           {/* Extra products - hidden on mobile */}
-          {products.length > 4 && products.slice(4).map((product) => (
+          {products.length > 4 && products.slice(4).map((product, index) => (
             <Link
               to={`/product/${product.id}`}
               key={product.id}
-              className="hidden md:block bg-gradient-to-br from-[#e0f5ed] to-[#d0f0e5] rounded-lg overflow-hidden shadow-sm relative hover:shadow-md transition-shadow"
+              className={`hidden md:block ${getRandomBackground(index)} rounded-lg overflow-hidden shadow-sm relative hover:shadow-md transition-shadow`}
             >
               {product.bestSeller && (
                 <div className="absolute top-4 left-4 bg-[#ff6b57] text-white font-bold py-1 px-4 rounded-full text-sm">

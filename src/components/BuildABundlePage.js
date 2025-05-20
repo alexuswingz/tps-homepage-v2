@@ -10,6 +10,20 @@ const BuildABundlePage = () => {
   const [showCategoryOptions, setShowCategoryOptions] = useState(false);
   const pageTopRef = useRef(null);
   
+  // Background gradient styles for each product card
+  const cardBackgrounds = [
+    'bg-gradient-to-br from-[#e6f4fa] to-[#d9eef8]', // Light blue gradient
+    'bg-gradient-to-br from-[#f2f9e7] to-[#e8f4d9]', // Light green gradient
+    'bg-gradient-to-br from-[#fef5e7] to-[#fbecd3]', // Light yellow/cream gradient
+    'bg-gradient-to-br from-[#f8effc] to-[#f1e3fa]'  // Light lavender gradient
+  ];
+  
+  // Helper function to get alternating background
+  const getRandomBackground = (index = 0) => {
+    const backgroundIndex = index % cardBackgrounds.length;
+    return cardBackgrounds[backgroundIndex];
+  };
+  
   // List of houseplant product names from the image
   const houseplantProducts = [
     "Money Tree Fertilizer",
@@ -304,6 +318,9 @@ const BuildABundlePage = () => {
     // Format the title
     const title = node.title.toUpperCase();
     
+    // Assign a random background class instead of category-based
+    const backgroundClass = getRandomBackground();
+    
     // Generate a product color (using the primary brand color with some variation)
     let hue;
     if (isHouseplantProduct) hue = '160';
@@ -328,7 +345,8 @@ const BuildABundlePage = () => {
       category: category,
       variants,
       size: defaultVariant ? defaultVariant.title : "8 Ounces",
-      backgroundColorLight
+      backgroundColorLight,
+      backgroundClass: getRandomBackground(0),
     };
   };
 
@@ -347,7 +365,8 @@ const BuildABundlePage = () => {
         category: "Houseplant Products",
         size: "8 Ounces",
         variants: [{ id: 'variant1', title: '8 oz', price: 14.99, available: true }],
-        backgroundColorLight: "hsla(160, 60%, 95%, 0.6)"
+        backgroundColorLight: "hsla(160, 60%, 95%, 0.6)",
+        backgroundClass: getRandomBackground(0),
       },
       {
         id: 'product-2',
@@ -360,7 +379,8 @@ const BuildABundlePage = () => {
         category: "Houseplant Products",
         size: "8 Ounces",
         variants: [{ id: 'variant2', title: '8 oz', price: 14.99, available: true }],
-        backgroundColorLight: "hsla(160, 60%, 95%, 0.6)"
+        backgroundColorLight: "hsla(160, 60%, 95%, 0.6)",
+        backgroundClass: getRandomBackground(1),
       },
       {
         id: 'product-3',
@@ -373,7 +393,8 @@ const BuildABundlePage = () => {
         category: "Garden Products",
         size: "8 Ounces",
         variants: [{ id: 'variant3', title: '8 oz', price: 14.99, available: true }],
-        backgroundColorLight: "hsla(100, 60%, 95%, 0.6)"
+        backgroundColorLight: "hsla(100, 60%, 95%, 0.6)",
+        backgroundClass: getRandomBackground(2),
       },
       {
         id: 'product-4',
@@ -386,7 +407,8 @@ const BuildABundlePage = () => {
         category: "Houseplant Products",
         size: "8 Ounces",
         variants: [{ id: 'variant4', title: '8 oz', price: 14.99, available: true }],
-        backgroundColorLight: "hsla(160, 60%, 95%, 0.6)"
+        backgroundColorLight: "hsla(160, 60%, 95%, 0.6)",
+        backgroundClass: getRandomBackground(3),
       },
       {
         id: 'product-5',
@@ -399,7 +421,8 @@ const BuildABundlePage = () => {
         category: "Houseplant Products",
         size: "8 Ounces",
         variants: [{ id: 'variant5', title: '8 oz', price: 14.99, available: true }],
-        backgroundColorLight: "hsla(160, 60%, 95%, 0.6)"
+        backgroundColorLight: "hsla(160, 60%, 95%, 0.6)",
+        backgroundClass: getRandomBackground(4),
       },
       {
         id: 'product-6',
@@ -412,7 +435,8 @@ const BuildABundlePage = () => {
         category: "Garden Products",
         size: "8 Ounces",
         variants: [{ id: 'variant6', title: '8 oz', price: 15.99, available: true }],
-        backgroundColorLight: "hsla(100, 60%, 95%, 0.6)"
+        backgroundColorLight: "hsla(100, 60%, 95%, 0.6)",
+        backgroundClass: getRandomBackground(5),
       },
       {
         id: 'product-7',
@@ -425,7 +449,8 @@ const BuildABundlePage = () => {
         category: "Garden Products",
         size: "8 Ounces",
         variants: [{ id: 'variant7', title: '8 oz', price: 14.99, available: true }],
-        backgroundColorLight: "hsla(100, 60%, 95%, 0.6)"
+        backgroundColorLight: "hsla(100, 60%, 95%, 0.6)",
+        backgroundClass: getRandomBackground(6),
       },
       {
         id: 'product-8',
@@ -438,7 +463,8 @@ const BuildABundlePage = () => {
         category: "Garden Products",
         size: "8 Ounces",
         variants: [{ id: 'variant8', title: '8 oz', price: 14.99, available: true }],
-        backgroundColorLight: "hsla(100, 60%, 95%, 0.6)"
+        backgroundColorLight: "hsla(100, 60%, 95%, 0.6)",
+        backgroundClass: getRandomBackground(7),
       },
       {
         id: 'product-9',
@@ -451,7 +477,8 @@ const BuildABundlePage = () => {
         category: "Garden Products",
         size: "8 Ounces",
         variants: [{ id: 'variant9', title: '8 oz', price: 16.99, available: true }],
-        backgroundColorLight: "hsla(100, 60%, 95%, 0.6)"
+        backgroundColorLight: "hsla(100, 60%, 95%, 0.6)",
+        backgroundClass: getRandomBackground(8),
       }
     ];
   };
@@ -622,6 +649,91 @@ const BuildABundlePage = () => {
     setShowCategoryOptions(false);
   };
 
+  // Product card component for the available products
+  const ProductCard = ({ product, onSelect, index }) => {
+    const variant = getEightOunceVariant(product);
+    const available = getAvailableStock(product) > 0;
+    
+    return (
+      <div 
+        className={`rounded-lg overflow-hidden shadow-sm relative ${product.backgroundClass || getRandomBackground(index)}`}
+        onClick={() => available && onSelect(product)}
+      >
+        {product.bestSeller && (
+          <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm">
+            BEST SELLER!
+          </div>
+        )}
+        {!available && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <span className="bg-red-500 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-bold text-sm sm:text-base">OUT OF STOCK</span>
+          </div>
+        )}
+        <div className="p-3 sm:p-6">
+          <img 
+            src={product.image} 
+            alt={product.name} 
+            className="h-32 sm:h-48 mx-auto mb-2 sm:mb-4 object-contain mix-blend-multiply"
+          />
+          
+          <div className="flex items-center justify-between mb-1 sm:mb-3">
+            {renderStars()}
+            <span className="text-gray-600 text-xs sm:text-sm">{product.reviews} reviews</span>
+          </div>
+          
+          <div className="mb-2 sm:mb-4">
+            {formatProductName(product.name)}
+          </div>
+          
+          <div className="flex justify-between items-center mb-2 sm:mb-4">
+            <div className="flex-1 border border-gray-300 rounded-l-full p-1 sm:p-2 pl-2 sm:pl-4 bg-white">
+              <span className="font-medium text-xs sm:text-base">8 Ounces</span>
+            </div>
+            <div className="flex-1 border border-gray-300 rounded-r-full p-1 sm:p-2 pr-2 sm:pr-4 bg-white text-right">
+              <span className="font-medium text-xs sm:text-base">${variant ? variant.price.toFixed(2) : product.price.toFixed(2)}</span>
+            </div>
+          </div>
+          
+          {selectedItems.find(item => item.product.id === product.id) && (
+            <div className="flex items-center justify-between mb-2 sm:mb-4 bg-[#fff3e0] rounded-full p-1 sm:p-2">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeFromBundle(product.id);
+                }}
+                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white text-[#ff6b57] flex items-center justify-center font-bold shadow hover:bg-gray-100"
+              >
+                -
+              </button>
+              <span className="font-bold text-xs sm:text-base">{selectedItems.find(item => item.product.id === product.id).quantity} in bundle</span>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addToBundle(product);
+                }}
+                className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${bundleCount < 3 ? 'bg-white text-[#ff6b57]' : 'bg-gray-200 text-gray-400'} flex items-center justify-center font-bold shadow ${bundleCount < 3 ? 'hover:bg-gray-100' : ''}`}
+                disabled={bundleCount >= 3}
+              >
+                +
+              </button>
+            </div>
+          )}
+          
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              addToBundle(product);
+            }}
+            className={`w-full font-bold py-2 sm:py-3 px-2 sm:px-4 rounded-full transition-colors text-xs sm:text-base ${available && bundleCount < 3 ? 'bg-[#ff6b57] hover:bg-[#ff5a5a] text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+            disabled={!available || bundleCount >= 3}
+          >
+            {selectedItems.find(item => item.product.id === product.id) ? 'ADD ANOTHER' : 'ADD TO BUNDLE'}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#fffbef]" ref={pageTopRef}>
       <div className="max-w-7xl mx-auto px-6">
@@ -644,14 +756,20 @@ const BuildABundlePage = () => {
                         <p className="font-medium text-sm truncate">{item.product.name}</p>
                         <div className="flex items-center justify-center sm:justify-start mt-1">
                           <button 
-                            onClick={() => removeFromBundle(item.product.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFromBundle(item.product.id);
+                            }}
                             className="w-6 h-6 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-sm hover:bg-gray-200"
                           >
                             -
                           </button>
                           <span className="mx-2 text-sm font-bold">{item.quantity}</span>
                           <button 
-                            onClick={() => addToBundle(item.product)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToBundle(item.product);
+                            }}
                             className={`w-6 h-6 rounded-full ${bundleCount < 3 ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed'} flex items-center justify-center text-sm`}
                             disabled={bundleCount >= 3}
                           >
@@ -737,85 +855,9 @@ const BuildABundlePage = () => {
               </div>
             ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-4 mb-8">
-                {filteredProducts.map(product => {
-                  const eightOzVariant = getEightOunceVariant(product);
-                  const inStock = eightOzVariant && eightOzVariant.available;
-                  const itemInBundle = selectedItems.find(item => item.product.id === product.id);
-                  const currentQuantity = itemInBundle ? itemInBundle.quantity : 0;
-                  const availableStock = getAvailableStock(product);
-                  const canAddMore = bundleCount < 3 && (currentQuantity < availableStock);
-                  
-                  return (
-                    <div 
-                      key={product.id} 
-                      className="rounded-lg overflow-hidden shadow-sm relative"
-                      style={{ backgroundColor: product.backgroundColorLight }}
-                    >
-                      {product.bestSeller && (
-                        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm">
-                          BEST SELLER!
-                        </div>
-                      )}
-                      {!inStock && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                          <span className="bg-red-500 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-bold text-sm sm:text-base">OUT OF STOCK</span>
-                        </div>
-                      )}
-                      <div className="p-3 sm:p-6">
-                        <img 
-                          src={product.image} 
-                          alt={product.name} 
-                          className="h-32 sm:h-48 mx-auto mb-2 sm:mb-4 object-contain mix-blend-multiply"
-                        />
-                        
-                        <div className="flex items-center justify-between mb-1 sm:mb-3">
-                          {renderStars()}
-                          <span className="text-gray-600 text-xs sm:text-sm">{product.reviews} reviews</span>
-                        </div>
-                        
-                        <div className="mb-2 sm:mb-4">
-                          {formatProductName(product.name)}
-                        </div>
-                        
-                        <div className="flex justify-between items-center mb-2 sm:mb-4">
-                          <div className="flex-1 border border-gray-300 rounded-l-full p-1 sm:p-2 pl-2 sm:pl-4 bg-white">
-                            <span className="font-medium text-xs sm:text-base">8 Ounces</span>
-                          </div>
-                          <div className="flex-1 border border-gray-300 rounded-r-full p-1 sm:p-2 pr-2 sm:pr-4 bg-white text-right">
-                            <span className="font-medium text-xs sm:text-base">${eightOzVariant ? eightOzVariant.price.toFixed(2) : product.price.toFixed(2)}</span>
-                          </div>
-                        </div>
-                        
-                        {currentQuantity > 0 && (
-                          <div className="flex items-center justify-between mb-2 sm:mb-4 bg-[#fff3e0] rounded-full p-1 sm:p-2">
-                            <button 
-                              onClick={() => removeFromBundle(product.id)}
-                              className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white text-[#ff6b57] flex items-center justify-center font-bold shadow hover:bg-gray-100"
-                            >
-                              -
-                            </button>
-                            <span className="font-bold text-xs sm:text-base">{currentQuantity} in bundle</span>
-                            <button 
-                              onClick={() => addToBundle(product)}
-                              className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${canAddMore ? 'bg-white text-[#ff6b57]' : 'bg-gray-200 text-gray-400'} flex items-center justify-center font-bold shadow ${canAddMore ? 'hover:bg-gray-100' : ''}`}
-                              disabled={!canAddMore}
-                            >
-                              +
-                            </button>
-                          </div>
-                        )}
-                        
-                        <button 
-                          onClick={() => addToBundle(product)}
-                          className={`w-full font-bold py-2 sm:py-3 px-2 sm:px-4 rounded-full transition-colors text-xs sm:text-base ${inStock && bundleCount < 3 ? 'bg-[#ff6b57] hover:bg-[#ff5a5a] text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-                          disabled={!inStock || bundleCount >= 3}
-                        >
-                          {currentQuantity > 0 ? 'ADD ANOTHER' : 'ADD TO BUNDLE'}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                {filteredProducts.map((product, index) => (
+                  <ProductCard key={product.id} product={product} onSelect={addToBundle} index={index} />
+                ))}
               </div>
             ) : (
               <div className="text-center py-12">

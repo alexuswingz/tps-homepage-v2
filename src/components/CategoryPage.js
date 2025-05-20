@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from './CartContext';
 
 // Category definitions matching the ShopByPlant component
@@ -31,64 +31,57 @@ const categories = [
   }
 ];
 
+// Background gradient styles for each product card
+const cardBackgrounds = [
+  'bg-gradient-to-br from-[#e6f4fa] to-[#d9eef8]', // Light blue gradient
+  'bg-gradient-to-br from-[#f2f9e7] to-[#e8f4d9]', // Light green gradient
+  'bg-gradient-to-br from-[#fef5e7] to-[#fbecd3]', // Light yellow/cream gradient
+  'bg-gradient-to-br from-[#f8effc] to-[#f1e3fa]'  // Light lavender gradient
+];
+
 // Product Card Component (same as in ProductsPage.js)
-const ProductCard = ({ product }) => {
-  // State to track selected quantity for this product
-  const [quantity, setQuantity] = useState(1);
-  // State to track selected variant
-  const [selectedVariant, setSelectedVariant] = useState(null);
-  // State for dropdown open/close
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  // Ref for dropdown container
-  const dropdownRef = React.useRef(null);
-  
+const ProductCard = ({ product, index }) => {
   const { addToCart } = useCart();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [activeVariant, setActiveVariant] = useState(null);
+  const dropdownRef = useRef(null);
+
+  // Get alternating background instead of random
+  const getCategoryBackground = () => {
+    const backgroundIndex = index % cardBackgrounds.length;
+    return cardBackgrounds[backgroundIndex];
+  };
   
   // Initialize selected variant on component mount
   useEffect(() => {
     // Find first available variant or default to first variant
     const initialVariant = product.variants.find(variant => variant.available) || product.variants[0];
-    setSelectedVariant(initialVariant);
+    setActiveVariant(initialVariant);
   }, [product.variants]);
   
-  // Handle click outside to close dropdown
+  // Add click outside listener to close dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
       }
     };
-    
-    // Add event listener when dropdown is open
-    if (dropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    
-    // Cleanup
+
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [dropdownOpen]);
-  
-  // Get active variant (selected or first available)
-  const activeVariant = selectedVariant || (product.variants.find(variant => variant.available) || product.variants[0]);
+  }, []);
   
   // Calculate max quantity that can be ordered (respect inventory limits)
-  const maxQuantity = activeVariant && activeVariant.available 
-    ? (activeVariant.quantity > 0 ? activeVariant.quantity : 10)  // Default to 10 if no quantity specified
-    : 0;
-  
-  // Ensure quantity doesn't exceed available stock when variant changes
-  useEffect(() => {
-    if (quantity > maxQuantity) {
-      setQuantity(maxQuantity || 1);
-    }
-  }, [maxQuantity, quantity, activeVariant]);
+  const maxQuantity = activeVariant && activeVariant.available ? 
+    (activeVariant.inventoryQuantity || 99) : 0;
   
   const handleQuantityChange = (e) => {
-    const newQuantity = parseInt(e.target.value);
-    if (!isNaN(newQuantity) && newQuantity > 0 && newQuantity <= maxQuantity) {
-      setQuantity(newQuantity);
+    const value = parseInt(e.target.value);
+    if (value >= 1 && value <= maxQuantity) {
+      setQuantity(value);
     }
   };
   
@@ -111,11 +104,10 @@ const ProductCard = ({ product }) => {
   };
   
   const selectVariant = (variant) => {
-    setSelectedVariant(variant);
+    setActiveVariant(variant);
     setDropdownOpen(false);
   };
-
-  // Function to render star ratings
+  
   const renderStars = () => {
     return (
       <div className="flex">
@@ -127,8 +119,8 @@ const ProductCard = ({ product }) => {
       </div>
     );
   };
-
-  // Function to format product name to match design
+  
+  // Format product name to have product type on separate line
   const formatProductName = (name) => {
     const upperName = name.toUpperCase();
     
@@ -159,8 +151,7 @@ const ProductCard = ({ product }) => {
   
   return (
     <div 
-      className="bg-gradient-to-br from-[#e0f5ed] to-[#d0f0e5] rounded-lg overflow-hidden shadow-sm relative"
-      style={{ backgroundImage: `linear-gradient(to bottom right, ${product.backgroundColorLight || '#e0f5ed'}, #d0f0e5)` }}
+      className={`${getCategoryBackground()} rounded-lg overflow-hidden shadow-sm relative`}
     >
       {product.bestSeller && (
         <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm">
@@ -658,7 +649,10 @@ const CategoryPage = () => {
       {/* Category Banner */}
       {categoryInfo && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 mb-8">
-          <div className="relative rounded-lg overflow-hidden w-full h-48 sm:h-72 md:h-96">
+          <Link 
+            to="/products" 
+            className="block relative rounded-lg overflow-hidden w-full h-48 sm:h-72 md:h-96 cursor-pointer"
+          >
             <img 
               src={categoryInfo.image} 
               alt={categoryInfo.name} 
@@ -668,7 +662,7 @@ const CategoryPage = () => {
                 e.target.src = "/assets/Collection Tiles Images/default-category.jpg";
               }}
             />
-            <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+            <div className="absolute inset-0 bg-black bg-opacity-30 hover:bg-opacity-20 transition-opacity duration-300"></div>
             <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4">
               <h1 className="text-white text-3xl sm:text-4xl md:text-5xl font-bold mb-2 drop-shadow-lg">
                 {categoryInfo.name}
@@ -677,7 +671,7 @@ const CategoryPage = () => {
                 All Products
               </p>
             </div>
-          </div>
+          </Link>
         </div>
       )}
 
@@ -702,8 +696,8 @@ const CategoryPage = () => {
           </div>
         ) : products.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map(product => (
-              <ProductCard key={product.id} product={product} />
+            {products.map((product, index) => (
+              <ProductCard key={product.id} product={product} index={index} />
             ))}
           </div>
         ) : (

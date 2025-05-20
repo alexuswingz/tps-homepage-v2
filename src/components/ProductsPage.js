@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import LeafDivider from './LeafDivider';
 import { useCart } from './CartContext';
 
@@ -32,8 +32,16 @@ const categories = [
   }
 ];
 
+// Background gradient styles for each product card
+const cardBackgrounds = [
+  'bg-gradient-to-br from-[#e6f4fa] to-[#d9eef8]', // Light blue gradient
+  'bg-gradient-to-br from-[#f2f9e7] to-[#e8f4d9]', // Light green gradient
+  'bg-gradient-to-br from-[#fef5e7] to-[#fbecd3]', // Light yellow/cream gradient
+  'bg-gradient-to-br from-[#f8effc] to-[#f1e3fa]'  // Light lavender gradient
+];
+
 // Product Card Component
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, index }) => {
   // State to track selected quantity for this product
   const [quantity, setQuantity] = useState(1);
   // State to track selected variant
@@ -158,10 +166,15 @@ const ProductCard = ({ product }) => {
   // Only show dropdown if there are multiple variants
   const hasMultipleVariants = product.variants.length > 1;
   
+  // Get alternating background instead of random
+  const getCategoryBackground = () => {
+    const backgroundIndex = index % cardBackgrounds.length;
+    return cardBackgrounds[backgroundIndex];
+  };
+  
   return (
     <div 
-      className="bg-gradient-to-br from-[#e0f5ed] to-[#d0f0e5] rounded-lg overflow-hidden shadow-sm relative"
-      style={{ backgroundImage: `linear-gradient(to bottom right, ${product.backgroundColorLight || '#e0f5ed'}, #d0f0e5)` }}
+      className={`${getCategoryBackground()} rounded-lg overflow-hidden shadow-sm relative`}
     >
       {product.bestSeller && (
         <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm">
@@ -2571,13 +2584,13 @@ const ProductsPage = () => {
     <section className="bg-[#fffbef]">
       {/* Hero Image */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <div className="relative rounded-lg overflow-hidden w-full h-48 sm:h-72 md:h-96">
+        <Link to="/products" className="block relative rounded-lg overflow-hidden w-full h-48 sm:h-72 md:h-96 cursor-pointer">
           <img 
             src="/assets/team-planting.jpg" 
             alt="Team planting" 
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+          <div className="absolute inset-0 bg-black bg-opacity-30 hover:bg-opacity-20 transition-opacity duration-300"></div>
           <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4">
             <h1 className="text-white text-3xl sm:text-4xl md:text-5xl font-bold mb-2 drop-shadow-lg">
               Premium Plant Food
@@ -2586,7 +2599,7 @@ const ProductsPage = () => {
               For Healthier, Happier Plants
             </p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Page Title */}
@@ -2695,8 +2708,9 @@ const ProductsPage = () => {
               >
                 {/* Category Banner */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-                  <div 
-                    className="relative h-48 md:h-64 lg:h-80 w-full overflow-hidden bg-cover bg-center rounded-lg"
+                  <Link 
+                    to={`/category/${encodeURIComponent(category.category)}`}
+                    className="block relative h-48 md:h-64 lg:h-80 w-full overflow-hidden bg-cover bg-center rounded-lg cursor-pointer"
                     style={{ 
                       backgroundColor: '#f0f0f0' // Fallback color in case image doesn't load
                     }}
@@ -2712,7 +2726,7 @@ const ProductsPage = () => {
                         e.target.style.display = 'none';
                       }}
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+                    <div className="absolute inset-0 bg-black bg-opacity-20 hover:bg-opacity-10 transition-opacity duration-300"></div>
                     <div className="absolute inset-0 flex items-center justify-start p-8 md:p-16">
                       <div>
                         <h1 className="text-white text-4xl md:text-5xl font-bold mb-2">
@@ -2726,22 +2740,21 @@ const ProductsPage = () => {
                     
                     {/* See All Button */}
                     <div className="absolute inset-y-0 right-0 flex items-center pr-8 md:pr-16">
-                      <button 
-                        onClick={() => handleSeeAllClick(category.category)}
+                      <div 
                         className="bg-white text-[#ff6b57] px-4 py-2 rounded-full font-medium shadow-md hover:bg-[#ff6b57] hover:text-white transition-colors duration-200"
                       >
                         See All
-                      </button>
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                 </div>
                 
                 {/* Products Grid */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                   {categoryProducts.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {categoryProducts.map(product => (
-                        <ProductCard key={product.id} product={product} />
+                      {categoryProducts.map((product, index) => (
+                        <ProductCard key={product.id} product={product} index={index} />
                       ))}
                     </div>
                   ) : (

@@ -17,6 +17,20 @@ const ShopByPlant = () => {
   const [isMobile, setIsMobile] = useState(false);
   const swiperRef = useRef(null);
   
+  // Background gradient styles for each product card
+  const cardBackgrounds = [
+    'bg-gradient-to-br from-[#e6f4fa] to-[#d9eef8]', // Light blue gradient
+    'bg-gradient-to-br from-[#f2f9e7] to-[#e8f4d9]', // Light green gradient
+    'bg-gradient-to-br from-[#fef5e7] to-[#fbecd3]', // Light yellow/cream gradient
+    'bg-gradient-to-br from-[#f8effc] to-[#f1e3fa]'  // Light lavender gradient
+  ];
+  
+  // Helper function to get a random background
+  const getRandomBackground = (index) => {
+    const backgroundIndex = index % cardBackgrounds.length;
+    return cardBackgrounds[backgroundIndex];
+  };
+  
   // List of houseplant product names from the image
   const houseplantProducts = [
     "Money Tree Fertilizer",
@@ -467,6 +481,13 @@ const ShopByPlant = () => {
     // Format the title
     const title = node.title.toUpperCase();
     
+    // Assign an alternating background class instead of random
+    const hashCode = title.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    const backgroundClass = getRandomBackground(Math.abs(hashCode) % cardBackgrounds.length);
+    
     // Generate a product color (using the primary brand color with some variation)
     let hue;
     if (isHouseplantProduct) hue = '160';
@@ -496,7 +517,8 @@ const ShopByPlant = () => {
       vendor: node.vendor || "",
       productColor,
       backgroundColorLight,
-      dropdownColor
+      dropdownColor,
+      backgroundClass
     };
   };
 
@@ -753,11 +775,10 @@ const ShopByPlant = () => {
                 watchSlidesProgress={true}
                 className="swiper-container"
               >
-                {displayProducts.map((product) => (
+                {displayProducts.map((product, index) => (
                   <SwiperSlide key={product.id}>
                     <div 
-                      className="rounded-lg overflow-hidden shadow-sm relative h-full cursor-pointer hover:shadow-lg transition-all duration-200"
-                      style={{ backgroundColor: product.backgroundColorLight }}
+                      className={`rounded-lg overflow-hidden shadow-sm relative h-full cursor-pointer hover:shadow-lg transition-all duration-200 ${product.backgroundClass || getRandomBackground(index % cardBackgrounds.length)}`}
                       onClick={() => {
                         // Extract the numeric ID from the Shopify product ID
                         const productId = product.id.split('/').pop();
