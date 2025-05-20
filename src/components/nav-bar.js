@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useCart } from './CartContext';
 import { ShoppingBagIcon, UserIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, Bars3Icon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import AnnouncementBar from './announcement-bar';
 
@@ -138,6 +139,7 @@ const MobileSearchResults = ({ closeMenus }) => (
 );
 
 const NavBar = () => {
+  const { cartCount, toggleCart } = useCart();
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoriesMenuOpen, setCategoriesMenuOpen] = useState(false);
@@ -261,8 +263,16 @@ const NavBar = () => {
               <UserIcon className="h-6 w-6" />
             </button>
             
-            <button className="text-olive-700 hover:text-olive-900 focus:outline-none relative">
+            <button 
+              className="text-olive-700 hover:text-olive-900 focus:outline-none relative"
+              onClick={toggleCart}
+            >
               <ShoppingBagIcon className="h-6 w-6" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#ff6b57] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -307,8 +317,16 @@ const NavBar = () => {
                 <MagnifyingGlassIcon className="h-6 w-6" />
               </button>
               
-              <button className="text-olive-700 hover:text-olive-900 focus:outline-none relative">
+              <button 
+                className="text-olive-700 hover:text-olive-900 focus:outline-none relative"
+                onClick={toggleCart}
+              >
                 <ShoppingBagIcon className="h-6 w-6" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#ff6b57] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
               </button>
             </div>
           </div>

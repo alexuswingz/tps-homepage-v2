@@ -1,6 +1,10 @@
 import React from 'react';
+import { useCart } from './CartContext';
+import { Link } from 'react-router-dom';
 
 const ProductCards = () => {
+  const { addToCart } = useCart();
+
   const products = [
     {
       id: 1,
@@ -10,6 +14,7 @@ const ProductCards = () => {
       price: 14.99,
       reviews: 1203,
       bestSeller: true,
+      variants: [{ id: 'variant1', title: '8 Ounces', price: 14.99, available: true }]
     },
     {
       id: 2,
@@ -19,6 +24,7 @@ const ProductCards = () => {
       price: 14.99,
       reviews: 1203,
       bestSeller: false,
+      variants: [{ id: 'variant2', title: '8 Ounces', price: 14.99, available: true }]
     },
     {
       id: 3,
@@ -28,6 +34,7 @@ const ProductCards = () => {
       price: 14.99,
       reviews: 299,
       bestSeller: false,
+      variants: [{ id: 'variant3', title: '8 Ounces', price: 14.99, available: true }]
     },
     {
       id: 4,
@@ -37,6 +44,7 @@ const ProductCards = () => {
       price: 14.99,
       reviews: 1203,
       bestSeller: false,
+      variants: [{ id: 'variant4', title: '8 Ounces', price: 14.99, available: true }]
     }
   ];
 
@@ -52,6 +60,13 @@ const ProductCards = () => {
     );
   };
 
+  const handleAddToCart = (product, e) => {
+    // Stop event propagation to prevent navigating when adding to cart
+    e.stopPropagation();
+    const variant = product.variants[0];
+    addToCart(product, variant);
+  };
+
   return (
     <section className="py-12 bg-[#fffbef]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -59,9 +74,10 @@ const ProductCards = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* First 4 products for all screen sizes */}
           {products.slice(0, 4).map((product) => (
-            <div 
-              key={product.id} 
-              className="bg-gradient-to-br from-[#e0f5ed] to-[#d0f0e5] rounded-lg overflow-hidden shadow-sm relative"
+            <Link
+              to={`/product/${product.id}`}
+              key={product.id}
+              className="block bg-gradient-to-br from-[#e0f5ed] to-[#d0f0e5] rounded-lg overflow-hidden shadow-sm relative hover:shadow-md transition-shadow"
             >
               {product.bestSeller && (
                 <div className="absolute top-4 left-4 bg-[#ff6b57] text-white font-bold py-1 px-4 rounded-full text-sm">
@@ -86,7 +102,7 @@ const ProductCards = () => {
                 
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex-1 border border-gray-300 rounded-l-full p-2 pl-4 bg-white">
-                    <span className="font-medium">8 Ounces</span>
+                    <span className="font-medium">{product.variants[0].title}</span>
                   </div>
                   <div className="flex-1 border border-gray-300 rounded-r-full p-2 pr-4 bg-white text-right">
                     <span className="font-medium">${product.price}</span>
@@ -94,12 +110,16 @@ const ProductCards = () => {
                 </div>
                 
                 <button 
-                  className="w-full bg-[#ff6b57] hover:bg-[#ff5a43] text-white font-bold py-3 px-4 rounded-full transition-colors"
+                  onClick={(e) => handleAddToCart(product, e)}
+                  className="w-full bg-[#ff6b57] hover:bg-[#ff5a43] hover:shadow-md active:scale-[0.98] text-white font-bold py-3 px-4 rounded-full transition-all duration-200 flex items-center justify-center shadow-sm"
                 >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
                   ADD TO CART
                 </button>
               </div>
-            </div>
+            </Link>
           ))}
           
           {/* SEE ALL card - visible only on mobile */}
@@ -124,9 +144,10 @@ const ProductCards = () => {
           
           {/* Extra products - hidden on mobile */}
           {products.length > 4 && products.slice(4).map((product) => (
-            <div 
-              key={product.id} 
-              className="hidden md:block bg-gradient-to-br from-[#e0f5ed] to-[#d0f0e5] rounded-lg overflow-hidden shadow-sm relative"
+            <Link
+              to={`/product/${product.id}`}
+              key={product.id}
+              className="hidden md:block bg-gradient-to-br from-[#e0f5ed] to-[#d0f0e5] rounded-lg overflow-hidden shadow-sm relative hover:shadow-md transition-shadow"
             >
               {product.bestSeller && (
                 <div className="absolute top-4 left-4 bg-[#ff6b57] text-white font-bold py-1 px-4 rounded-full text-sm">
@@ -151,7 +172,7 @@ const ProductCards = () => {
                 
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex-1 border border-gray-300 rounded-l-full p-2 pl-4 bg-white">
-                    <span className="font-medium">8 Ounces</span>
+                    <span className="font-medium">{product.variants[0].title}</span>
                   </div>
                   <div className="flex-1 border border-gray-300 rounded-r-full p-2 pr-4 bg-white text-right">
                     <span className="font-medium">${product.price}</span>
@@ -159,12 +180,16 @@ const ProductCards = () => {
                 </div>
                 
                 <button 
-                  className="w-full bg-[#ff6b57] hover:bg-[#ff5a43] text-white font-bold py-3 px-4 rounded-full transition-colors"
+                  onClick={(e) => handleAddToCart(product, e)}
+                  className="w-full bg-[#ff6b57] hover:bg-[#ff5a43] hover:shadow-md active:scale-[0.98] text-white font-bold py-3 px-4 rounded-full transition-all duration-200 flex items-center justify-center shadow-sm"
                 >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
                   ADD TO CART
                 </button>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

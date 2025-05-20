@@ -4,8 +4,12 @@ import { Navigation, Pagination, A11y } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
+import { useCart } from './CartContext';
+import { useNavigate } from 'react-router-dom';
 
 const ShopByPlant = () => {
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("Houseplant Products");
@@ -501,7 +505,7 @@ const ShopByPlant = () => {
     // Convert to uppercase for consistency
     const upperName = name.toUpperCase();
     
-    // Find where to split the name (before "PLANT", "FERTILIZER", "FOOD", etc.)
+    // Find where to split the name (before "PLANT", "FERTILIZER", "FOOD", "SUPPLEMENT")
     const keywords = ["PLANT", "FERTILIZER", "FOOD", "SUPPLEMENT"];
     let splitIndex = -1;
     
@@ -520,8 +524,8 @@ const ShopByPlant = () => {
       
       return (
         <div className="product-name-container h-20 flex flex-col justify-start">
-          <p className="text-xl font-bold text-gray-800 mb-1 truncate overflow-hidden">{firstPart}</p>
-          <p className="text-lg text-gray-700 truncate overflow-hidden">{secondPart}</p>
+          <p className="text-xl font-bold text-gray-800 mb-1 truncate overflow-hidden hover:text-[#ff6b57] transition-colors duration-200">{firstPart}</p>
+          <p className="text-lg text-gray-700 truncate overflow-hidden hover:text-[#ff6b57] transition-colors duration-200">{secondPart}</p>
         </div>
       );
     }
@@ -529,7 +533,7 @@ const ShopByPlant = () => {
     // Fallback if no split is possible
     return (
       <div className="product-name-container h-20 flex flex-col justify-start">
-        <p className="text-xl font-bold text-gray-800 truncate overflow-hidden">{upperName}</p>
+        <p className="text-xl font-bold text-gray-800 truncate overflow-hidden hover:text-[#ff6b57] transition-colors duration-200">{upperName}</p>
         <div className="h-6"></div>
       </div>
     );
@@ -628,6 +632,10 @@ const ShopByPlant = () => {
     setSelectedCategory(category);
   };
 
+  const handleSeeAllClick = (category) => {
+    navigate(`/category/${encodeURIComponent(category)}`);
+  };
+
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
   };
@@ -697,194 +705,223 @@ const ShopByPlant = () => {
             <p>Loading products...</p>
           </div>
         ) : filteredProducts.length > 0 ? (
-          <div key={getCarouselKey()} className="relative px-4">
-            <Swiper
-              ref={swiperRef}
-              modules={[Navigation, Pagination, A11y]}
-              spaceBetween={24}
-              slidesPerView={1}
-              pagination={{ 
-                clickable: true,
-                bulletActiveClass: 'swiper-pagination-bullet-active',
-                bulletClass: 'swiper-pagination-bullet',
-                el: '.swiper-pagination'
-              }}
-              breakpoints={{
-                640: { slidesPerView: 1, spaceBetween: 20 },
-                768: { slidesPerView: 2, spaceBetween: 24 },
-                1024: { slidesPerView: 3, spaceBetween: 24 },
-                1280: { slidesPerView: 4, spaceBetween: 24 },
-              }}
-              speed={600}
-              grabCursor={true}
-              touchRatio={1.5}
-              longSwipes={false}
-              resistanceRatio={0.85}
-              threshold={5}
-              followFinger={true}
-              cssMode={false}
-              loop={false}
-              watchSlidesProgress={true}
-              className="swiper-container"
-            >
-              {displayProducts.map((product) => (
-                <SwiperSlide key={product.id}>
-                  <div 
-                    className="rounded-lg overflow-hidden shadow-sm relative h-full"
-                    style={{ backgroundColor: product.backgroundColorLight }}
-                  >
-                    {product.bestSeller && (
-                      <div className="absolute top-4 left-4 bg-[#ff6b57] text-white font-bold py-1 px-4 rounded-full text-sm">
-                        BEST SELLER!
-                      </div>
-                    )}
-                    
-                    <div className="p-6">
-                      <img 
-                        src={product.image} 
-                        alt={product.name} 
-                        className="h-48 mx-auto mb-4 object-contain mix-blend-multiply"
-                      />
-                      
-                      <div className="flex items-center justify-between mb-3">
-                        {renderStars()}
-                        <span className="text-gray-600 text-sm">{product.reviews} reviews</span>
-                      </div>
-                      
-                      <div className="mb-2">
-                        {formatProductName(product.name)}
-                      </div>
-                      
-                      {product.variants && product.variants.length > 0 ? (
-                        <div className="mb-4">
-                          <select 
-                            className="w-full py-3 px-4 rounded-full border border-gray-300 focus:outline-none appearance-none cursor-pointer text-gray-800 font-medium flex justify-between"
-                            defaultValue={product.variants[0].id}
-                            style={{ backgroundColor: product.backgroundColorLight }}
-                          >
-                            {product.variants.map(variant => (
-                              <option 
-                                key={variant.id} 
-                                value={variant.id}
-                                className="py-2"
-                              >
-                                {variant.title.padEnd(20, ' ')}${variant.price.toFixed(2)}
-                              </option>
-                            ))}
-                          </select>
-                          <style jsx>{`
-                            select {
-                              background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-                              background-position: right 1rem center;
-                              background-repeat: no-repeat;
-                              background-size: 1.5em 1.5em;
-                              padding-right: 2.5rem;
-                            }
-                            
-                            select option {
-                              background-color: white;
-                            }
-                          `}</style>
-                        </div>
-                      ) : (
-                        <div className="mb-4">
-                          <div 
-                            className="w-full py-3 px-4 rounded-full border border-gray-300 text-center"
-                            style={{ backgroundColor: product.backgroundColorLight }}
-                          >
-                            <span className="font-medium">No variants available</span>
-                          </div>
+          <div className="mb-6 relative">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">{getCurrentCategoryObject().name}</h3>
+              
+              {/* See All button */}
+              {selectedCategory && (
+                <button 
+                  onClick={() => handleSeeAllClick(selectedCategory)}
+                  className="text-[#ff6b57] hover:text-[#ff5a43] font-medium flex items-center"
+                >
+                  See All
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            <div key={getCarouselKey()} className="relative px-4">
+              <Swiper
+                ref={swiperRef}
+                modules={[Navigation, Pagination, A11y]}
+                spaceBetween={24}
+                slidesPerView={1}
+                pagination={{ 
+                  clickable: true,
+                  bulletActiveClass: 'swiper-pagination-bullet-active',
+                  bulletClass: 'swiper-pagination-bullet',
+                  el: '.swiper-pagination'
+                }}
+                breakpoints={{
+                  640: { slidesPerView: 1, spaceBetween: 20 },
+                  768: { slidesPerView: 2, spaceBetween: 24 },
+                  1024: { slidesPerView: 3, spaceBetween: 24 },
+                  1280: { slidesPerView: 4, spaceBetween: 24 },
+                }}
+                speed={600}
+                grabCursor={true}
+                touchRatio={1.5}
+                longSwipes={false}
+                resistanceRatio={0.85}
+                threshold={5}
+                followFinger={true}
+                cssMode={false}
+                loop={false}
+                watchSlidesProgress={true}
+                className="swiper-container"
+              >
+                {displayProducts.map((product) => (
+                  <SwiperSlide key={product.id}>
+                    <div 
+                      className="rounded-lg overflow-hidden shadow-sm relative h-full cursor-pointer hover:shadow-lg transition-all duration-200"
+                      style={{ backgroundColor: product.backgroundColorLight }}
+                      onClick={() => {
+                        // Extract the numeric ID from the Shopify product ID
+                        const productId = product.id.split('/').pop();
+                        navigate(`/product/${productId}`);
+                      }}
+                    >
+                      {product.bestSeller && (
+                        <div className="absolute top-4 left-4 bg-[#ff6b57] text-white font-bold py-1 px-4 rounded-full text-sm">
+                          BEST SELLER!
                         </div>
                       )}
                       
-                      <button 
-                        className="w-full bg-[#ff6b57] hover:bg-[#ff5a43] text-white font-bold py-3 px-4 rounded-full transition-colors"
-                      >
-                        ADD TO CART
-                      </button>
-                    </div>
-                  </div>
-                </SwiperSlide>
-              ))}
-              
-              {/* Add "See All" card only on mobile */}
-              {isMobile && (
-                <SwiperSlide key="see-all">
-                  <div 
-                    className="rounded-lg overflow-hidden shadow-sm relative h-full flex flex-col justify-between"
-                    style={{ 
-                      minHeight: '500px'
-                    }}
-                  >
-                    <img 
-                      src={getCurrentCategoryObject().image}
-                      alt="See All" 
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-30"></div>
-                    
-                    <div className="p-6 relative z-10 flex flex-col h-full">
-                      <div className="flex-grow flex items-center justify-center">
-                        <h3 className="text-3xl font-bold text-white text-center">
-                          {getCurrentCategoryObject().name}
-                        </h3>
-                      </div>
-                      
-                      <div className="flex justify-center mb-6">
+                      <div className="p-6">
+                        <img 
+                          src={product.image} 
+                          alt={product.name} 
+                          className="h-48 mx-auto mb-4 object-contain mix-blend-multiply hover:scale-105 transition-transform duration-200"
+                        />
+                        
+                        <div className="flex items-center justify-between mb-3">
+                          {renderStars()}
+                          <span className="text-gray-600 text-sm">{product.reviews} reviews</span>
+                        </div>
+                        
+                        <div className="mb-2">
+                          {formatProductName(product.name)}
+                        </div>
+                        
+                        {product.variants && product.variants.length > 0 ? (
+                          <div className="mb-4">
+                            <select 
+                              className="w-full py-3 px-4 rounded-full border border-gray-300 focus:outline-none appearance-none cursor-pointer text-gray-800 font-medium flex justify-between"
+                              defaultValue={product.variants[0].id}
+                              style={{ backgroundColor: product.backgroundColorLight }}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                // Update the default selected variant for this product
+                                const selectedVariantId = e.target.value;
+                                product.selectedVariantId = selectedVariantId;
+                              }}
+                            >
+                              {product.variants.map(variant => (
+                                <option 
+                                  key={variant.id} 
+                                  value={variant.id}
+                                  className="py-2"
+                                  disabled={!variant.available}
+                                >
+                                  {variant.title.padEnd(20, ' ')}${variant.price.toFixed(2)} {!variant.available ? ' (Out of stock)' : ''}
+                                </option>
+                              ))}
+                            </select>
+                            <style jsx>{`
+                              select {
+                                background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+                                background-position: right 1rem center;
+                                background-repeat: no-repeat;
+                                background-size: 1.5em 1.5em;
+                                padding-right: 2.5rem;
+                              }
+                              
+                              select option {
+                                background-color: white;
+                              }
+                            `}</style>
+                          </div>
+                        ) : (
+                          <div className="mb-4">
+                            <div 
+                              className="w-full py-3 px-4 rounded-full border border-gray-300 text-center"
+                              style={{ backgroundColor: product.backgroundColorLight }}
+                            >
+                              <span className="font-medium">No variants available</span>
+                            </div>
+                          </div>
+                        )}
+                        
                         <button 
-                          className="bg-[#ff6b57] hover:bg-[#ff5a43] text-white font-bold py-3 px-8 rounded-full transition-colors text-lg w-full max-w-xs"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent triggering the parent div's onClick
+                            let selectedVariant;
+                            
+                            if (product.selectedVariantId) {
+                              // Use the selected variant if one was chosen from dropdown
+                              selectedVariant = product.variants.find(v => v.id === product.selectedVariantId);
+                            } else if (product.variants && product.variants.length > 0) {
+                              // Otherwise use the first variant
+                              selectedVariant = product.variants[0];
+                            }
+                            
+                            if (selectedVariant && selectedVariant.available) {
+                              addToCart(product, selectedVariant);
+                            }
+                          }}
+                          className={`w-full font-bold py-3 px-4 rounded-full transition-all duration-200 flex items-center justify-center shadow-sm ${
+                            // Check if the currently selected variant is available
+                            (product.selectedVariantId 
+                              ? product.variants.find(v => v.id === product.selectedVariantId)?.available
+                              : product.variants && product.variants.length > 0 && product.variants[0].available)
+                              ? 'bg-[#ff6b57] hover:bg-[#ff5a43] hover:shadow-md active:scale-[0.98] text-white'
+                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          }`}
+                          disabled={
+                            // Disable if no variants or the selected variant is unavailable
+                            !product.variants || 
+                            product.variants.length === 0 || 
+                            (product.selectedVariantId 
+                              ? !product.variants.find(v => v.id === product.selectedVariantId)?.available
+                              : !product.variants[0].available)
+                          }
                         >
-                          SEE ALL
+                          {(product.selectedVariantId 
+                            ? product.variants.find(v => v.id === product.selectedVariantId)?.available
+                            : product.variants && product.variants.length > 0 && product.variants[0].available)
+                            ? (
+                              <>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                </svg>
+                                ADD TO CART
+                              </>
+                            )
+                            : 'OUT OF STOCK'
+                          }
                         </button>
                       </div>
                     </div>
-                  </div>
-                </SwiperSlide>
-              )}
-            </Swiper>
-            
-            <div className="swiper-pagination mt-8 flex justify-center space-x-2"></div>
+                  </SwiperSlide>
+                ))}
+                
+                {/* Add "See All" card only on mobile */}
+                {isMobile && filteredProducts.length > 5 && (
+                  <SwiperSlide key="see-all">
+                    <div className="rounded-lg overflow-hidden shadow-sm relative h-full bg-white border border-gray-200 flex flex-col justify-center items-center p-6" style={{ minHeight: '500px' }}>
+                      <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">View All {getCurrentCategoryObject().name}</h3>
+                      <p className="text-gray-600 mb-6 text-center">
+                        Browse our complete collection of {getCurrentCategoryObject().name.toLowerCase()} plant foods.
+                      </p>
+                      <button 
+                        onClick={() => handleSeeAllClick(selectedCategory)}
+                        className="bg-[#ff6b57] text-white px-6 py-3 rounded-full font-medium shadow-md hover:bg-[#ff5a43] transition-colors duration-200"
+                      >
+                        See All {filteredProducts.length} Products
+                      </button>
+                    </div>
+                  </SwiperSlide>
+                )}
+              </Swiper>
+              
+              <div className="swiper-pagination mt-6"></div>
+            </div>
           </div>
         ) : (
           <div className="text-center py-12">
-            <p>No products found in this category.</p>
+            <p className="text-gray-600 mb-4">No products found in this category.</p>
+            <button 
+              onClick={() => setSelectedCategory("Houseplant Products")}
+              className="bg-[#ff6b57] text-white px-4 py-2 rounded-full font-medium"
+            >
+              View House Plants
+            </button>
           </div>
         )}
       </div>
-      
-      <style jsx global>{`
-        .swiper-pagination {
-          position: static;
-          margin-top: 2rem;
-        }
-        .swiper-pagination-bullet {
-          width: 10px;
-          height: 10px;
-          background-color: #e0e0e0;
-          opacity: 1;
-          margin: 0 5px;
-          transition: all 0.3s ease;
-        }
-        .swiper-pagination-bullet-active {
-          background-color: #ff6b57;
-          width: 12px;
-          height: 12px;
-          transform: scale(1.2);
-        }
-        .swiper-container {
-          padding-bottom: 3rem;
-          touch-action: pan-y;
-          -webkit-overflow-scrolling: touch;
-        }
-        .swiper-wrapper {
-          will-change: transform;
-        }
-        @media (max-width: 768px) {
-          .swiper-slide {
-            height: auto !important;
-          }
-        }
-      `}</style>
     </section>
   );
 };

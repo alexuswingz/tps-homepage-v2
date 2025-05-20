@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 function MonsteraProductSection() {
   return (
@@ -40,9 +41,12 @@ function MonsteraProductSection() {
               </div>
             </div>
             
-            <button className="bg-[#ff7e78] text-white px-10 py-3 rounded-full text-lg font-medium hover:bg-[#ff6c65] transition-colors uppercase">
+            <Link 
+              to="/products"
+              className="inline-block bg-[#ff7e78] text-white px-10 py-3 rounded-full text-lg font-medium hover:bg-[#ff6c65] transition-colors uppercase"
+            >
               Shop All
-            </button>
+            </Link>
           </div>
         </div>
       </div>

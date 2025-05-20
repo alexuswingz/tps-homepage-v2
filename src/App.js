@@ -12,36 +12,46 @@ import Footer from './components/footer';
 import LeafDivider from './components/LeafDivider';
 import AnimatedLeafDivider from './components/AnimatedLeafDivider';
 import ProductsPage from './components/ProductsPage';
+import CategoryPage from './components/CategoryPage';
+import ProductPage from './components/ProductPage';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { CartProvider } from './components/CartContext';
+import CartDrawer from './components/CartDrawer';
 
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-[#fffbef]">
-        <AnnouncementBar />
-        <NavBar />
-        <Routes>
-          <Route path="/" element={
-            <>
-              <HeroSection />
-              <LeafDivider />
-              <BuildBundleSection />
-              <LeafDivider />
-              <ShopByPlant />
-              <LeafDivider />
-              <MonsteraProductSection />
-              <LeafDivider />
-              <CustomerReviews />
-              <AnimatedLeafDivider />
-              <ComparisonChart />
-            </>
-          } />
-          <Route path="/build-bundle" element={<BuildABundlePage />} />
-          <Route path="/products" element={<ProductsPage />} />
-        </Routes>
-        <Footer />
-      </div>
-    </Router>
+    <CartProvider>
+      <Router>
+        {/* Cart Drawer - Positioned outside main content to cover full viewport */}
+        <CartDrawer />
+        
+        <div className="min-h-screen bg-[#fffbef] relative">
+          <NavBar />
+          <Routes>
+            <Route path="/" element={
+              <>
+                <HeroSection />
+                <LeafDivider />
+                <BuildBundleSection />
+                <LeafDivider />
+                <ShopByPlant />
+                <LeafDivider />
+                <MonsteraProductSection />
+                <LeafDivider />
+                <CustomerReviews />
+                <AnimatedLeafDivider />
+                <ComparisonChart />
+              </>
+            } />
+            <Route path="/build-bundle" element={<BuildABundlePage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/category/:categoryId" element={<CategoryPage />} />
+            <Route path="/product/:productId" element={<ProductPage />} />
+          </Routes>
+          <Footer />
+        </div>
+      </Router>
+    </CartProvider>
   );
 }
 
