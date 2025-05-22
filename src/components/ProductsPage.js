@@ -341,16 +341,30 @@ const ProductsPage = () => {
   const [loading, setLoading] = useState(true);
   const [showCategoryOverlay, setShowCategoryOverlay] = useState(false);
   const [currentVisibleCategory, setCurrentVisibleCategory] = useState("");
+  const [isCategorySticky, setIsCategorySticky] = useState(false);
   const categoryRefs = useRef({});
   const observerRef = useRef(null);
   const overlayScrollRef = useRef(null); // Reference to the horizontal scrolling container
+  const categorySelectionRef = useRef(null); // Reference to the category selection div
 
-  // Track scroll position to show/hide the category overlay
+  // Track scroll position to show/hide the category overlay and make category selection sticky
   useEffect(() => {
     const handleScroll = () => {
-      // Show overlay once scrolled past the initial category selection (roughly 400px)
       const scrollPosition = window.scrollY;
       setShowCategoryOverlay(scrollPosition > 400);
+      
+      // Make category selection sticky on mobile
+      if (categorySelectionRef.current) {
+        const categorySelectionTop = categorySelectionRef.current.getBoundingClientRect().top;
+        const isMobile = window.innerWidth < 768; // Define mobile breakpoint
+        
+        // Make sticky when category selection is about to go out of viewport
+        if (isMobile && categorySelectionTop <= 0) {
+          setIsCategorySticky(true);
+        } else {
+          setIsCategorySticky(false);
+        }
+      }
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -2636,8 +2650,66 @@ const ProductsPage = () => {
         <p className="text-gray-500 tracking-wide text-sm">CHOOSE A COLLECTION</p>
       </div>
 
+      {/* Sticky Category Selection for Mobile */}
+      <div 
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 transform md:hidden ${
+          isCategorySticky 
+            ? 'translate-y-0 opacity-100' 
+            : '-translate-y-full opacity-0'
+        }`}
+      >
+        <div className="backdrop-blur-md bg-white/90 shadow-lg border-b border-gray-100">
+          <div className="px-4 py-3">
+            <p className="text-xs text-center font-medium text-gray-500 uppercase tracking-wider mb-2">Collections</p>
+            <div className="flex overflow-x-auto space-x-4 pb-2 scrollbar-hide">
+              {categories.map((category, index) => (
+                <button 
+                  key={`sticky-${index}`}
+                  onClick={() => handleCategoryClick(category.category)}
+                  className={`flex flex-col items-center group w-16 focus:outline-none flex-shrink-0 transition-all duration-200 ${
+                    activeCategory === category.category 
+                      ? 'scale-105 opacity-100' 
+                      : 'opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <div className={`relative overflow-hidden rounded-lg mb-1.5 w-12 h-12 shadow-sm ${
+                    activeCategory === category.category 
+                      ? 'ring-2 ring-[#ff6b57]' 
+                      : 'ring-1 ring-gray-200'
+                  }`}>
+                    <img 
+                      src={category.image} 
+                      alt={category.name}
+                      className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 ${
+                        activeCategory === category.category ? 'scale-105' : ''
+                      }`}
+                      onError={(e) => {
+                        e.target.src = "/assets/Collection Tiles Images/default-category.jpg";
+                      }}
+                    />
+                    {activeCategory === category.category && (
+                      <div className="absolute bottom-0 inset-x-0 h-1 bg-[#ff6b57]"></div>
+                    )}
+                  </div>
+                  <span className={`font-medium text-center text-xs truncate w-full ${
+                    activeCategory === category.category 
+                      ? 'text-[#ff6b57]' 
+                      : 'text-gray-800'
+                  }`}>
+                    {category.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Category Selection */}
-      <div className="flex justify-start sm:justify-center overflow-x-auto pb-4 px-4 scrollbar-hide">
+      <div 
+        ref={categorySelectionRef}
+        className="flex justify-start sm:justify-center overflow-x-auto pb-4 px-4 scrollbar-hide"
+      >
         <div className="flex space-x-3 sm:space-x-6 mb-8 sm:mb-12 sm:flex-wrap sm:justify-center">
           {categories.map((category, index) => (
             <button 
@@ -2666,9 +2738,9 @@ const ProductsPage = () => {
         </div>
       </div>
 
-      {/* Category Navigation Overlay - shown when scrolled down */}
+      {/* Category Navigation Overlay - shown when scrolled down (desktop only) */}
       <div 
-        className={`fixed bottom-0 left-0 right-0 z-40 bg-white bg-opacity-95 shadow-lg border-t border-gray-200 transition-all duration-300 transform ${
+        className={`fixed bottom-0 left-0 right-0 z-40 bg-white bg-opacity-95 shadow-lg border-t border-gray-200 transition-all duration-300 transform hidden md:block ${
           showCategoryOverlay ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
         }`}
       >
@@ -2780,11 +2852,53 @@ const ProductsPage = () => {
                 {/* Products Grid */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                   {categoryProducts.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {categoryProducts.map((product, index) => (
-                        <ProductCard key={product.id} product={product} index={index} />
-                      ))}
-                    </div>
+                    <>
+                      {/* Mobile view: 5 products + See All tile */}
+                      <div className="grid grid-cols-2 gap-6 md:hidden">
+                        {categoryProducts.slice(0, 5).map((product, index) => (
+                          <ProductCard key={product.id} product={product} index={index} />
+                        ))}
+                        {categoryProducts.length > 5 && (
+                          <div 
+                            onClick={() => handleSeeAllClick(category.category)}
+                            className="rounded-lg overflow-hidden shadow-sm cursor-pointer h-full relative bg-[#e0f5ed]"
+                          >
+                            {/* Full-size image */}
+                            <img 
+                              src={category.image} 
+                              alt={`See all ${category.name}`}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.src = "/assets/Collection Tiles Images/default-category.jpg";
+                                console.log("Error loading image:", category.image);
+                              }}
+                            />
+                            
+                            {/* Gradient overlay for text visibility */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.6)] to-[rgba(0,0,0,0.1)]"></div>
+                            
+                            {/* Content positioned at the bottom */}
+                            <div className="absolute inset-x-0 bottom-0 p-4">
+                              <div className="text-center">
+                                <p className="text-xl font-bold text-white mb-3 drop-shadow-md">
+                                  {category.name}
+                                </p>
+                                <div className="bg-[#ff6b57] text-white px-4 py-2 rounded-full font-medium shadow-sm">
+                                  SEE ALL
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Desktop view: all products */}
+                      <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {categoryProducts.map((product, index) => (
+                          <ProductCard key={product.id} product={product} index={index} />
+                        ))}
+                      </div>
+                    </>
                   ) : (
                     <div className="text-center py-12">
                       <p className="text-lg text-gray-600">No products available in this category</p>

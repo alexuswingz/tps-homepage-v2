@@ -14,6 +14,7 @@ import AnimatedLeafDivider from './components/AnimatedLeafDivider';
 import ProductsPage from './components/ProductsPage';
 import CategoryPage from './components/CategoryPage';
 import ProductPage from './components/ProductPage';
+import MobileNewsletter from './components/MobileNewsletter';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './components/CartContext';
 import CartDrawer from './components/CartDrawer';
@@ -41,6 +42,7 @@ function App() {
                 <CustomerReviews />
                 <AnimatedLeafDivider />
                 <ComparisonChart />
+                <MobileNewsletter />
               </>
             } />
             <Route path="/build-bundle" element={<BuildABundlePage />} />

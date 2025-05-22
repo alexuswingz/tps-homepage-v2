@@ -10,7 +10,7 @@ function MonsteraProductSection() {
             <img 
               src="/assets/bannerwithhand.png" 
               alt="Monstera Plant Food" 
-              className="max-w-full relative z-10 rounded-lg mx-auto"
+              className="w-full aspect-square object-cover object-center relative z-10 rounded-lg mx-auto"
             />
           </div>
           <div className="md:w-5/12">

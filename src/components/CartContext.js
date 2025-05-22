@@ -10,12 +10,19 @@ export const CartProvider = ({ children }) => {
   const [cartCount, setCartCount] = useState(0);
   const [cartTotal, setCartTotal] = useState(0);
   const [notification, setNotification] = useState({ visible: false, message: '', product: null });
+  const [discount, setDiscount] = useState(null);
 
   useEffect(() => {
     // Load cart from localStorage when component mounts
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
       setCartItems(JSON.parse(savedCart));
+    }
+    
+    // Check for bundle discount
+    const bundleDiscount = localStorage.getItem('bundleDiscount');
+    if (bundleDiscount) {
+      setDiscount(bundleDiscount);
     }
   }, []);
 
@@ -164,6 +171,9 @@ export const CartProvider = ({ children }) => {
       // Use the custom checkout domain
       const checkoutDomain = 'https://checkout.tpsplantfoods.com';
       
+      // Get bundle discount if available
+      const bundleDiscount = localStorage.getItem('bundleDiscount');
+      
       if (hasSubscription) {
         // For subscription orders, we need to use the ReCharge checkout
         // First create a form to submit to Shopify's cart endpoint
@@ -263,6 +273,15 @@ export const CartProvider = ({ children }) => {
           returnToInput.value = '/checkout';
           addForm.appendChild(returnToInput);
           
+          // If bundle discount exists, add it to the checkout URL
+          if (bundleDiscount) {
+            const discountInput = document.createElement('input');
+            discountInput.type = 'hidden';
+            discountInput.name = 'discount';
+            discountInput.value = bundleDiscount;
+            addForm.appendChild(discountInput);
+          }
+          
           // Submit the form
           document.body.appendChild(addForm);
           console.log('Submitting form with ReCharge subscription properties');
@@ -305,7 +324,14 @@ export const CartProvider = ({ children }) => {
           const returnToInput = document.createElement('input');
           returnToInput.type = 'hidden';
           returnToInput.name = 'return_to';
-          returnToInput.value = '/checkout';
+          
+          // If bundle discount exists, add it to the checkout URL
+          if (bundleDiscount) {
+            returnToInput.value = `/checkout?discount=${bundleDiscount}`;
+          } else {
+            returnToInput.value = '/checkout';
+          }
+          
           addForm.appendChild(returnToInput);
           
           document.body.appendChild(addForm);
@@ -332,7 +358,9 @@ export const CartProvider = ({ children }) => {
         clearCart,
         toggleCart,
         notification,
-        checkout
+        checkout,
+        discount,
+        setDiscount
       }}
     >
       {children}
@@ -356,6 +384,22 @@ export const CartProvider = ({ children }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
+        </div>
+      )}
+      
+      {/* Discount Notification */}
+      {discount && isCartOpen && (
+        <div className="fixed top-[120px] left-0 right-0 flex justify-center z-50">
+          <div className="bg-[#f8f0ff] border border-[#e0c6ff] rounded-lg p-3 mx-4 shadow-md">
+            <div className="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#7b2cbf] mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5 2a2 2 0 00-2 2v14l3.5-2 3.5 2 3.5-2 3.5 2V4a2 2 0 00-2-2H5zm4.707 3.707a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L8.414 9H10a3 3 0 013 3v1a1 1 0 102 0v-1a5 5 0 00-5-5H8.414l1.293-1.293z" clipRule="evenodd" />
+              </svg>
+              <p className="text-sm font-medium text-[#7b2cbf]">
+                Discount code <span className="font-bold">{discount}</span> will be applied at checkout!
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </CartContext.Provider>

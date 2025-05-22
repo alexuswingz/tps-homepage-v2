@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useCart } from './CartContext';
 
 const BuildABundlePage = () => {
+  const { addToCart, setDiscount } = useCart();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -525,18 +527,20 @@ const BuildABundlePage = () => {
   };
 
   // Function to add an item to the bundle
-  const addToBundle = (product) => {
+  const addToBundle = (product, variant) => {
     if (bundleCount >= 3) return;
     
-    // Check if product is already in the bundle
-    const existingItemIndex = selectedItems.findIndex(item => item.product.id === product.id);
+    // Check if product with this specific variant is already in the bundle
+    const existingItemIndex = selectedItems.findIndex(item => 
+      item.product.id === product.id && item.variant.id === variant.id
+    );
     
     if (existingItemIndex >= 0) {
       // Product exists, increment quantity if stock allows
       const existingItem = selectedItems[existingItemIndex];
       
       // Check if we have enough stock
-      const availableStock = getAvailableStock(product);
+      const availableStock = variant.quantity > 0 ? variant.quantity : 10;
       if (existingItem.quantity >= availableStock) {
         // Can't add more than what's in stock
         return;
@@ -553,14 +557,16 @@ const BuildABundlePage = () => {
       setBundleCount(bundleCount + 1);
     } else {
       // Product doesn't exist in bundle yet, add it with quantity 1
-      setSelectedItems([...selectedItems, { product, quantity: 1 }]);
+      setSelectedItems([...selectedItems, { product, variant, quantity: 1 }]);
       setBundleCount(bundleCount + 1);
     }
   };
 
   // Function to remove an item from the bundle
-  const removeFromBundle = (productId) => {
-    const itemIndex = selectedItems.findIndex(item => item.product.id === productId);
+  const removeFromBundle = (productId, variantId) => {
+    const itemIndex = selectedItems.findIndex(item => 
+      item.product.id === productId && item.variant.id === variantId
+    );
     
     if (itemIndex === -1) return;
     
@@ -576,29 +582,12 @@ const BuildABundlePage = () => {
       setSelectedItems(updatedItems);
     } else {
       // Remove completely if quantity is 1
-      setSelectedItems(selectedItems.filter(item => item.product.id !== productId));
+      setSelectedItems(selectedItems.filter(item => 
+        !(item.product.id === productId && item.variant.id === variantId)
+      ));
     }
     
     setBundleCount(bundleCount - 1);
-  };
-
-  // Function to get available stock for a product
-  const getAvailableStock = (product) => {
-    // Find the 8 oz variant or default to first variant
-    const variant = product.variants.find(v => v.title.includes('8 oz') || v.title.includes('8 Ounces')) || product.variants[0];
-    
-    // Return actual quantity if available, otherwise 0
-    return variant && variant.available ? (variant.quantity > 0 ? variant.quantity : 10) : 0;
-  };
-
-  // Filter the variants to only include 8 ounce options
-  const getEightOunceVariant = (product) => {
-    if (!product.variants || product.variants.length === 0) return null;
-    
-    return product.variants.find(v => 
-      v.title.toLowerCase().includes('8 oz') || 
-      v.title.toLowerCase().includes('8 ounce')
-    ) || product.variants[0]; // Fallback to first variant if no 8oz option
   };
 
   const renderStars = () => {
@@ -652,6 +641,24 @@ const BuildABundlePage = () => {
     );
   };
   
+  // Handle bundle checkout - add all items to cart with discount
+  const handleCheckoutBundle = () => {
+    if (bundleCount !== 3) return; // Ensure we have exactly 3 items
+    
+    // Add each selected item to the cart
+    selectedItems.forEach(item => {
+      // Add to cart with the selected variant and quantity
+      addToCart(item.product, item.variant, item.quantity);
+    });
+    
+    // Apply the BUY3SAVE10 discount code
+    localStorage.setItem('bundleDiscount', 'BUY3SAVE10');
+    setDiscount('BUY3SAVE10');
+    
+    // Show notification that discount is applied
+    window.alert('Bundle added to cart! Your BUY3SAVE10 discount ($10 off) will be automatically applied at checkout.');
+  };
+  
   // Filter products based on selected category
   const filteredProducts = products
     // First filter by category if one is selected
@@ -693,13 +700,53 @@ const BuildABundlePage = () => {
 
   // Product card component for the available products
   const ProductCard = ({ product, onSelect, index }) => {
-    const variant = getEightOunceVariant(product);
-    const available = getAvailableStock(product) > 0;
+    const [selectedVariant, setSelectedVariant] = useState(null);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+    
+    // Initialize selected variant on mount
+    useEffect(() => {
+      // Find the 8oz variant or default to first available variant
+      const initialVariant = product.variants.find(v => 
+        (v.title.toLowerCase().includes('8 oz') || v.title.toLowerCase().includes('8 ounce')) && v.available
+      ) || product.variants.find(v => v.available) || product.variants[0];
+      
+      setSelectedVariant(initialVariant);
+    }, [product.variants]);
+    
+    // Handle click outside to close dropdown
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setDropdownOpen(false);
+        }
+      };
+      
+      // Add event listener when dropdown is open
+      if (dropdownOpen) {
+        document.addEventListener('mousedown', handleClickOutside);
+      }
+      
+      // Cleanup
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, [dropdownOpen]);
+    
+    // Get active variant (selected or first available)
+    const activeVariant = selectedVariant || 
+      product.variants.find(v => v.available) || 
+      product.variants[0];
+    
+    const available = activeVariant && activeVariant.available;
+    
+    // Only show dropdown if there are multiple variants
+    const hasMultipleVariants = product.variants.length > 1;
     
     return (
       <div 
         className={`rounded-lg overflow-hidden shadow-sm relative ${product.backgroundClass || getRandomBackground(index)}`}
-        onClick={() => available && onSelect(product)}
+        onClick={() => available && onSelect(product, activeVariant)}
       >
         {product.bestSeller && (
           <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm">
@@ -727,31 +774,84 @@ const BuildABundlePage = () => {
             {formatProductName(product.name)}
           </div>
           
-          <div className="flex justify-between items-center mb-2 sm:mb-4">
-            <div className="flex-1 border border-gray-300 rounded-l-full p-1 sm:p-2 pl-2 sm:pl-4 bg-white">
-              <span className="font-medium text-xs sm:text-base">8 Ounces</span>
+          {/* Variant selection dropdown */}
+          <div className="relative mb-2 sm:mb-4" ref={dropdownRef}>
+            <div 
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click when clicking dropdown
+                if (hasMultipleVariants) setDropdownOpen(!dropdownOpen);
+              }}
+              className={`flex justify-between items-center ${hasMultipleVariants ? 'cursor-pointer' : 'cursor-default'}`}
+            >
+              <div className="flex flex-1 items-center justify-between border border-gray-300 rounded-full bg-white relative overflow-hidden">
+                <div className="flex-1 p-2 pl-4 text-xs sm:text-sm">
+                  <span className="font-medium">{activeVariant?.title || '8 Ounces'}</span>
+                </div>
+                
+                <div className="flex-1 p-2 pr-4 text-right text-xs sm:text-sm">
+                  <span className="font-medium">${activeVariant ? activeVariant.price.toFixed(2) : product.price.toFixed(2)}</span>
+                </div>
+                
+                {hasMultipleVariants && (
+                  <div className="absolute right-4 pointer-events-none">
+                    <svg className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${dropdownOpen ? 'transform rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+                
+                {hasMultipleVariants && (
+                  <div className={`absolute inset-0 bg-gray-100 bg-opacity-0 hover:bg-opacity-20 transition-all duration-200 ${dropdownOpen ? 'bg-opacity-20' : ''}`}></div>
+                )}
+              </div>
             </div>
-            <div className="flex-1 border border-gray-300 rounded-r-full p-1 sm:p-2 pr-2 sm:pr-4 bg-white text-right">
-              <span className="font-medium text-xs sm:text-base">${variant ? variant.price.toFixed(2) : product.price.toFixed(2)}</span>
-            </div>
+            
+            {/* Dropdown options */}
+            {hasMultipleVariants && dropdownOpen && (
+              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                {product.variants.map((variant, idx) => (
+                  <div 
+                    key={variant.id || idx}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent card click
+                      setSelectedVariant(variant);
+                      setDropdownOpen(false);
+                    }}
+                    className={`p-2 px-4 text-xs sm:text-sm cursor-pointer transition-colors duration-150
+                      ${!variant.available ? 'text-gray-400 hover:bg-gray-50' : 'hover:bg-gray-100'}
+                      ${activeVariant?.id === variant.id ? 'bg-gray-100 font-medium' : ''}`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span>{variant.title}</span>
+                      <span>${variant.price.toFixed(2)}</span>
+                    </div>
+                    {!variant.available && (
+                      <span className="text-xs text-red-500 block mt-1">Out of stock</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           
-          {selectedItems.find(item => item.product.id === product.id) && (
+          {selectedItems.find(item => item.product.id === product.id && item.variant.id === activeVariant.id) && (
             <div className="flex items-center justify-between mb-2 sm:mb-4 bg-[#fff3e0] rounded-full p-1 sm:p-2">
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  removeFromBundle(product.id);
+                  removeFromBundle(product.id, activeVariant.id);
                 }}
                 className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white text-[#ff6b57] flex items-center justify-center font-bold shadow hover:bg-gray-100"
               >
                 -
               </button>
-              <span className="font-bold text-xs sm:text-base">{selectedItems.find(item => item.product.id === product.id).quantity} in bundle</span>
+              <span className="font-bold text-xs sm:text-base">
+                {selectedItems.find(item => item.product.id === product.id && item.variant.id === activeVariant.id).quantity} in bundle
+              </span>
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  addToBundle(product);
+                  addToBundle(product, activeVariant);
                 }}
                 className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${bundleCount < 3 ? 'bg-white text-[#ff6b57]' : 'bg-gray-200 text-gray-400'} flex items-center justify-center font-bold shadow ${bundleCount < 3 ? 'hover:bg-gray-100' : ''}`}
                 disabled={bundleCount >= 3}
@@ -764,12 +864,12 @@ const BuildABundlePage = () => {
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              addToBundle(product);
+              addToBundle(product, activeVariant);
             }}
             className={`w-full font-bold py-2 sm:py-3 px-2 sm:px-4 rounded-full transition-colors text-xs sm:text-base ${available && bundleCount < 3 ? 'bg-[#ff6b57] hover:bg-[#ff5a5a] text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
             disabled={!available || bundleCount >= 3}
           >
-            {selectedItems.find(item => item.product.id === product.id) ? 'ADD ANOTHER' : 'ADD TO BUNDLE'}
+            {selectedItems.find(item => item.product.id === product.id && item.variant.id === activeVariant.id) ? 'ADD ANOTHER' : 'ADD TO BUNDLE'}
           </button>
         </div>
       </div>
@@ -790,17 +890,18 @@ const BuildABundlePage = () => {
               {selectedItems.length > 0 ? (
                 <div className="space-y-4 mb-4">
                   {selectedItems.map((item, index) => (
-                    <div key={`${item.product.id}-${index}`} className="border border-gray-300 rounded-lg p-2 bg-white flex flex-col sm:flex-row items-center">
+                    <div key={`${item.product.id}-${item.variant.id}-${index}`} className="border border-gray-300 rounded-lg p-2 bg-white flex flex-col sm:flex-row items-center">
                       <div className="w-20 h-20 sm:w-16 sm:h-16 relative overflow-hidden flex-shrink-0 mb-2 sm:mb-0">
                         <img src={item.product.image} alt={item.product.name} className="h-full w-full object-contain" />
                       </div>
                       <div className="ml-0 sm:ml-3 flex-grow text-center sm:text-left">
                         <p className="font-medium text-sm truncate">{item.product.name}</p>
+                        <p className="text-xs text-gray-500">{item.variant.title} - ${item.variant.price.toFixed(2)}</p>
                         <div className="flex items-center justify-center sm:justify-start mt-1">
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              removeFromBundle(item.product.id);
+                              removeFromBundle(item.product.id, item.variant.id);
                             }}
                             className="w-6 h-6 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-sm hover:bg-gray-200"
                           >
@@ -810,7 +911,7 @@ const BuildABundlePage = () => {
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              addToBundle(item.product);
+                              addToBundle(item.product, item.variant);
                             }}
                             className={`w-6 h-6 rounded-full ${bundleCount < 3 ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed'} flex items-center justify-center text-sm`}
                             disabled={bundleCount >= 3}
@@ -840,9 +941,16 @@ const BuildABundlePage = () => {
               <p className="text-center text-gray-600">Add 3 bottles to save $10!</p>
               
               {bundleCount === 3 && (
-                <button className="w-full bg-[#ff6b57] hover:bg-[#ff5a5a] text-white font-bold py-3 px-4 rounded-full transition-colors mt-4">
-                  CHECKOUT BUNDLE
-                </button>
+                <>
+                  <div className="bg-[#f8f0ff] border border-[#e0c6ff] rounded-lg p-3 mt-4 mb-4">
+                    <p className="text-center text-sm font-medium text-[#7b2cbf]">
+                      BUY3SAVE10 discount will be applied at checkout!
+                    </p>
+                  </div>
+                  <button className="w-full bg-[#ff6b57] hover:bg-[#ff5a5a] text-white font-bold py-3 px-4 rounded-full transition-colors" onClick={handleCheckoutBundle}>
+                    CHECKOUT BUNDLE
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -908,7 +1016,12 @@ const BuildABundlePage = () => {
             ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-4 mb-8">
                 {filteredProducts.map((product, index) => (
-                  <ProductCard key={product.id} product={product} onSelect={addToBundle} index={index} />
+                  <ProductCard 
+                    key={product.id} 
+                    product={product} 
+                    onSelect={(product, variant) => addToBundle(product, variant)} 
+                    index={index} 
+                  />
                 ))}
               </div>
             ) : (
@@ -935,18 +1048,21 @@ const BuildABundlePage = () => {
                     >
                       {item && (
                         <>
+                          <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-white text-gray-800 text-xs rounded-md p-1 shadow-sm border border-gray-200 w-auto whitespace-nowrap z-10">
+                            {item.variant.title} - ${item.variant.price.toFixed(2)}
+                          </div>
                           <img src={item.product.image} alt={item.product.name} className="h-[80%] w-[80%] object-contain" />
                           <div className="absolute -bottom-3 left-0 right-0 flex justify-center">
                             <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200">
                               <button 
-                                onClick={() => removeFromBundle(item.product.id)}
+                                onClick={() => removeFromBundle(item.product.id, item.variant.id)}
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-gray-700 font-medium"
                               >
                                 -
                               </button>
                               <span className="text-xs font-bold mx-1">{item.quantity}</span>
                               <button 
-                                onClick={() => addToBundle(item.product)}
+                                onClick={() => addToBundle(item.product, item.variant)}
                                 className={`w-6 h-6 rounded-full flex items-center justify-center font-medium ${bundleCount < 3 ? 'text-gray-700' : 'text-gray-400'}`}
                                 disabled={bundleCount >= 3}
                               >

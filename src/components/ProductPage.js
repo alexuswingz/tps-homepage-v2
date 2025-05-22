@@ -597,7 +597,7 @@ const ProductPage = () => {
             <div className="flex flex-col">
               {/* Main Image Container */}
               <div 
-                className={`relative mb-6 rounded-2xl overflow-hidden ${productImages[selectedImage - 1]?.hasVideo ? 'bg-white' : ''}`}
+                className={`relative mb-6 rounded-2xl overflow-hidden bg-white shadow-sm`}
                 style={{ aspectRatio: '3/4' }}
                 onMouseEnter={() => setIsZoomed(true)}
                 onMouseLeave={() => setIsZoomed(false)}
@@ -687,7 +687,7 @@ const ProductPage = () => {
                       <button 
                         key={image.id}
                         onClick={() => setSelectedImage(image.id)}
-                        className={`relative flex-shrink-0 w-20 aspect-square rounded-lg overflow-hidden transition-all duration-300 ${
+                        className={`relative flex-shrink-0 w-20 aspect-square rounded-lg overflow-hidden bg-white transition-all duration-300 ${
                           selectedImage === image.id 
                             ? 'ring-2 ring-[#FF6B6B] scale-95' 
                             : 'hover:ring-2 hover:ring-gray-300'
@@ -844,10 +844,10 @@ const ProductPage = () => {
                     className={`relative overflow-hidden group border rounded-xl p-4 flex flex-col items-center transition-all duration-300 ${
                       selectedBundle === 'single'
                         ? 'border-2 border-[#E94F37] bg-[#FFF9F9] scale-[1.02]'
-                        : 'border-gray-200 bg-gray-100 opacity-60'
+                        : 'border-gray-200 bg-white opacity-60'
                     }`}
                   >
-                    <div className="h-24 w-full mb-2 relative z-10">
+                    <div className="h-24 w-full mb-2 relative z-10 bg-white rounded-lg flex items-center justify-center">
                       <img 
                         src={
                           variantImages[selectedVariant.id] || 
@@ -867,14 +867,14 @@ const ProductPage = () => {
                     className={`relative overflow-hidden group rounded-xl p-4 flex flex-col items-center transition-all duration-300 border-2 ${
                       selectedBundle === 'bundle'
                         ? 'border-[#E94F37] bg-[#FFF3E6] scale-[1.02]'
-                        : 'border-gray-200 bg-gray-100 opacity-60'
+                        : 'border-gray-200 bg-white opacity-60'
                     }`}
                   >
                     <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] bg-[#E94F37] text-white px-3 py-1 rounded-full font-medium z-20">
                       BETTER TOGETHER
                     </div>
                     <div className="flex justify-center items-center gap-2 h-24 mb-2 relative z-10">
-                      <div className="h-full w-1/2">
+                      <div className="h-full w-1/2 bg-white rounded-lg flex items-center justify-center">
                         <img 
                           src={
                             variantImages[selectedVariant.id] || 
@@ -885,7 +885,7 @@ const ProductPage = () => {
                         />
                       </div>
                       <div className="text-[#E94F37] font-bold">+</div>
-                      <div className="h-full w-1/2">
+                      <div className="h-full w-1/2 bg-white rounded-lg flex items-center justify-center">
                         <img 
                           src={silicaProduct ? silicaProduct.image : "/assets/products/silica-plant-food.png"}
                           alt={silicaProduct ? silicaProduct.name : "Silica For Plants"}

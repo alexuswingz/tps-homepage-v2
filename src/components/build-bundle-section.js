@@ -177,27 +177,28 @@ const BuildBundleSection = () => {
           </div>
 
           {/* Product Carousel - Made larger but maintaining section height */}
-          <div className="relative overflow-hidden px-1">
+          <div className="relative overflow-hidden px-1" style={{ pointerEvents: 'none' }}>
             <div 
               ref={scrollRef}
-              className="flex overflow-x-auto scrollbar-hide gap-0 md:gap-0 py-4"
+              className="flex overflow-x-auto scrollbar-hide gap-0 py-4"
               style={{ scrollBehavior: 'smooth' }}
             >
               {/* Duplicate products for infinite loop effect - triple the products for smoother looping */}
               {[...productImages, ...productImages, ...productImages].map((image, index) => (
                 <div 
                   key={index} 
-                  className="flex-shrink-0 w-[200px] md:w-[240px] lg:w-[280px] xl:w-[300px]"
+                  className="flex-shrink-0 w-[100px] md:w-[120px] lg:w-[140px] xl:w-[160px] -mr-4 md:-mr-6 lg:-mr-8"
                 >
-                  <div className="relative">
+                  <div className="relative flex justify-center items-center">
                     <img 
                       src={image} 
                       alt={`Plant Food Product ${index + 1}`}
-                      className="w-full h-auto object-contain px-0"
+                      className="w-full h-auto object-contain"
                       style={{ 
-                        maxHeight: '380px', 
-                        minHeight: '350px',
-                        transform: 'scale(1.38)'
+                        maxHeight: '360px', 
+                        minHeight: '330px',
+                        transform: 'scale(1.58)',
+                        transformOrigin: 'center center'
                       }}
                       onError={handleImageError}
                     />
