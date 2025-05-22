@@ -6,6 +6,7 @@ import ShopByPlant from './shopy-by-plant';
 import CustomerReviews from './customer-reviews';
 import AnimatedLeafDivider from './AnimatedLeafDivider';
 import ComparisonChart from './comparison-chart';
+import IngredientsSlider from './ingredients-slider';
 
 const ProductPage = () => {
   const { productId } = useParams();
@@ -1106,6 +1107,8 @@ const ProductPage = () => {
         </div>
       </div>
       
+      <LeafDivider />
+      <IngredientsSlider />
       <LeafDivider />
       <ShopByPlant />
       <LeafDivider />
