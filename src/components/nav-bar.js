@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from './CartContext';
 import { ShoppingBagIcon, UserIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, Bars3Icon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import AnnouncementBar from './announcement-bar';
+import SearchComponent from './SearchComponent';
 
 // Search results component for reuse
 const MobileSearchResults = ({ closeMenus }) => (
@@ -234,30 +235,25 @@ const NavBar = () => {
           </div>
           
           <div className="flex items-center space-x-8">
-            {searchOpen ? (
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  className="pl-8 pr-4 py-1 border border-gray-300 rounded-full bg-[#fffbef] focus:outline-none focus:ring-1 focus:ring-olive-700 focus:border-olive-700 transition-all text-sm w-48"
-                  autoFocus
+            {/* Updated Desktop Search Component */}
+            <div className="relative">
+              {searchOpen ? (
+                <SearchComponent 
+                  isDesktop={true} 
+                  isOpen={searchOpen} 
+                  onClose={() => setSearchOpen(false)}
+                  onCategoryClick={closeAllMenus}
                 />
-                <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 text-gray-500" />
+              ) : (
                 <button 
-                  className="ml-2 text-gray-500 hover:text-olive-900"
-                  onClick={() => setSearchOpen(false)}
+                  className="text-olive-700 hover:text-olive-900 focus:outline-none"
+                  onClick={() => setSearchOpen(true)}
+                  aria-label="Search"
                 >
-                  <XMarkIcon className="h-5 w-5" />
+                  <MagnifyingGlassIcon className="h-6 w-6" />
                 </button>
-              </div>
-            ) : (
-              <button 
-                className="text-olive-700 hover:text-olive-900 focus:outline-none"
-                onClick={() => setSearchOpen(true)}
-              >
-                <MagnifyingGlassIcon className="h-6 w-6" />
-              </button>
-            )}
+              )}
+            </div>
             
             <button className="text-olive-700 hover:text-olive-900 focus:outline-none">
               <UserIcon className="h-6 w-6" />
@@ -313,6 +309,7 @@ const NavBar = () => {
               <button 
                 className="text-olive-700 hover:text-olive-900 focus:outline-none"
                 onClick={handleMobileSearchOpen}
+                aria-label="Search"
               >
                 <MagnifyingGlassIcon className="h-6 w-6" />
               </button>
@@ -447,7 +444,7 @@ const NavBar = () => {
         <div className="fixed inset-0 bg-[#fffbef] z-30 md:hidden" style={{ top: "107px" }}></div>
       )}
 
-      {/* Mobile Search Overlay */}
+      {/* Mobile Search Overlay - Updated to use our new SearchComponent */}
       {mobileSearchOpen && (
         <div className="fixed inset-x-0 bottom-0 bg-[#fffbef] overflow-y-auto z-40 md:hidden" style={{ top: "107px" }}>
           {/* Search Header */}
@@ -455,24 +452,21 @@ const NavBar = () => {
             <button 
               onClick={handleMobileSearchClose}
               className="text-gray-500 hover:text-gray-700"
+              aria-label="Close search"
             >
               <XMarkIcon className="h-6 w-6" />
             </button>
           </div>
           
-          {/* Search Input */}
-          <div className="px-4 py-2 relative">
-            <div className="relative">
-              <input
-                type="search"
-                placeholder=""
-                className="w-full bg-[#fffbef] py-2 text-gray-700 border-b border-gray-300 focus:outline-none focus:border-gray-500 text-base"
-                autoFocus
-              />
-            </div>
+          {/* Search Component */}
+          <div className="px-4 py-2">
+            <SearchComponent 
+              isDesktop={false} 
+              isOpen={true}
+              onClose={handleMobileSearchClose}
+              onCategoryClick={closeAllMenus}
+            />
           </div>
-          
-          <MobileSearchResults closeMenus={closeAllMenus} />
         </div>
       )}
 
@@ -481,32 +475,17 @@ const NavBar = () => {
         <div className="fixed inset-x-0 bottom-0 bg-[#fffbef] overflow-y-auto z-40 md:hidden" style={{ top: "107px" }}>
           {/* Search Bar */}
           <div className="px-4 py-2 relative border-b border-gray-200">
-            <div className="relative">
-              <input
-                type="search"
-                placeholder=""
-                className="w-full bg-[#fffbef] py-2 text-gray-700 border-b border-gray-300 focus:outline-none focus:border-gray-500 text-base"
-                onFocus={handleHamburgerSearchFocus}
-              />
-            </div>
+            <SearchComponent 
+              isDesktop={false} 
+              isOpen={true}
+              setIsOpen={setHamburgerSearchActive}
+              onClose={handleHamburgerSearchClose}
+              onCategoryClick={closeAllMenus}
+            />
           </div>
           
-          {/* When search is active, show search suggestions */}
-          {hamburgerSearchActive ? (
-            <div>
-              {/* Close button */}
-              <div className="flex justify-end px-4 py-2">
-                <button 
-                  onClick={handleHamburgerSearchClose}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <MobileSearchResults closeMenus={closeAllMenus} />
-            </div>
-          ) : (
+          {/* When search is active, search component handles this view */}
+          {!hamburgerSearchActive && (
             /* Menu Items */
             <div className="px-4 pb-24">
               {/* BROWSE ALL PRODUCTS */}
@@ -603,32 +582,17 @@ const NavBar = () => {
         <div className="fixed inset-x-0 bottom-0 bg-[#fffbef] overflow-y-auto z-40 md:hidden" style={{ top: "107px" }}>
           {/* Search Bar */}
           <div className="px-4 py-2 relative border-b border-gray-200">
-            <div className="relative">
-              <input
-                type="search"
-                placeholder=""
-                className="w-full bg-[#fffbef] py-2 text-gray-700 border-b border-gray-300 focus:outline-none focus:border-gray-500 text-base"
-                onFocus={handleCategoriesSearchFocus}
-              />
-            </div>
+            <SearchComponent 
+              isDesktop={false} 
+              isOpen={true}
+              setIsOpen={setCategoriesSearchActive}
+              onClose={handleCategoriesSearchClose}
+              onCategoryClick={closeAllMenus}
+            />
           </div>
           
-          {/* When search is active, show search suggestions */}
-          {categoriesSearchActive ? (
-            <div>
-              {/* Close button */}
-              <div className="flex justify-end px-4 py-2">
-                <button 
-                  onClick={handleCategoriesSearchClose}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <MobileSearchResults closeMenus={closeAllMenus} />
-            </div>
-          ) : (
+          {/* When search is active, search component handles this view */}
+          {!categoriesSearchActive && (
             <>
               {/* Back Button */}
               <button 
