@@ -7,6 +7,8 @@ import CustomerReviews from './customer-reviews';
 import AnimatedLeafDivider from './AnimatedLeafDivider';
 import ComparisonChart from './comparison-chart';
 import IngredientsSlider from './ingredients-slider';
+import BuildBundleSection from './build-bundle-section';
+import MobileNewsletter from './MobileNewsletter';
 
 const ProductPage = () => {
   const { productId } = useParams();
@@ -969,112 +971,101 @@ const ProductPage = () => {
             </button>
 
             {/* Purchase Options */}
-            <div className="border rounded-lg p-5 bg-[#FFFBF5]">
-              <div className="mb-3 text-center">
-                <span className="text-sm font-medium text-gray-600">CHOOSE PURCHASE OPTION</span>
-              </div>
-              <div className="grid grid-cols-1 gap-3">
-                {/* One-time purchase option */}
-                <div 
-                  className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
-                    !isSubscription 
-                      ? 'border-[#E94F37] bg-white shadow-sm'
-                      : 'border-gray-200 hover:border-[#E94F37] bg-white/70'
-                  }`}
-                  onClick={() => setIsSubscription(false)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-5 h-5 flex-shrink-0">
-                      <input 
-                        type="radio" 
-                        id="one-time"
-                        name="purchase-type"
-                        checked={!isSubscription}
-                        onChange={() => setIsSubscription(false)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                      />
-                      <div className={`w-full h-full rounded-full border-2 flex items-center justify-center ${
-                        !isSubscription ? 'border-[#E94F37]' : 'border-gray-300'
-                      }`}>
-                        {!isSubscription && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#E94F37]"></div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <label htmlFor="one-time" className="font-semibold text-gray-800 block mb-0.5">ONE-TIME PURCHASE</label>
-                      <span className="text-xs text-gray-500">
-                        Pay once and receive a single delivery
-                      </span>
-                    </div>
-                    <div className="font-bold text-lg">
-                      ${selectedBundle === 'single' 
-                        ? (selectedVariant ? selectedVariant.price.toFixed(2) : '14.99')
-                        : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)).toFixed(2) : '24.99')
-                      }
+            <div className="mt-5 mb-4">
+              {/* One-time purchase option */}
+              <div 
+                className={`border rounded-xl p-5 cursor-pointer transition-all duration-200 mb-3 hover:shadow-sm ${
+                  !isSubscription 
+                    ? 'border-black bg-white shadow-sm'
+                    : 'border-gray-200 bg-white opacity-70 hover:opacity-90'
+                }`}
+                onClick={() => setIsSubscription(false)}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="relative w-6 h-6 flex-shrink-0">
+                    <input 
+                      type="radio" 
+                      id="one-time"
+                      name="purchase-type"
+                      checked={!isSubscription}
+                      onChange={() => setIsSubscription(false)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                    />
+                    <div className={`w-full h-full rounded-full border-2 flex items-center justify-center ${
+                      !isSubscription ? 'border-black' : 'border-gray-300'
+                    }`}>
+                      {!isSubscription && (
+                        <div className="w-3 h-3 rounded-full bg-black"></div>
+                      )}
                     </div>
                   </div>
+                  <div className="flex-1">
+                    <label htmlFor="one-time" className="font-bold text-gray-900 tracking-wide block">ONE-TIME PURCHASE</label>
+                  </div>
+                  <div className="font-bold text-xl">
+                    ${selectedBundle === 'single' 
+                      ? (selectedVariant ? selectedVariant.price.toFixed(2) : '14.99')
+                      : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)).toFixed(2) : '24.99')
+                    }
+                  </div>
                 </div>
-                
-                {/* Subscribe option */}
-                <div 
-                  className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
-                    isSubscription 
-                      ? 'border-[#E94F37] bg-white shadow-sm'
-                      : 'border-gray-200 hover:border-[#E94F37] bg-white/70'
-                  }`}
-                  onClick={() => setIsSubscription(true)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-5 h-5 flex-shrink-0">
-                      <input 
-                        type="radio" 
-                        id="subscribe"
-                        name="purchase-type"
-                        checked={isSubscription}
-                        onChange={() => setIsSubscription(true)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                      />
-                      <div className={`w-full h-full rounded-full border-2 flex items-center justify-center ${
-                        isSubscription ? 'border-[#E94F37]' : 'border-gray-300'
-                      }`}>
-                        {isSubscription && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#E94F37]"></div>
-                        )}
-                      </div>
+              </div>
+              
+              {/* Subscribe & save option */}
+              <div 
+                className={`border rounded-xl p-5 cursor-pointer transition-all duration-200 hover:shadow-sm ${
+                  isSubscription 
+                    ? 'border-black bg-white shadow-sm'
+                    : 'border-gray-200 bg-white opacity-70 hover:opacity-90'
+                }`}
+                onClick={() => setIsSubscription(true)}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="relative w-6 h-6 flex-shrink-0">
+                    <input 
+                      type="radio" 
+                      id="subscribe"
+                      name="purchase-type"
+                      checked={isSubscription}
+                      onChange={() => setIsSubscription(true)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                    />
+                    <div className={`w-full h-full rounded-full border-2 flex items-center justify-center ${
+                      isSubscription ? 'border-black' : 'border-gray-300'
+                    }`}>
+                      {isSubscription && (
+                        <div className="w-3 h-3 rounded-full bg-black"></div>
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-1 mb-0.5">
-                        <label htmlFor="subscribe" className="font-semibold text-gray-800">SUBSCRIBE & SAVE</label>
-                        <span className="text-xs font-bold bg-[#E94F37] text-white px-1.5 py-0.5 rounded">15% OFF</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500">Delivery every</span>
-                        <select 
-                          value={deliveryInterval}
-                          onChange={(e) => setDeliveryInterval(parseInt(e.target.value))}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-xs font-medium bg-transparent border border-gray-200 rounded px-1 py-0.5 cursor-pointer"
-                        >
-                          <option value="1">1 month</option>
-                          <option value="2">2 months</option>
-                          <option value="3">3 months</option>
-                        </select>
-                      </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <label htmlFor="subscribe" className="font-bold text-gray-900 tracking-wide">SUBSCRIBE</label>
+                      <span className="text-xs font-bold bg-gray-100 text-gray-700 px-3 py-1 rounded-full">SAVE 15%</span>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xs text-gray-400 line-through">
-                        ${selectedBundle === 'single'
-                          ? (selectedVariant ? selectedVariant.price.toFixed(2) : '14.99')
-                          : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)).toFixed(2) : '24.99')
-                        }
-                      </div>
-                      <div className="font-bold text-lg text-[#E94F37]">
-                        ${selectedBundle === 'single'
-                          ? (selectedVariant ? (selectedVariant.price * 0.85).toFixed(2) : '12.74')
-                          : (selectedVariant ? ((selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)) * 0.85).toFixed(2) : '21.24')
-                        }
-                      </div>
+                    <div className="flex items-center gap-1 mb-1">
+                      <span className="text-sm text-gray-600">Delivery every</span>
+                      <select 
+                        value={deliveryInterval}
+                        onChange={(e) => setDeliveryInterval(parseInt(e.target.value))}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-sm font-medium bg-transparent border-b border-gray-300 cursor-pointer focus:outline-none focus:border-black"
+                      >
+                        <option value="1">1 month</option>
+                        <option value="2">2 months</option>
+                        <option value="3">3 months</option>
+                      </select>
+                    </div>
+                    <div className="text-sm text-gray-500 font-medium">
+                      Edit, pause, or cancel anytime
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-xl">
+                      ${selectedBundle === 'single'
+                        ? (selectedVariant ? (selectedVariant.price * 0.85).toFixed(2) : '12.74')
+                        : (selectedVariant ? ((selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)) * 0.85).toFixed(2) : '21.24')
+                      }
                     </div>
                   </div>
                 </div>
@@ -1110,11 +1101,14 @@ const ProductPage = () => {
       <LeafDivider />
       <IngredientsSlider />
       <LeafDivider />
+      <BuildBundleSection />
+      <LeafDivider />
       <ShopByPlant />
       <LeafDivider />
       <CustomerReviews />
       <AnimatedLeafDivider />
       <ComparisonChart />
+      <MobileNewsletter />
     </>
   );
 };
