@@ -133,41 +133,52 @@ const BuildABundlePage = () => {
 
   // Use IntersectionObserver to detect when bundle section is out of view
   useEffect(() => {
-    const options = {
-      root: null, // use viewport as root
-      rootMargin: '0px',
-      threshold: 0.1 // trigger when 10% of the element is visible
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        // Show floating summary when bundle section is NOT intersecting (not visible)
-        setIsScrolled(!entry.isIntersecting);
-      });
-    }, options);
-    
-    if (bundleSectionRef.current) {
-      observer.observe(bundleSectionRef.current);
-    }
-    
-    // Also add scroll listener as fallback
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      // Force hide when at the top of the page
-      if (scrollPosition < 100) {
-        setIsScrolled(false);
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    
-    return () => {
+    // Wait a bit after component mount to allow correct positioning
+    const initialTimeout = setTimeout(() => {
+      const options = {
+        root: null, // use viewport as root
+        rootMargin: '-50px 0px 0px 0px', // Adjust negative top margin to account for navbar
+        threshold: 0.2 // Element is considered visible when 20% is in view
+      };
+  
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          // Add a small delay for smoother transitions
+          if (!entry.isIntersecting && !isScrolled) {
+            // Only trigger state change if not already scrolled
+            setTimeout(() => setIsScrolled(true), 50);
+          } else if (entry.isIntersecting && isScrolled) {
+            // Only trigger state change if already scrolled
+            setTimeout(() => setIsScrolled(false), 50);
+          }
+        });
+      }, options);
+      
       if (bundleSectionRef.current) {
-        observer.unobserve(bundleSectionRef.current);
+        observer.observe(bundleSectionRef.current);
       }
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
+      
+      // Also add scroll listener as fallback
+      const handleScroll = () => {
+        const scrollPosition = window.scrollY;
+        // Force hide when at the top of the page
+        if (scrollPosition < 180) {
+          setIsScrolled(false);
+        }
+      };
+      
+      window.addEventListener('scroll', handleScroll);
+      
+      return () => {
+        if (bundleSectionRef.current) {
+          observer.unobserve(bundleSectionRef.current);
+        }
+        window.removeEventListener('scroll', handleScroll);
+      };
+    }, 300); // Wait 300ms after mount
+    
+    return () => clearTimeout(initialTimeout);
+  }, [isScrolled]);
 
   // Function to make API calls to Shopify Storefront API
   const fetchFromStorefrontAPI = async (query) => {
@@ -1033,10 +1044,10 @@ const BuildABundlePage = () => {
         </div>
       </div>
 
-      {/* Floating mobile bundle summary - shows when scrolling on mobile */}
+      {/* Floating mobile bundle summary - shows when scrolling on mobile, positioned below navbar */}
       {(
-        <div className={`fixed bottom-20 left-0 right-0 z-40 px-4 transition-transform duration-300 lg:hidden ${isScrolled ? 'translate-y-0' : 'translate-y-full'}`}>
-          <div className="bg-[#fffbef] rounded-2xl shadow-sm p-4 mx-auto max-w-md border border-gray-200">
+        <div className={`fixed top-[110px] left-0 right-0 z-30 px-4 transition-all duration-500 ease-in-out lg:hidden ${isScrolled ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'}`}>
+          <div className="bg-[#fffbef] rounded-b-2xl shadow-md p-3 mx-auto max-w-md border border-gray-200">
             <div className="flex flex-col items-center">
               <div className="flex justify-center space-x-4 mb-3 w-full">
                 {[0, 1, 2].map((index) => {
@@ -1048,7 +1059,7 @@ const BuildABundlePage = () => {
                     >
                       {item && (
                         <>
-                          <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-white text-gray-800 text-xs rounded-md p-1 shadow-sm border border-gray-200 w-auto whitespace-nowrap z-10">
+                          <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-white text-gray-800 text-xs rounded-md p-1 shadow-sm border border-gray-200 w-auto whitespace-nowrap z-10">
                             {item.variant.title} - ${item.variant.price.toFixed(2)}
                           </div>
                           <img src={item.product.image} alt={item.product.name} className="h-[80%] w-[80%] object-contain" />

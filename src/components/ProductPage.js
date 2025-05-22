@@ -731,8 +731,61 @@ const ProductPage = () => {
             <h2 id="product-details-heading" className="sr-only">Product Details</h2>
 
             {/* Title */}
-            <h1 className="text-2xl font-bold mb-1">{product.name} | {product.description}</h1>
-            <div className="text-sm text-gray-600 font-medium mb-1 tracking-wide">HOUSE PLANTS · EASY FEED FORMULA</div>
+            <h1 className="text-2xl font-bold mb-1">
+              {(() => {
+                // Comprehensive list of product type keywords to check
+                const productTypeKeywords = [
+                  "Fertilizer", "Plant Food", "Food", "NPK", "Fungus", "Formula",
+                  "Root Supplement", "All Purpose", "Tonic", "Concentrate", 
+                  "Extract", "Feed", "Nutrients", "Bloom", "Liquid Plant Food"
+                ];
+                
+                // For special numbered formulas like 10-10-10
+                const formulaPattern = /\d+-\d+-\d+/;
+
+                // Original values as fallback
+                let plantName = product.name;
+                let productType = product.description;
+                
+                // Function to clean up the plant name
+                const cleanName = (name) => name.trim().replace(/\s+$/, '');
+                
+                // Special case handling for formulas like "10-10-10 Vegetables"
+                const formulaMatch = product.name.match(formulaPattern);
+                if (formulaMatch) {
+                  const formulaPosition = product.name.indexOf(formulaMatch[0]);
+                  if (formulaPosition >= 0) {
+                    plantName = cleanName(product.name.substring(formulaPosition + formulaMatch[0].length));
+                    productType = formulaMatch[0];
+                    return `${plantName} | ${productType}`;
+                  }
+                }
+                
+                // Check each keyword
+                for (const type of productTypeKeywords) {
+                  const typeRegex = new RegExp(`\\s${type}\\b|\\s${type}s\\b`, 'i');
+                  const match = product.name.match(typeRegex);
+                  
+                  if (match) {
+                    const typePosition = match.index;
+                    plantName = cleanName(product.name.substring(0, typePosition));
+                    
+                    // Extract the actual type as used in the name (preserving case)
+                    const actualType = product.name.substring(typePosition).trim();
+                    productType = actualType;
+                    break;
+                  }
+                }
+                
+                // Edge case: If plantName is still the full name and contains the description term
+                if (plantName === product.name && product.name.includes(product.description)) {
+                  plantName = product.name.replace(product.description, '').trim();
+                  productType = product.description;
+                }
+                
+                return `${plantName} | ${productType}`;
+              })()}
+            </h1>
             
             {/* Reviews */}
             <div className="flex items-center gap-2 mb-1">
@@ -1028,6 +1081,29 @@ const ProductPage = () => {
             </div>
           </section>
         </main>
+      </div>
+      
+      {/* Trust Badges Section */}
+      <div className="max-w-6xl mx-auto py-8 md:py-12">
+        <div className="grid grid-cols-3 gap-3 md:gap-6 text-center px-4">
+          {/* Customer Favorite Badge */}
+          <div className="flex flex-col items-center">
+            <img src="/assets/Icons/PDP-Badges5-Star-Reviews-Icon.png" alt="5-Star Reviews" className="w-16 h-16 md:w-24 md:h-24 mb-2 md:mb-3" />
+            <h3 className="text-sm md:text-xl font-bold text-gray-900">CUSTOMER FAVORITE</h3>
+          </div>
+          
+          {/* Made in USA Badge */}
+          <div className="flex flex-col items-center">
+            <img src="/assets/Icons/PDP-BadgesMade-in-US-Icon.png" alt="Made in USA" className="w-16 h-16 md:w-24 md:h-24 mb-2 md:mb-3" />
+            <h3 className="text-sm md:text-xl font-bold text-gray-900">MADE IN THE USA</h3>
+          </div>
+          
+          {/* Free Shipping Badge */}
+          <div className="flex flex-col items-center">
+            <img src="/assets/Icons/PDP-BadgesFree-Shipping-Icon.png" alt="Free Shipping" className="w-16 h-16 md:w-24 md:h-24 mb-2 md:mb-3" />
+            <h3 className="text-sm md:text-xl font-bold text-gray-900">FREE SHIPPING</h3>
+          </div>
+        </div>
       </div>
       
       <LeafDivider />
