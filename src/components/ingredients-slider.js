@@ -138,9 +138,9 @@ const IngredientsSlider = () => {
   }, []);
 
   return (
-    <section className="bg-[#fffbef] w-full overflow-hidden py-12 ingredients-slider">
+    <section className="bg-[#fffbef] w-full overflow-hidden py-6 md:py-12 ingredients-slider">
       {/* Centered heading */}
-      <div className="w-full text-center mb-8">
+      <div className="w-full text-center mb-6 md:mb-8">
         <h2 className="text-4xl md:text-5xl font-bold text-[#FF5757]">
           What's Inside?
         </h2>

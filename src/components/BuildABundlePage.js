@@ -794,17 +794,19 @@ const BuildABundlePage = () => {
               }}
               className={`flex justify-between items-center ${hasMultipleVariants ? 'cursor-pointer' : 'cursor-default'}`}
             >
-              <div className="flex flex-1 items-center justify-between border border-gray-300 rounded-full bg-white relative overflow-hidden">
-                <div className="flex-1 p-2 pl-4 text-xs sm:text-sm">
+              <div className="flex items-center border border-gray-300 rounded-full bg-white relative overflow-hidden w-full">
+                <div className="w-[65%] p-2 pl-4 text-xs sm:text-sm truncate">
                   <span className="font-medium">{activeVariant?.title || '8 Ounces'}</span>
                 </div>
                 
-                <div className="flex-1 p-2 pr-4 text-right text-xs sm:text-sm">
+                <div className="h-5 border-l border-gray-300"></div>
+                
+                <div className="w-[35%] p-2 pr-8 sm:pr-10 text-center text-xs sm:text-sm">
                   <span className="font-medium">${activeVariant ? activeVariant.price.toFixed(2) : product.price.toFixed(2)}</span>
                 </div>
                 
                 {hasMultipleVariants && (
-                  <div className="absolute right-4 pointer-events-none">
+                  <div className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                     <svg className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${dropdownOpen ? 'transform rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>

@@ -8,9 +8,9 @@ import SearchComponent from './SearchComponent';
 // Search results component for reuse
 const MobileSearchResults = ({ closeMenus }) => (
   <div className="px-4 py-4">
-    <h3 className="text-base font-medium text-gray-700 mb-5 text-center">POPULAR SEARCHES</h3>
+    <h3 className="text-base font-medium text-gray-700 mb-3 text-center">POPULAR SEARCHES</h3>
     
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-2 gap-3">
       {/* House Plants */}
       <Link 
         to={{
@@ -20,7 +20,7 @@ const MobileSearchResults = ({ closeMenus }) => (
         className="flex flex-col items-center"
         onClick={closeMenus}
       >
-        <div className="w-full aspect-square mb-2 overflow-hidden rounded">
+        <div className="w-full aspect-square mb-1 overflow-hidden rounded max-w-[100px] mx-auto">
           <img 
             src="/assets/Collection Tiles Images/Houseplants Tile.jpg" 
             alt="House Plants" 
@@ -39,7 +39,7 @@ const MobileSearchResults = ({ closeMenus }) => (
         className="flex flex-col items-center"
         onClick={closeMenus}
       >
-        <div className="w-full aspect-square mb-2 overflow-hidden rounded">
+        <div className="w-full aspect-square mb-1 overflow-hidden rounded max-w-[100px] mx-auto">
           <img 
             src="/assets/Collection Tiles Images/Lawn and Garden Tile.jpg" 
             alt="Lawn & Garden" 
@@ -58,7 +58,7 @@ const MobileSearchResults = ({ closeMenus }) => (
         className="flex flex-col items-center"
         onClick={closeMenus}
       >
-        <div className="w-full aspect-square mb-2 overflow-hidden rounded">
+        <div className="w-full aspect-square mb-1 overflow-hidden rounded max-w-[100px] mx-auto">
           <img 
             src="/assets/Collection Tiles Images/Hydro and Aquatic Collection Tile.jpg" 
             alt="Hydro & Aquatic" 
@@ -77,7 +77,7 @@ const MobileSearchResults = ({ closeMenus }) => (
         className="flex flex-col items-center"
         onClick={closeMenus}
       >
-        <div className="w-full aspect-square mb-2 overflow-hidden rounded">
+        <div className="w-full aspect-square mb-1 overflow-hidden rounded max-w-[100px] mx-auto">
           <img 
             src="/assets/Collection Tiles Images/Specialty Supplements Title.jpg" 
             alt="Specialty Supplements" 
@@ -474,7 +474,7 @@ const NavBar = () => {
       {mobileMenuOpen && !categoriesMenuOpen && (
         <div className="fixed inset-x-0 bottom-0 bg-[#fffbef] overflow-y-auto z-40 md:hidden" style={{ top: "107px" }}>
           {/* Search Bar */}
-          <div className="px-4 py-2 relative border-b border-gray-200">
+          <div className="px-4 pt-4 pb-2 relative">
             <SearchComponent 
               isDesktop={false} 
               isOpen={true}

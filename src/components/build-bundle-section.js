@@ -4,6 +4,11 @@ import { Link } from 'react-router-dom';
 const BuildBundleSection = () => {
   const scrollRef = useRef(null);
   const [productImages, setProductImages] = useState([]);
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const scrollIntervalRef = useRef(null);
+  const interactionTimeoutRef = useRef(null);
+  const animationFrameRef = useRef(null);
+  const lastTimeRef = useRef(0);
   
   useEffect(() => {
     // Include all product images from the folder
@@ -125,31 +130,106 @@ const BuildBundleSection = () => {
     setProductImages(uniqueImages);
   }, []);
 
-  // Auto-scrolling effect with improved infinite loop
-  useEffect(() => {
+  // Setup scrolling function
+  const startAutoScroll = () => {
     const scrollContainer = scrollRef.current;
     if (!scrollContainer || productImages.length === 0) return;
 
     let scrollAmount = 0;
-    const speed = 0.8; // Slightly faster for better experience
-    const distance = 3; // Increased by 10% for faster scrolling
-    
-    const scroll = () => {
-      scrollContainer.scrollLeft += distance;
-      scrollAmount += distance;
+    const scrollSpeed = 1.2; // Base speed factor - higher = faster
 
-      // Reset scroll position to create seamless infinite loop effect
-      // Check if we've scrolled half the width, then reset to beginning
-      if (scrollAmount >= (scrollContainer.scrollWidth / 3)) {
-        scrollContainer.scrollLeft = 0;
-        scrollAmount = 0;
+    const animate = (timestamp) => {
+      if (!lastTimeRef.current) lastTimeRef.current = timestamp;
+      const elapsed = timestamp - lastTimeRef.current;
+      
+      if (scrollContainer && !isUserInteracting) {
+        // Use requestAnimationFrame's timestamp for smoother animation
+        const pixelsToScroll = (elapsed / 16) * scrollSpeed;
+        
+        // Use transform instead of scrollLeft for smoother GPU-accelerated animation
+        scrollAmount += pixelsToScroll;
+        
+        // Apply the transform to all direct children for smooth movement
+        Array.from(scrollContainer.children).forEach(child => {
+          child.style.transform = `translateX(${-scrollAmount}px)`;
+        });
+
+        // Reset scroll position to create seamless infinite loop effect
+        if (scrollAmount >= (scrollContainer.scrollWidth / 3)) {
+          scrollAmount = 0;
+          Array.from(scrollContainer.children).forEach(child => {
+            child.style.transform = `translateX(0px)`;
+          });
+        }
       }
+      
+      lastTimeRef.current = timestamp;
+      animationFrameRef.current = requestAnimationFrame(animate);
     };
 
-    const scrollInterval = setInterval(scroll, speed * 15); // Slightly faster interval
+    animationFrameRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  };
 
-    return () => clearInterval(scrollInterval);
-  }, [productImages]);
+  // Auto-scrolling effect with improved infinite loop and user interaction handling
+  useEffect(() => {
+    const cleanup = startAutoScroll();
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [productImages, isUserInteracting]);
+
+  // Handle user interaction
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    const handleInteractionStart = () => {
+      setIsUserInteracting(true);
+      clearTimeout(interactionTimeoutRef.current);
+    };
+
+    const handleInteractionEnd = () => {
+      clearTimeout(interactionTimeoutRef.current);
+      interactionTimeoutRef.current = setTimeout(() => {
+        setIsUserInteracting(false);
+      }, 1500); // Resume auto-scroll 1.5 seconds after user stops interacting
+    };
+
+    // Add event listeners for different interaction types
+    scrollContainer.addEventListener('mousedown', handleInteractionStart);
+    scrollContainer.addEventListener('touchstart', handleInteractionStart);
+    scrollContainer.addEventListener('wheel', handleInteractionStart);
+    
+    scrollContainer.addEventListener('mouseup', handleInteractionEnd);
+    scrollContainer.addEventListener('mouseleave', handleInteractionEnd);
+    scrollContainer.addEventListener('touchend', handleInteractionEnd);
+    scrollContainer.addEventListener('touchcancel', handleInteractionEnd);
+    scrollContainer.addEventListener('wheel', handleInteractionEnd, { passive: true });
+
+    // Cleanup function
+    return () => {
+      scrollContainer.removeEventListener('mousedown', handleInteractionStart);
+      scrollContainer.removeEventListener('touchstart', handleInteractionStart);
+      scrollContainer.removeEventListener('wheel', handleInteractionStart);
+      
+      scrollContainer.removeEventListener('mouseup', handleInteractionEnd);
+      scrollContainer.removeEventListener('mouseleave', handleInteractionEnd);
+      scrollContainer.removeEventListener('touchend', handleInteractionEnd);
+      scrollContainer.removeEventListener('touchcancel', handleInteractionEnd);
+      scrollContainer.removeEventListener('wheel', handleInteractionEnd);
+
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      clearTimeout(interactionTimeoutRef.current);
+    };
+  }, []);
 
   // Error handling for images
   const handleImageError = (e) => {
@@ -159,7 +239,7 @@ const BuildBundleSection = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 md:py-24">
+    <div className="max-w-7xl mx-auto px-6 py-6 md:py-12 lg:py-24">
       <div 
         className="relative w-full rounded-lg overflow-hidden"
         style={{ 
@@ -168,7 +248,7 @@ const BuildBundleSection = () => {
           backgroundPosition: "center"
         }}
       >
-        <div className="py-12 md:py-16 px-4 md:px-8">
+        <div className="py-8 md:py-12 lg:py-16 px-4 md:px-8">
           {/* Heading */}
           <div className="text-center mb-6">
             <h2 className="text-4xl md:text-6xl font-bold mb-2">
@@ -177,17 +257,29 @@ const BuildBundleSection = () => {
           </div>
 
           {/* Product Carousel - Made larger but maintaining section height */}
-          <div className="relative overflow-hidden px-1" style={{ pointerEvents: 'none' }}>
+          <div className="relative overflow-hidden px-1">
             <div 
               ref={scrollRef}
-              className="flex overflow-x-auto scrollbar-hide gap-0 py-4"
-              style={{ scrollBehavior: 'smooth' }}
+              className="flex overflow-x-auto overflow-y-hidden scrollbar-hide gap-0 py-4 cursor-grab active:cursor-grabbing"
+              style={{ 
+                scrollBehavior: 'smooth', 
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-x',
+                willChange: 'transform', // Optimize for animations
+                position: 'relative'
+              }}
+              onWheel={(e) => {
+                if (e.deltaY !== 0) {
+                  e.preventDefault();
+                  // User manually scrolling - will be handled by interaction events
+                }
+              }}
             >
               {/* Duplicate products for infinite loop effect - triple the products for smoother looping */}
               {[...productImages, ...productImages, ...productImages].map((image, index) => (
                 <div 
                   key={index} 
-                  className="flex-shrink-0 w-[100px] md:w-[120px] lg:w-[140px] xl:w-[160px] -mr-4 md:-mr-6 lg:-mr-8"
+                  className="flex-shrink-0 w-[145px] md:w-[125px] lg:w-[140px] xl:w-[155px] mr-5 md:mr-4 lg:mr-6"
                 >
                   <div className="relative flex justify-center items-center">
                     <img 
@@ -195,10 +287,12 @@ const BuildBundleSection = () => {
                       alt={`Plant Food Product ${index + 1}`}
                       className="w-full h-auto object-contain"
                       style={{ 
-                        maxHeight: '360px', 
-                        minHeight: '330px',
-                        transform: 'scale(1.58)',
-                        transformOrigin: 'center center'
+                        maxHeight: '480px', 
+                        minHeight: '430px',
+                        transform: 'scale(3) translateX(-2%)',
+                        transformOrigin: 'center 45%',
+                        objectPosition: 'center 45%',
+                        objectFit: 'contain'
                       }}
                       onError={handleImageError}
                     />

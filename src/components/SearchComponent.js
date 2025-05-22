@@ -8,20 +8,21 @@ const SearchComponent = ({   isDesktop = true,   isOpen,   setIsOpen,   onClose,
   const [loading, setLoading] = useState(false);
   const [noResults, setNoResults] = useState(false);
   const [showResults, setShowResults] = useState(false); // Track if results should be shown
+  const [inputFocused, setInputFocused] = useState(false); // Track if input has been focused
   const searchInputRef = useRef(null);
   const searchResultsRef = useRef(null);
 
-  // Focus input when search opens
+  // Focus input when search opens - now modified to prevent auto-focus
   useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
+    // Removed auto-focus behavior
+    // No longer auto-focusing when component opens
   }, [isOpen]);
 
   // Reset state when component unmounts or closes
   useEffect(() => {
     if (!isOpen) {
       setShowResults(false);
+      setInputFocused(false); // Reset focus state when closed
     } else {
       setShowResults(true);
     }
@@ -150,7 +151,7 @@ const SearchComponent = ({   isDesktop = true,   isOpen,   setIsOpen,   onClose,
 
   // Group search results by type for better UI organization
   const groupedResults = searchResults.reduce((acc, product) => {
-    const type = product.productType || 'Other Products';
+    const type = product.productType;
     if (!acc[type]) {
       acc[type] = [];
     }
@@ -168,6 +169,7 @@ const SearchComponent = ({   isDesktop = true,   isOpen,   setIsOpen,   onClose,
 
   // Handle search input focus
   const handleSearchFocus = () => {
+    setInputFocused(true); // Set input as focused
     if (setIsOpen && !isOpen) {
       setIsOpen(true);
     }
@@ -207,13 +209,13 @@ const SearchComponent = ({   isDesktop = true,   isOpen,   setIsOpen,   onClose,
           value={searchTerm}
           onChange={handleSearchChange}
           onFocus={handleSearchFocus}
-          placeholder="Search products..."
+          placeholder="Search products"
           className={`
             ${isDesktop 
               ? 'pl-8 pr-10 py-2 w-60 border border-gray-300 rounded-full bg-[#fffbef]' 
-              : 'w-full pl-6 pr-4 bg-[#fffbef] py-2 text-gray-700 border-b border-gray-300'
+              : 'w-full pl-6 pr-4 bg-[#fffbef] py-2 text-gray-700 text-lg'
             } 
-            focus:outline-none focus:ring-1 focus:ring-olive-700 focus:border-olive-700 transition-all text-sm
+            focus:outline-none focus:ring-1 focus:ring-olive-700 focus:border-olive-700 transition-all ${isDesktop ? 'text-sm' : ''}
           `}
           aria-label="Search products"
         />
@@ -328,12 +330,12 @@ const SearchComponent = ({   isDesktop = true,   isOpen,   setIsOpen,   onClose,
             </div>
           )}
           
-          {/* Popular searches when no search term */}
-          {!searchTerm && !loading && (
+          {/* Popular searches when no search term AND input has been focused */}
+          {!searchTerm && !loading && inputFocused && (
             <div className="p-4">
-              <h3 className="text-base font-medium text-gray-700 mb-5 text-center">POPULAR SEARCHES</h3>
+              <h3 className="text-base font-medium text-gray-700 mb-3 text-center">POPULAR SEARCHES</h3>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {/* House Plants */}
                 <Link 
                   to={{
@@ -343,14 +345,14 @@ const SearchComponent = ({   isDesktop = true,   isOpen,   setIsOpen,   onClose,
                   className="flex flex-col items-center"
                   onClick={handleSearchItemClick}
                 >
-                  <div className="w-full aspect-square mb-2 overflow-hidden rounded">
+                  <div className="w-full aspect-square mb-1 overflow-hidden rounded max-w-[100px] mx-auto">
                     <img 
                       src="/assets/Collection Tiles Images/Houseplants Tile.jpg" 
                       alt="House Plants" 
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <span className="text-xs font-medium text-gray-700 text-center">HOUSE PLANTS</span>
+                  <span className="text-sm font-medium text-gray-700 text-center">HOUSE PLANTS</span>
                 </Link>
                 
                 {/* Lawn & Garden */}
@@ -362,14 +364,14 @@ const SearchComponent = ({   isDesktop = true,   isOpen,   setIsOpen,   onClose,
                   className="flex flex-col items-center"
                   onClick={handleSearchItemClick}
                 >
-                  <div className="w-full aspect-square mb-2 overflow-hidden rounded">
+                  <div className="w-full aspect-square mb-1 overflow-hidden rounded max-w-[100px] mx-auto">
                     <img 
                       src="/assets/Collection Tiles Images/Lawn and Garden Tile.jpg" 
                       alt="Lawn & Garden" 
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <span className="text-xs font-medium text-gray-700 text-center">LAWN & GARDEN</span>
+                  <span className="text-sm font-medium text-gray-700 text-center">LAWN & GARDEN</span>
                 </Link>
 
                 {/* Hydro & Aquatic */}
@@ -381,14 +383,14 @@ const SearchComponent = ({   isDesktop = true,   isOpen,   setIsOpen,   onClose,
                   className="flex flex-col items-center"
                   onClick={handleSearchItemClick}
                 >
-                  <div className="w-full aspect-square mb-2 overflow-hidden rounded">
+                  <div className="w-full aspect-square mb-1 overflow-hidden rounded max-w-[100px] mx-auto">
                     <img 
                       src="/assets/Collection Tiles Images/Hydro and Aquatic Collection Tile.jpg" 
                       alt="Hydro & Aquatic" 
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <span className="text-xs font-medium text-gray-700 text-center">HYDRO & AQUATIC</span>
+                  <span className="text-sm font-medium text-gray-700 text-center">HYDRO & AQUATIC</span>
                 </Link>
                 
                 {/* Specialty Supplements */}
@@ -400,14 +402,14 @@ const SearchComponent = ({   isDesktop = true,   isOpen,   setIsOpen,   onClose,
                   className="flex flex-col items-center"
                   onClick={handleSearchItemClick}
                 >
-                  <div className="w-full aspect-square mb-2 overflow-hidden rounded">
+                  <div className="w-full aspect-square mb-1 overflow-hidden rounded max-w-[100px] mx-auto">
                     <img 
                       src="/assets/Collection Tiles Images/Specialty Supplements Title.jpg" 
                       alt="Specialty Supplements" 
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <span className="text-xs font-medium text-gray-700 text-center">SPECIALTY SUPPLIES</span>
+                  <span className="text-sm font-medium text-gray-700 text-center">SPECIALTY SUPPLIES</span>
                 </Link>
               </div>
             </div>

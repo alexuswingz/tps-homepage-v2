@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useCart } from './CartContext';
 import LeafDivider from './LeafDivider';
@@ -10,6 +10,292 @@ import IngredientsSlider from './ingredients-slider';
 import BuildBundleSection from './build-bundle-section';
 import MobileNewsletter from './MobileNewsletter';
 
+// Custom hook to detect if on mobile
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    
+    const listener = () => setMatches(media.matches);
+    media.addEventListener("change", listener);
+    
+    return () => media.removeEventListener("change", listener);
+  }, [matches, query]);
+
+  return matches;
+};
+
+// Image Modal Component
+const ImageModal = ({ isOpen, onClose, image, alt }) => {
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center"
+         onClick={onClose}>
+      <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center">
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 bg-white/80 hover:bg-white text-gray-800 rounded-full p-2 z-20"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
+        <div 
+          className="w-full h-full p-4 overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+          onMouseEnter={() => setIsZoomed(true)}
+          onMouseLeave={() => setIsZoomed(false)}
+          onMouseMove={(e) => {
+            const bounds = e.currentTarget.getBoundingClientRect();
+            const x = ((e.clientX - bounds.left) / bounds.width) * 100;
+            const y = ((e.clientY - bounds.top) / bounds.height) * 100;
+            setMousePosition({ x, y });
+          }}
+        >
+          <img 
+            src={image} 
+            alt={alt}
+            className={`max-h-[80vh] max-w-full object-contain mx-auto transition-transform duration-300 ${
+              isZoomed ? 'scale-[1.8]' : 'scale-100'
+            }`}
+            style={isZoomed ? {
+              transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`
+            } : undefined}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Mobile Image Gallery Component (Amazon-like)
+const MobileImageGallery = ({ isOpen, onClose, images, initialImage, productName }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [startX, setStartX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [translateX, setTranslateX] = useState(0);
+  const [scale, setScale] = useState(1);
+  const [lastDistance, setLastDistance] = useState(null);
+  const [showZoomTip, setShowZoomTip] = useState(true);
+  const slideRef = useRef(null);
+  
+  useEffect(() => {
+    // Find the index of the initial image
+    const index = images.findIndex(img => img.src === initialImage) || 0;
+    setCurrentIndex(index >= 0 ? index : 0);
+    
+    // Hide zoom tip after 3 seconds
+    const timer = setTimeout(() => {
+      setShowZoomTip(false);
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, [images, initialImage]);
+  
+  // Reset when opening
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+  
+  if (!isOpen) return null;
+  
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      // Single touch for swiping
+      setStartX(e.touches[0].clientX);
+      setIsDragging(true);
+    } else if (e.touches.length === 2) {
+      // Two fingers for pinch zoom
+      const distance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      setLastDistance(distance);
+      setIsDragging(false); // Disable horizontal dragging during pinch
+    }
+  };
+  
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2) {
+      // Handle pinch zoom
+      const distance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      
+      if (lastDistance) {
+        const delta = distance - lastDistance;
+        // Calculate new scale with limits
+        const newScale = Math.min(Math.max(scale + delta * 0.01, 1), 3);
+        setScale(newScale);
+      }
+      
+      setLastDistance(distance);
+      return;
+    }
+    
+    // Handle single touch dragging (only if not zoomed)
+    if (!isDragging || scale > 1) return;
+    
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - startX;
+    
+    // Limit the drag distance when at the first or last slide
+    if ((currentIndex === 0 && diff > 0) || 
+        (currentIndex === images.length - 1 && diff < 0)) {
+      setTranslateX(diff / 3); // Reduced movement to indicate end of gallery
+    } else {
+      setTranslateX(diff);
+    }
+  };
+  
+  const handleTouchEnd = (e) => {
+    // Reset pinch-zoom values
+    setLastDistance(null);
+    
+    // If we're zoomed in, don't handle slide changes
+    if (scale > 1) {
+      return;
+    }
+    
+    setIsDragging(false);
+    
+    // If swiped far enough, change slide
+    if (Math.abs(translateX) > 50) {
+      if (translateX > 0 && currentIndex > 0) {
+        // Swiped right
+        setCurrentIndex(currentIndex - 1);
+      } else if (translateX < 0 && currentIndex < images.length - 1) {
+        // Swiped left
+        setCurrentIndex(currentIndex + 1);
+      }
+    }
+    
+    // Add animation to snap back
+    setTranslateX(0);
+  };
+  
+  // Handle double tap to zoom in/out
+  const handleDoubleTap = () => {
+    setScale(scale === 1 ? 2 : 1);
+  };
+  
+  const goToSlide = (index) => {
+    setCurrentIndex(index);
+    // Reset zoom when changing slides
+    setScale(1);
+  };
+  
+  const containerStyle = {
+    transform: `translateX(${translateX}px)`,
+    transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+  };
+  
+  const imageStyle = {
+    transform: `scale(${scale})`,
+    transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-white z-[60] flex flex-col">
+      {/* Navigation header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white sticky top-0 z-10 border-b border-gray-100">
+        <span className="text-gray-800 text-sm font-medium">
+          {currentIndex + 1} / {images.length}
+        </span>
+        <button 
+          onClick={onClose}
+          className="text-gray-800 p-1"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      {/* Main image slider */}
+      <div 
+        className="flex-1 overflow-hidden relative touch-none w-full h-full"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        ref={slideRef}
+        onDoubleClick={handleDoubleTap}
+      >
+        <div 
+          className="h-full w-full flex items-center justify-center"
+          style={containerStyle}
+        >
+          {images[currentIndex] && (
+            <img
+              src={images[currentIndex].src}
+              alt={images[currentIndex].alt || productName}
+              className="max-h-full max-w-full object-contain"
+              style={imageStyle}
+            />
+          )}
+        </div>
+        
+        {/* Scale indicator - only show when zoomed */}
+        {scale > 1 && (
+          <div className="absolute top-4 left-4 bg-gray-800/50 text-white text-sm py-1 px-3 rounded-full">
+            {Math.round(scale * 100)}%
+          </div>
+        )}
+        
+        {/* Arrow navigation - only if more than one image and not zoomed */}
+        {images.length > 1 && scale === 1 && (
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 pointer-events-none">
+            <button
+              className={`p-2 rounded-full bg-gray-200 text-gray-800 pointer-events-auto ${
+                currentIndex === 0 ? 'opacity-50' : 'opacity-80'
+              }`}
+              onClick={() => currentIndex > 0 && goToSlide(currentIndex - 1)}
+              disabled={currentIndex === 0}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              className={`p-2 rounded-full bg-gray-200 text-gray-800 pointer-events-auto ${
+                currentIndex === images.length - 1 ? 'opacity-50' : 'opacity-80'
+              }`}
+              onClick={() => currentIndex < images.length - 1 && goToSlide(currentIndex + 1)}
+              disabled={currentIndex === images.length - 1}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        )}
+        
+        {/* Double-tap indicator - briefly show on first load */}
+        {showZoomTip && (
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-gray-800/70 text-white text-xs px-3 py-2 rounded-full pointer-events-none">
+            Double-tap to zoom
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const ProductPage = () => {
   const { productId } = useParams();
   const { addToCart } = useCart();
@@ -18,19 +304,38 @@ const ProductPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(1);
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedBundle, setSelectedBundle] = useState('single'); // default to single
   const [variantImages, setVariantImages] = useState({});
   const [productImages, setProductImages] = useState([]);
   const [silicaProduct, setSilicaProduct] = useState(null);
   const [isSubscription, setIsSubscription] = useState(false);
   const [deliveryInterval, setDeliveryInterval] = useState(2); // Default 2 months delivery interval
+  const [showStickyBar, setShowStickyBar] = useState(false);
+  const productHeroRef = useRef(null);
+  
+  // Detect if on mobile
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   // Scroll to top when component mounts or productId changes
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [productId]);
+
+  // Monitor scroll position to show/hide sticky bar
+  useEffect(() => {
+    const handleScroll = () => {
+      if (productHeroRef.current) {
+        const heroBottom = productHeroRef.current.getBoundingClientRect().bottom;
+        setShowStickyBar(heroBottom < 0);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   // Function to make API calls to Shopify Storefront API
   const fetchFromStorefrontAPI = async (query) => {
@@ -580,9 +885,9 @@ const ProductPage = () => {
   return (
     <>
       {/* Product Hero Section */}
-      <div className="bg-[#fffbef]">
+      <div className="bg-[#fffbef]" ref={productHeroRef}>
         {/* Breadcrumbs - desktop only */}
-        <div className="max-w-7xl mx-auto px-6 pt-4 hidden md:block">
+        <div className="max-w-7xl mx-auto px-6 pt-3 hidden md:block">
           <div className="flex items-center text-sm text-gray-600">
             <Link to="/" className="hover:text-[#F97462]">Home</Link>
             <span className="mx-2">/</span>
@@ -593,23 +898,16 @@ const ProductPage = () => {
         </div>
 
         {/* Main Section */}
-        <main className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 py-10 px-4">
+        <main className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 py-6 px-4">
           {/* Product Image & Best Seller */}
           <section aria-labelledby="product-images-heading">
             <h2 id="product-images-heading" className="sr-only">Product Images</h2>
             <div className="flex flex-col">
               {/* Main Image Container */}
               <div 
-                className={`relative mb-6 rounded-2xl overflow-hidden bg-white shadow-sm`}
+                className={`relative mb-6 rounded-2xl overflow-hidden bg-white shadow-sm cursor-pointer`}
                 style={{ aspectRatio: '3/4' }}
-                onMouseEnter={() => setIsZoomed(true)}
-                onMouseLeave={() => setIsZoomed(false)}
-                onMouseMove={(e) => {
-                  const bounds = e.currentTarget.getBoundingClientRect();
-                  const x = ((e.clientX - bounds.left) / bounds.width) * 100;
-                  const y = ((e.clientY - bounds.top) / bounds.height) * 100;
-                  setMousePosition({ x, y });
-                }}
+                onClick={() => setImageModalOpen(true)}
               >
                 {/* Background video - only show for slides that have hasVideo true */}
                 {productImages[selectedImage - 1]?.hasVideo && (
@@ -630,12 +928,7 @@ const ProductPage = () => {
                   <img 
                     src={productImages[selectedImage - 1]?.src || product.image}
                     alt={productImages[selectedImage - 1]?.alt || product.name}
-                    className={`w-full h-full object-contain transition-transform duration-300 ${
-                      isZoomed ? 'scale-125' : 'scale-100'
-                    }`}
-                    style={isZoomed ? {
-                      transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`
-                    } : undefined}
+                    className="w-full h-full object-contain transition-transform duration-300"
                   />
                   
                   {/* Best seller badge */}
@@ -675,9 +968,14 @@ const ProductPage = () => {
                     </div>
                   )}
 
-                  {/* Zoom instruction */}
-                  <div className="absolute top-4 right-4 bg-white/80 text-gray-600 text-xs px-3 py-1.5 rounded-full backdrop-blur-sm opacity-0 hover:opacity-100 transition-opacity duration-300">
-                    Hover to zoom
+                  {/* Click to view overlay */}
+                  <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                    <div className="bg-white/80 text-gray-700 text-sm px-4 py-2 rounded-full backdrop-blur-sm opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      {isMobile ? 'Tap to view gallery' : 'Click to zoom'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -791,13 +1089,14 @@ const ProductPage = () => {
             </h1>
             
             {/* Reviews */}
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-1 mb-3 whitespace-nowrap overflow-hidden">
+              <span className="text-base font-medium text-[#FF6B6B] flex-shrink-0">{product.rating}</span>
               {/* Stars */}
-              <div className="flex">
+              <div className="flex flex-shrink-0">
                 {[1,2,3,4,5].map(i => (
                   <svg
                     key={i}
-                    className={`w-6 h-6 ${
+                    className={`w-5 h-5 ${
                       i <= Math.floor(product.rating) ? 'text-[#FF6B6B]' : (
                         i === Math.ceil(product.rating) && i > Math.floor(product.rating) ? 'text-[#FF6B6B]' : 'text-gray-300'
                       )
@@ -809,33 +1108,12 @@ const ProductPage = () => {
                   </svg>
                 ))}
               </div>
-              <span className="text-sm text-[#FF6B6B] font-semibold ml-1">{product.rating} out of 5</span>
+              <span className="text-sm text-gray-600 flex-shrink-0">({product.reviews})</span>
             </div>
-            <div className="text-xs text-gray-600 mb-1">{product.rating} out of 5 stars</div>
-            <a
-              href="#"
-              className="text-xs text-[#FF6B6B] hover:underline mb-2 inline-block"
-            >
-              {product.reviews} global ratings
-            </a>
-            
-            {/* Price */}
-            <div className="text-2xl font-bold mb-2">
-              ${selectedBundle === 'single' 
-                ? (selectedVariant ? selectedVariant.price.toFixed(2) : product.price.toFixed(2))
-                : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)).toFixed(2) : product.price.toFixed(2))
-              }
-            </div>
-
-            {/* Description */}
-            <p className="text-gray-700 text-sm mb-6">
-              {product.fullDescription}
-            </p>
 
             {/* Select Size */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-bold">SELECT SIZE</div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {product.variants.map((variant, index) => (
@@ -867,25 +1145,18 @@ const ProductPage = () => {
                   >
                     {/* Add the Most Popular badge only for first variant */}
                     {index === 0 && (
-                      <span className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs px-2 py-1 bg-[#FFE5E5] text-[#E94F37] rounded-full font-medium whitespace-nowrap">
+                      <span className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs px-3 py-1 bg-[#FFE5E5] text-[#E94F37] rounded-full font-semibold whitespace-nowrap">
                         MOST POPULAR!
                       </span>
                     )}
                     <div className="flex flex-col items-center">
-                      <span className="font-bold text-sm mb-1">{variant.title}</span>
-                      <span className={`text-xs ${
-                        selectedVariant?.id === variant.id ? 'text-white' : 'text-gray-500'
+                      <span className="font-bold text-lg">{variant.title}</span>
+                      <span className={`font-bold text-2xl ${
+                        selectedVariant?.id === variant.id ? 'text-white' : 'text-gray-400'
                       }`}>
                         ${variant.price.toFixed(2)}
                       </span>
                     </div>
-                    {selectedVariant?.id === variant.id && (
-                      <div className="absolute -top-2 -right-2 bg-[#27AE60] text-white p-1 rounded-full">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
                   </button>
                 ))}
               </div>
@@ -913,22 +1184,22 @@ const ProductPage = () => {
                         className="h-full w-full object-contain"
                       />
                     </div>
-                    <span className="text-xs text-center font-medium relative z-10">{product.name} Only</span>
+                    <span className="text-xs text-center font-medium relative z-10">{product.name}</span>
                     <span className="font-bold mt-2 text-[#E94F37] relative z-10">
                       ${selectedVariant.price.toFixed(2)}
                     </span>
                   </button>
                   <button 
                     onClick={() => setSelectedBundle('bundle')}
-                    className={`relative overflow-hidden group rounded-xl p-4 flex flex-col items-center transition-all duration-300 border-2 ${
+                    className={`relative overflow-visible group rounded-xl p-4 flex flex-col items-center transition-all duration-300 border-2 ${
                       selectedBundle === 'bundle'
                         ? 'border-[#E94F37] bg-[#FFF3E6] scale-[1.02]'
                         : 'border-gray-200 bg-white opacity-60'
                     }`}
                   >
-                    <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] bg-[#E94F37] text-white px-3 py-1 rounded-full font-medium z-20">
+                    <span className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs px-3 py-1 bg-[#E94F37] text-white rounded-full font-semibold whitespace-nowrap z-[100]">
                       BETTER TOGETHER
-                    </div>
+                    </span>
                     <div className="flex justify-center items-center gap-2 h-24 mb-2 relative z-10">
                       <div className="h-full w-1/2 bg-white rounded-lg flex items-center justify-center">
                         <img 
@@ -1049,7 +1320,7 @@ const ProductPage = () => {
                         value={deliveryInterval}
                         onChange={(e) => setDeliveryInterval(parseInt(e.target.value))}
                         onClick={(e) => e.stopPropagation()}
-                        className="text-sm font-medium bg-transparent border-b border-gray-300 cursor-pointer focus:outline-none focus:border-black"
+                        className="text-sm font-medium bg-transparent border-b border-gray-300 cursor-pointer focus:outline-none focus:border-black appearance-none"
                       >
                         <option value="1">1 month</option>
                         <option value="2">2 months</option>
@@ -1076,23 +1347,23 @@ const ProductPage = () => {
       </div>
       
       {/* Trust Badges Section */}
-      <div className="max-w-6xl mx-auto py-8 md:py-12">
+      <div className="max-w-6xl mx-auto py-4 md:py-6">
         <div className="grid grid-cols-3 gap-3 md:gap-6 text-center px-4">
           {/* Customer Favorite Badge */}
           <div className="flex flex-col items-center">
-            <img src="/assets/Icons/PDP-Badges5-Star-Reviews-Icon.png" alt="5-Star Reviews" className="w-16 h-16 md:w-24 md:h-24 mb-2 md:mb-3" />
+            <img src="/assets/Icons/PDP-Badges5-Star-Reviews-Icon.png" alt="5-Star Reviews" className="w-16 h-16 md:w-24 md:h-24 mb-1 md:mb-2" />
             <h3 className="text-sm md:text-xl font-bold text-gray-900">CUSTOMER FAVORITE</h3>
           </div>
           
           {/* Made in USA Badge */}
           <div className="flex flex-col items-center">
-            <img src="/assets/Icons/PDP-BadgesMade-in-US-Icon.png" alt="Made in USA" className="w-16 h-16 md:w-24 md:h-24 mb-2 md:mb-3" />
+            <img src="/assets/Icons/PDP-BadgesMade-in-US-Icon.png" alt="Made in USA" className="w-16 h-16 md:w-24 md:h-24 mb-1 md:mb-2" />
             <h3 className="text-sm md:text-xl font-bold text-gray-900">MADE IN THE USA</h3>
           </div>
           
           {/* Free Shipping Badge */}
           <div className="flex flex-col items-center">
-            <img src="/assets/Icons/PDP-BadgesFree-Shipping-Icon.png" alt="Free Shipping" className="w-16 h-16 md:w-24 md:h-24 mb-2 md:mb-3" />
+            <img src="/assets/Icons/PDP-BadgesFree-Shipping-Icon.png" alt="Free Shipping" className="w-16 h-16 md:w-24 md:h-24 mb-1 md:mb-2" />
             <h3 className="text-sm md:text-xl font-bold text-gray-900">FREE SHIPPING</h3>
           </div>
         </div>
@@ -1109,6 +1380,191 @@ const ProductPage = () => {
       <AnimatedLeafDivider />
       <ComparisonChart />
       <MobileNewsletter />
+
+      {/* Sticky Product Bar */}
+      <div 
+        className={`fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-gray-200 z-50 transform transition-transform duration-300 ${
+          showStickyBar ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="w-full mx-auto px-3 py-3">
+          {/* Mobile view */}
+          <div className="md:hidden">
+            <div className="flex items-center justify-between">
+              {/* Product minimal info */}
+              <div className="flex items-center space-x-2">
+                <div className="w-10 h-10 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0">
+                  <img 
+                    src={productImages[0]?.src || product?.image} 
+                    alt={product?.name} 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-gray-900 line-clamp-1">{product?.name}</h3>
+                  <span className="text-xs font-bold text-[#E94F37]">
+                    ${selectedVariant ? selectedVariant.price.toFixed(2) : product?.price.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Buy button - simplified for mobile */}
+              <button 
+                onClick={handleAddToCart}
+                className="bg-[#FFC600] hover:bg-[#FFD700] text-black font-bold py-2 px-4 rounded-lg text-xs whitespace-nowrap"
+              >
+                {isSubscription ? "Subscribe" : "Buy Now"}
+              </button>
+            </div>
+            
+            {/* Size selector - full width on mobile */}
+            <div className="mt-2 relative">
+              <select 
+                value={selectedVariant?.id || ""}
+                onChange={(e) => {
+                  const variant = product?.variants.find(v => v.id === e.target.value);
+                  if (variant) setSelectedVariant(variant);
+                }}
+                className="form-select appearance-none block w-full py-2 px-3 text-xs font-medium 
+                  border border-gray-200 focus:border-[#E94F37] hover:border-gray-300
+                  rounded-lg bg-white shadow-sm focus:outline-none focus:ring-0
+                  transition-colors duration-200"
+              >
+                <option value="" disabled>Select Size</option>
+                {product?.variants.map(variant => (
+                  <option 
+                    key={variant.id} 
+                    value={variant.id}
+                    disabled={!variant.available}
+                  >
+                    {variant.title} - ${variant.price.toFixed(2)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          {/* Desktop view */}
+          <div className="hidden md:flex md:items-center md:justify-between">
+            <div className="flex items-center space-x-4">
+              {/* Product Image */}
+              <div className="w-14 h-14 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0">
+                <img 
+                  src={productImages[0]?.src || product?.image} 
+                  alt={product?.name} 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              
+              {/* Product Name & Price */}
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 line-clamp-1">{product?.name}</h3>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-bold text-[#E94F37]">
+                    ${selectedVariant ? selectedVariant.price.toFixed(2) : product?.price.toFixed(2)}
+                  </span>
+                  <span className="text-xs text-gray-600">|</span>
+                  <div className="flex items-center">
+                    <svg className="w-3.5 h-3.5 text-[#FF6B6B]" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    <span className="text-xs text-gray-500 ml-1">{product?.rating || 4.5}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Variant Select & Buy Button */}
+            <div className="flex items-center gap-3">
+              {/* Variant Select with Improved Styling */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-4 w-4 text-[#E94F37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                <select 
+                  value={selectedVariant?.id || ""}
+                  onChange={(e) => {
+                    const variant = product?.variants.find(v => v.id === e.target.value);
+                    if (variant) setSelectedVariant(variant);
+                  }}
+                  className="form-select appearance-none block w-full pl-10 pr-8 py-2 text-sm font-medium 
+                    border-2 border-gray-200 focus:border-[#E94F37] hover:border-gray-300
+                    rounded-lg bg-white shadow-sm focus:outline-none focus:ring-0
+                    transition-colors duration-200 min-w-[160px]"
+                  style={{ backgroundImage: 'none' }}
+                >
+                  <option value="" disabled>Select Size</option>
+                  {product?.variants.map(variant => (
+                    <option 
+                      key={variant.id} 
+                      value={variant.id}
+                      disabled={!variant.available}
+                      className={!variant.available ? "text-gray-400" : ""}
+                    >
+                      {variant.title} - ${variant.price.toFixed(2)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Bundle Option Checkbox */}
+              {silicaProduct && (
+                <div className="hidden md:flex items-center mr-2">
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer"
+                      checked={selectedBundle === 'bundle'}
+                      onChange={() => setSelectedBundle(selectedBundle === 'single' ? 'bundle' : 'single')}
+                    />
+                    <div className="relative w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer
+                      peer-checked:after:translate-x-full peer-checked:after:border-white
+                      after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                      after:bg-white after:border-gray-300 after:border after:rounded-full
+                      after:h-4 after:w-4 after:transition-all
+                      peer-checked:bg-[#E94F37]"></div>
+                    <span className="ml-2 text-xs font-medium text-gray-700">+ Bundle</span>
+                  </label>
+                </div>
+              )}
+              
+              {/* Add to Cart Button */}
+              <button 
+                onClick={handleAddToCart}
+                className="bg-[#FFC600] hover:bg-[#FFD700] text-black font-bold py-2 px-4 rounded-lg text-sm whitespace-nowrap flex items-center gap-1"
+              >
+                <span>{isSubscription ? "Subscribe" : "Add to Cart"}</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Image Modal - Conditionally render based on device type */}
+      {imageModalOpen && !isMobile && (
+        <ImageModal
+          isOpen={imageModalOpen}
+          onClose={() => setImageModalOpen(false)}
+          image={productImages[selectedImage - 1]?.src || product?.image}
+          alt={productImages[selectedImage - 1]?.alt || product?.name}
+        />
+      )}
+      
+      {/* Mobile Image Gallery - Only on mobile */}
+      {imageModalOpen && isMobile && (
+        <MobileImageGallery
+          isOpen={imageModalOpen}
+          onClose={() => setImageModalOpen(false)}
+          images={productImages}
+          initialImage={productImages[selectedImage - 1]?.src || product?.image}
+          productName={product?.name}
+        />
+      )}
     </>
   );
 };
