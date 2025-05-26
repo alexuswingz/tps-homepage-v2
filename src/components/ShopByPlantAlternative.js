@@ -153,6 +153,141 @@ const ShopByPlantAlternative = () => {
     "Pitcher Plant Food"
   ];
 
+  // List of garden product names
+  const gardenProducts = [
+    "Bougainvillea Fertilizer",
+    "Camellia Fertilizer",
+    "Cut Flower Food",
+    "Desert Rose Fertilizer",
+    "Flowering Fertilizer",
+    "Rose Bush Fertilizer",
+    "Rose Fertilizer",
+    "Plumeria Fertilizer",
+    "Hydrangea Fertilizer",
+    "Hibiscus Fertilizer",
+    "Azalea Fertilizer",
+    "Gardenia Fertilizer",
+    "Rhododendron Fertilizer",
+    "Petunia Fertilizer",
+    "Geranium Fertilizer",
+    "Hanging Basket Plant Food",
+    "Flowering Plant Food",
+    "Daffodil Bulb Fertilizer",
+    "Tulip Bulb Fertilizer",
+    "Mum Fertilizer",
+    "Ixora Fertilizer",
+    "Bulb Fertilizer",
+    "Lilac Bush Fertilizer",
+    "Bloom Fertilizer",
+    "Berry Fertilizer",
+    "Pepper Fertilizer",
+    "Tomato Fertilizer",
+    "Strawberry Fertilizer",
+    "Blueberry Fertilizer",
+    "Herbs and Leafy Greens Plant Food",
+    "Vegetable Fertilizer",
+    "Pumpkin Fertilizer",
+    "Potato Fertilizer",
+    "Garlic Fertilizer",
+    "Water Soluble Fertilizer",
+    "Garden Fertilizer",
+    "All Purpose Outdoor",
+    "Plant Food",
+    "Plant Fertilizer",
+    "All Purpose Fertilizer",
+    "All Purpose NPK Fertilizer",
+    "Starter Fertilizer",
+    "10-10-10 for General Use",
+    "10-10-10 for Vegetables",
+    "10-10-10 for Plants",
+    "Fall Fertilizer",
+    "Winter Fertilizer",
+    "Ivy Plant Food",
+    "Lawn Fertilizer",
+    "Mycorrhizal Fungi for Trees",
+    "Mycorrhizal Fungi for Palm Trees",
+    "Mycorrhizal Fungi for Gardens",
+    "Mycorrhizal Fungi for Shade Trees",
+    "Mycorrhizal Fungi",
+    "Root Booster for Plants",
+    "Soil Microbes for Gardening",
+    "Trichoderma for Plants",
+    "Peach Tree Fertilizer",
+    "Olive Tree Fertilizer",
+    "Mango Tree Fertilizer",
+    "Lime Tree Fertilizer",
+    "Evergreen Fertilizer",
+    "Arborvitae Fertilizer",
+    "Date Palm Fertilizer",
+    "Apple Tree Fertilizer",
+    "Citrus Fertilizer",
+    "Tree Fertilizer",
+    "Fruit Tree Fertilizer",
+    "Lemon Tree Fertilizer",
+    "Avocado Tree Fertilizer",
+    "10-10-10 for Trees",
+    "Aspen Tree Fertilizer",
+    "Boxwood Fertilizer",
+    "Crepe Myrtle Fertilizer",
+    "Dogwood Tree Fertilizer",
+    "Japanese Maple Fertilizer",
+    "Magnolia Tree Fertilizer",
+    "Maple Tree Fertilizer",
+    "Oak Tree Fertilizer",
+    "Orange Tree Fertilizer",
+    "Pine Tree Fertilizer",
+    "Root Stimulator for Trees",
+    "Sago Palm Fertilizer",
+    "Shrub Fertilizer",
+    "Tree And Shrub Fertilizer",
+    "Jasmine Fertilizer"
+  ];
+
+  // List of hydroponic and aquatic product names
+  const hydroponicAndAquaticProducts = [
+    "Liquid Plant Food",
+    "Lotus Fertilizer",
+    "Aquarium Plant Fertilizer",
+    "Aquatic Plant Fertilizer",
+    "Water Garden Fertilizer",
+    "Water Plant Fertilizer",
+    "Hydroponic Nutrients",
+    "Hydroponic Plant Food"
+  ];
+
+  // List of specialty supplement product names
+  const specialtySupplementProducts = [
+    "Fish Emulsion Fertilizer",
+    "Fish Fertilizer",
+    "Silica for Plants",
+    "Cal-Mag Fertilizer",
+    "Seaweed Fertilizer",
+    "Calcium for Plants",
+    "Calcium Nitrate",
+    "Worm Castings Concentrate",
+    "Compost Starter and Accelerator",
+    "Compost Tea",
+    "Sulfur for Plants",
+    "Phosphorus Fertilizer",
+    "Potassium Fertilizer",
+    "Ferrous Sulfate For Plants",
+    "Urea Fertilizer",
+    "Magnesium for Plants",
+    "Potassium Nitrate Fertilizer",
+    "Ammonium Nitrate Fertilizer",
+    "Potassium Sulfate Fertilizer",
+    "Sulfate Of Potash",
+    "Potash Fertilizer",
+    "Muriate Of Potash",
+    "Phosphorus and Potassium Fertilizer",
+    "Compost Tea for Plants",
+    "Kelp Meal Fertilizer",
+    "Nitrogen Fertilizer",
+    "Seaweed Extract for Plants",
+    "pH Down",
+    "pH Up"
+  ];
+
   // Function to fetch products from Shopify Storefront API
   const fetchFromStorefrontAPI = async (query) => {
     const shopifyStorefrontUrl = 'https://n3mpgz-ny.myshopify.com/api/2023-01/graphql.json';
@@ -174,13 +309,48 @@ const ShopByPlantAlternative = () => {
     return response.json();
   };
 
+  // Helper function to determine product category
+  const determineCategory = (title) => {
+    if (houseplantProducts.includes(title)) {
+      return "Houseplant Products";
+    } else if (gardenProducts.includes(title)) {
+      return "Garden Products";
+    } else if (hydroponicAndAquaticProducts.includes(title)) {
+      return "Hydrophonic and Aquatic";
+    } else if (specialtySupplementProducts.includes(title)) {
+      return "Plant Supplements";
+    }
+    
+    const lowerTitle = title.toLowerCase();
+    if (lowerTitle.includes("indoor") || lowerTitle.includes("houseplant")) {
+      return "Houseplant Products";
+    } else if (lowerTitle.includes("garden") || lowerTitle.includes("outdoor") || 
+               lowerTitle.includes("tree") || lowerTitle.includes("flower") ||
+               lowerTitle.includes("vegetable") || lowerTitle.includes("fruit")) {
+      return "Garden Products";
+    } else if (lowerTitle.includes("hydro") || lowerTitle.includes("aquatic") ||
+               lowerTitle.includes("water") || lowerTitle.includes("aquarium")) {
+      return "Hydrophonic and Aquatic";
+    } else if (lowerTitle.includes("supplement") || lowerTitle.includes("nutrient") ||
+               lowerTitle.includes("ph") || lowerTitle.includes("fertilizer") ||
+               lowerTitle.includes("calcium") || lowerTitle.includes("magnesium") ||
+               lowerTitle.includes("nitrogen") || lowerTitle.includes("phosphorus") ||
+               lowerTitle.includes("potassium") || lowerTitle.includes("sulfur") ||
+               lowerTitle.includes("fish") || lowerTitle.includes("seaweed") ||
+               lowerTitle.includes("kelp") || lowerTitle.includes("compost")) {
+      return "Plant Supplements";
+    } else {
+      return "Plant Supplements";
+    }
+  };
+
   // Function to fetch all products with title matching our list
   const fetchAllProducts = async () => {
     try {
-      // Simpler query that searches for products containing these terms
+      // Query that searches for all product types
       const query = `
         {
-          products(first: 250, query: "title:*Plant* OR title:*Fertilizer* OR title:*Food*") {
+          products(first: 250, query: "title:*Plant* OR title:*Fertilizer* OR title:*Food* OR title:*Tree* OR title:*Hydroponic* OR title:*Aquatic* OR title:*Water* OR title:*pH* OR title:*Nutrient* OR title:*Supplement*") {
             edges {
               node {
                 id
@@ -249,13 +419,35 @@ const ShopByPlantAlternative = () => {
             rating: generateRandomRating(),
             reviews: Math.floor(Math.random() * 800) + 200
           }))
-          // Filter to only include products from our house plant products list
-          .filter(product => houseplantProducts.includes(product.name))
-          // Sort to match the order in houseplantProducts array
+          // Filter to include all our product lists
+          .filter(product => 
+            houseplantProducts.includes(product.name) || 
+            gardenProducts.includes(product.name) ||
+            hydroponicAndAquaticProducts.includes(product.name) ||
+            specialtySupplementProducts.includes(product.name)
+          )
+          // Sort based on category and position within category
           .sort((a, b) => {
-            const indexA = houseplantProducts.findIndex(name => name === a.name);
-            const indexB = houseplantProducts.findIndex(name => name === b.name);
-            return indexA - indexB;
+            if (a.category === b.category) {
+              // If in same category, sort by their position in respective arrays
+              if (a.category === "Houseplant Products") {
+                return houseplantProducts.indexOf(a.name) - houseplantProducts.indexOf(b.name);
+              } else if (a.category === "Garden Products") {
+                return gardenProducts.indexOf(a.name) - gardenProducts.indexOf(b.name);
+              } else if (a.category === "Hydrophonic and Aquatic") {
+                return hydroponicAndAquaticProducts.indexOf(a.name) - hydroponicAndAquaticProducts.indexOf(b.name);
+              } else {
+                return specialtySupplementProducts.indexOf(a.name) - specialtySupplementProducts.indexOf(b.name);
+              }
+            }
+            // Sort by category if different
+            const categoryOrder = {
+              "Houseplant Products": 1,
+              "Garden Products": 2,
+              "Hydrophonic and Aquatic": 3,
+              "Plant Supplements": 4
+            };
+            return categoryOrder[a.category] - categoryOrder[b.category];
           });
 
         setProducts(mappedProducts);
@@ -265,23 +457,6 @@ const ShopByPlantAlternative = () => {
       console.error('Error fetching products:', error);
       setProducts(getFallbackData());
       setLoading(false);
-    }
-  };
-
-  // Helper function to determine product category
-  const determineCategory = (title) => {
-    if (houseplantProducts.includes(title)) {
-      return "Houseplant Products";
-    }
-    const lowerTitle = title.toLowerCase();
-    if (lowerTitle.includes("indoor") || lowerTitle.includes("houseplant")) {
-      return "Houseplant Products";
-    } else if (lowerTitle.includes("garden") || lowerTitle.includes("outdoor")) {
-      return "Garden Products";
-    } else if (lowerTitle.includes("hydro") || lowerTitle.includes("aquatic")) {
-      return "Hydrophonic and Aquatic";
-    } else {
-      return "Plant Supplements";
     }
   };
 
@@ -326,10 +501,28 @@ const ShopByPlantAlternative = () => {
         gap: 16,
         breakpoints: {
           1280: { perView: 3 },
-          1024: { perView: 2.1 },
-          768: { perView: 2.1 },
-          640: { perView: 2.1 },
-          480: { perView: 2.1 }
+          1024: { perView: 2.5 },
+          768: { perView: 2.2 },
+          640: { 
+            perView: 2.2,
+            bound: true // Ensure it stops at the last slide on mobile
+          },
+          480: { 
+            perView: 2.2,
+            bound: true // Ensure it stops at the last slide on mobile
+          }
+        }
+      });
+
+      // Add a custom bound to prevent scrolling past the Shop All card on mobile
+      glide.on('run.before', () => {
+        if (window.innerWidth <= 640) {
+          const totalSlides = filteredProducts.length > 5 ? 6 : filteredProducts.length;
+          const lastPossibleTranslate = -(totalSlides - 2.2) * (glide.settings.perView / totalSlides) * 100;
+          
+          if (glide.translate <= lastPossibleTranslate) {
+            glide.disable();
+          }
         }
       });
 
@@ -383,6 +576,18 @@ const ShopByPlantAlternative = () => {
       
       setSelectedVariant(initialVariant);
     }, [product.variants]);
+
+    // Handle product click
+    const handleProductClick = (e) => {
+      // Don't navigate if clicking on the variant selector or add to cart button
+      if (e.target.closest('.variant-selector') || e.target.closest('.add-to-cart-button')) {
+        return;
+      }
+      
+      // Extract the product ID from the Shopify ID (remove the 'gid://shopify/Product/' prefix)
+      const productId = product.id.split('/').pop();
+      navigate(`/product/${productId}`);
+    };
     
     // Handle click outside to close dropdown
     useEffect(() => {
@@ -392,12 +597,10 @@ const ShopByPlantAlternative = () => {
         }
       };
       
-      // Add event listener when dropdown is open
       if (dropdownOpen) {
         document.addEventListener('mousedown', handleClickOutside);
       }
       
-      // Cleanup
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
@@ -415,8 +618,8 @@ const ShopByPlantAlternative = () => {
     
     return (
       <div 
-        className={`rounded-lg overflow-hidden shadow-sm relative ${product.backgroundClass || getRandomBackground(index)}`}
-        onClick={() => available && onSelect(product, activeVariant)}
+        className={`rounded-lg overflow-hidden shadow-sm relative ${product.backgroundClass || getRandomBackground(index)} cursor-pointer`}
+        onClick={handleProductClick}
       >
         {product.bestSeller && (
           <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm">
@@ -444,7 +647,7 @@ const ShopByPlantAlternative = () => {
           </div>
           
           {/* Variant selection dropdown */}
-          <div className="relative mb-2 sm:mb-4" ref={dropdownRef}>
+          <div className="variant-selector relative mb-2 sm:mb-4" ref={dropdownRef}>
             <div 
               onClick={(e) => {
                 e.stopPropagation(); // Prevent card click when clicking dropdown
@@ -505,16 +708,69 @@ const ShopByPlantAlternative = () => {
             )}
           </div>
           
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              addToCart(product, activeVariant);
-            }}
-            className={`w-full font-bold py-2 sm:py-3 px-2 sm:px-4 rounded-full transition-colors text-xs sm:text-base ${available ? 'bg-[#ff6b57] hover:bg-[#ff5a43] text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-            disabled={!available}
-          >
-            ADD TO CART
-          </button>
+          {/* Add to cart button */}
+          <div className="add-to-cart-button">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                addToCart(product, activeVariant);
+              }}
+              className={`w-full font-bold py-2 sm:py-3 px-2 sm:px-4 rounded-full transition-colors text-xs sm:text-base ${available ? 'bg-[#ff6b57] hover:bg-[#ff5a43] text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+              disabled={!available}
+            >
+              ADD TO CART
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Add ShopAllCard component before the main component
+  const ShopAllCard = ({ category, background, onClick }) => {
+    // Get the current category object to access its image
+    const categoryData = categories.find(cat => cat.category === category) || categories[0];
+    
+    return (
+      <div 
+        className="rounded-lg overflow-hidden shadow-sm relative h-full cursor-pointer"
+        onClick={onClick}
+      >
+        {/* Full background image */}
+        <div className="absolute inset-0">
+          <img 
+            src={categoryData.image}
+            alt={`Shop All ${category}`}
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Content - Match exact padding and height structure of product cards */}
+        <div className="p-3 sm:p-6 flex flex-col h-full relative">
+          {/* Match product image height */}
+          <div className="h-32 sm:h-48 mb-2 sm:mb-4 flex items-center justify-center">
+            <h3 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg text-center">
+              {category.split(' ')[0]}
+            </h3>
+          </div>
+
+          {/* Match ratings height */}
+          <div className="h-6 mb-1 sm:mb-3" />
+
+          {/* Match product name height */}
+          <div className="h-20" />
+
+          {/* Match variant selector height */}
+          <div className="mb-2 sm:mb-4 h-10" />
+
+          {/* Button - match exact structure of product card button */}
+          <div className="mt-auto">
+            <button 
+              className="w-full bg-[#FF6B6B] hover:bg-[#ff5a43] text-white font-medium py-2 sm:py-3 rounded-full transition-colors text-xs sm:text-base uppercase"
+            >
+              See All
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -522,7 +778,7 @@ const ShopByPlantAlternative = () => {
 
   return (
     <div className="min-h-screen bg-[#fff9f2] py-4 sm:py-8">
-      <div className="max-w-7xl mx-auto px-0 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8 px-1">
           <h1 className="text-5xl sm:text-6xl font-bold text-[#ff6b6b] mb-2">Shop by Plant</h1>
@@ -541,7 +797,7 @@ const ShopByPlantAlternative = () => {
                 <div className="relative p-1">
                   <div className={`w-20 h-20 sm:w-32 sm:h-32 relative overflow-hidden transition-transform duration-200 origin-center ${
                     selectedCategory === cat.category
-                      ? 'border-2 border-black group-hover:scale-105'
+                      ? 'border-2 border-black rounded-2xl group-hover:scale-105'
                       : 'group-hover:scale-105'
                   }`}>
                     <img
@@ -586,11 +842,25 @@ const ShopByPlantAlternative = () => {
           </div>
         ) : filteredProducts.length > 0 ? (
           <div className="relative -mx-0 sm:mx-0">
-            <div className="glide" ref={glideRef}>
+            <div className="glide ml-4 sm:ml-0" ref={glideRef}>
               <div className="glide__track" data-glide-el="track">
                 <div className="glide__slides">
-                  {filteredProducts.map((product) => (
+                  {filteredProducts.slice(0, 5).map((product) => (
                     <div key={product.id} className="glide__slide px-1 sm:px-2">
+                      <ProductCard product={product} onSelect={(product, variant) => addToCart(product, variant)} />
+                    </div>
+                  ))}
+                  {/* Show ShopAllCard only on mobile as 6th item */}
+                  <div className="glide__slide px-1 sm:px-2 block sm:hidden">
+                    <ShopAllCard 
+                      category={selectedCategory}
+                      background={getRandomBackground(5)}
+                      onClick={() => navigate(`/category/${selectedCategory.toLowerCase().replace(/\s+/g, '-')}`)}
+                    />
+                  </div>
+                  {/* Show remaining products on desktop */}
+                  {filteredProducts.slice(5).map((product) => (
+                    <div key={product.id} className="glide__slide px-1 sm:px-2 hidden sm:block">
                       <ProductCard product={product} onSelect={(product, variant) => addToCart(product, variant)} />
                     </div>
                   ))}

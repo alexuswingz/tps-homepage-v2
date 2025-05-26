@@ -15,6 +15,7 @@ import { Pagination, Zoom } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/zoom';
+import ShopByPlantAlternative from './ShopByPlantAlternative';
 
 // Custom styles for Swiper
 const swiperStyles = `
@@ -1341,7 +1342,7 @@ const ProductPage = () => {
       <LeafDivider />
       <BuildBundleSection />
       <LeafDivider />
-      <ShopByPlant />
+      <ShopByPlantAlternative />
       <LeafDivider />
       <CustomerReviews />
       <AnimatedLeafDivider />
