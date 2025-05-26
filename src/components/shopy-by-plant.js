@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination, A11y } from 'swiper/modules';
+import { Navigation, A11y } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
-import 'swiper/css/pagination';
 import { useCart } from './CartContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -221,27 +220,27 @@ const ShopByPlant = () => {
   
   const categories = [
     {
-      name: "HOUSE PLANTS",
+      name: "HOUSE\nPLANT",
       image: "/assets/Collection Tiles Images/Houseplants Tile.jpg",
       category: "Houseplant Products"
     },
     {
-      name: "LAWN & GARDEN",
+      name: "LAWN &\nGARDEN",
       image: "/assets/Collection Tiles Images/Lawn and Garden Tile.jpg",
       category: "Garden Products"
     },
     {
-      name: "HYDRO & AQUATIC",
+      name: "HYDRO &\nAQUATIC",
       image: "/assets/Collection Tiles Images/Hydro and Aquatic Collection Tile.jpg",
       category: "Hydrophonic and Aquatic"
     },
     {
-      name: "SPECIALTY SUPPLEMENTS",
+      name: "SPECIALTY\nSUPPLEMENTS",
       image: "/assets/Collection Tiles Images/Specialty Supplements Title.jpg",
       category: "Plant Supplements"
     },
     {
-      name: "CURATED BUNDLES",
+      name: "CURATED\nBUNDLES",
       image: "/assets/menu/Bundle Builder Tile.jpg",
       category: ""
     }
@@ -662,14 +661,28 @@ const ShopByPlant = () => {
     setSearchTerm(e.target.value);
   };
 
-  const renderStars = () => {
+  const renderStars = (rating = 4.6, reviewCount) => {
     return (
-      <div className="flex">
-        {[...Array(5)].map((_, i) => (
-          <svg key={i} className="h-4 w-4 text-[#ff6b57] fill-current" viewBox="0 0 24 24">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-          </svg>
-        ))}
+      <div className="flex items-center gap-1 whitespace-nowrap overflow-hidden">
+        <span className="text-base font-medium text-[#FF6B6B] flex-shrink-0">{rating.toFixed(1)}</span>
+        {/* Stars */}
+        <div className="flex flex-shrink-0">
+          {[1,2,3,4,5].map(i => (
+            <svg
+              key={i}
+              className={`w-5 h-5 ${
+                i <= Math.floor(rating) ? 'text-[#FF6B6B]' : (
+                  i === Math.ceil(rating) && i > Math.floor(rating) ? 'text-[#FF6B6B]' : 'text-gray-300'
+                )
+              }`}
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          ))}
+        </div>
+        <span className="text-sm text-gray-600 flex-shrink-0">({reviewCount})</span>
       </div>
     );
   };
@@ -694,32 +707,76 @@ const ShopByPlant = () => {
   return (
     <section className="py-8 bg-[#fffbef]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-6">
-          <h2 className="text-4xl font-medium text-[#ff6b57] mb-1">Shop by Plant</h2>
-          <p className="text-gray-500 tracking-wide text-sm">CHOOSE A COLLECTION</p>
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-4xl font-bold text-[#f86659] mb-1">Plant Categories</h2>
+          <p className="text-gray-500 tracking-wide text-sm"></p>
         </div>
 
-        <div className="flex justify-center space-x-3 sm:space-x-6 mb-8">
-          {categories.map((category, index) => (
-            <button 
-              key={index}
-              onClick={() => handleCategoryClick(category.category)}
-              className={`flex flex-col items-center group w-20 sm:w-24 focus:outline-none ${
-                selectedCategory === category.category ? 'opacity-100' : 'opacity-70 hover:opacity-100'
-              }`}
+        <div className="bg-[#ebe6d4] -mx-4 sm:mx-0 sm:rounded-lg mb-8">
+          <div className="py-6 sm:py-8 px-2 sm:px-4 max-w-7xl mx-auto">
+            <Swiper
+              modules={[Navigation, A11y]}
+              spaceBetween={8}
+              slidesPerView="auto"
+              breakpoints={{
+                480: { slidesPerView: "auto", spaceBetween: 10 },
+                640: { slidesPerView: "auto", spaceBetween: 12 },
+                768: { slidesPerView: "auto", spaceBetween: 16 },
+                1024: { 
+                  slidesPerView: 5,
+                  spaceBetween: 24,
+                  allowTouchMove: false,
+                  centeredSlides: false,
+                  slidesOffsetBefore: 0,
+                  slidesOffsetAfter: 0
+                },
+              }}
+              speed={600}
+              grabCursor={true}
+              className="categories-swiper !px-1 lg:!px-4"
+              style={{
+                '--swiper-wrapper-transition-timing-function': 'linear'
+              }}
             >
-              <div className={`overflow-hidden rounded-md mb-2 w-16 h-16 sm:w-20 sm:h-20 ${
-                selectedCategory === category.category ? 'ring-2 ring-[#ff6b57]' : ''
-              }`}>
-                <img 
-                  src={category.image} 
-                  alt={category.name}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              </div>
-              <span className="font-medium text-gray-800 text-center text-xs">{category.name}</span>
-            </button>
-          ))}
+              {categories.map((category, index) => (
+                <SwiperSlide 
+                  key={index} 
+                  className={`!w-auto ${index === categories.length - 1 ? 'last-slide' : ''}`}
+                  style={{ width: 'auto' }}
+                >
+                  <button 
+                    onClick={() => handleCategoryClick(category.category)}
+                    className={`flex flex-col items-center group focus:outline-none w-full pt-3 pb-2 ${
+                      selectedCategory === category.category ? 'opacity-100' : 'opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <div className="p-1.5 w-full">
+                      <div className={`overflow-hidden rounded-md mb-1.5 w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-40 lg:h-40 mx-auto relative ${
+                        selectedCategory === category.category 
+                          ? 'ring-[3px] ring-[#ff6b57] ring-offset-2 shadow-lg scale-105' 
+                          : 'hover:ring-2 hover:ring-gray-200 hover:ring-offset-1'
+                      } transition-all duration-200`}>
+                        <img 
+                          src={category.image} 
+                          alt={category.name}
+                          className={`w-full h-full object-cover transition-transform duration-300 ${
+                            selectedCategory === category.category 
+                              ? 'scale-100' 
+                              : 'group-hover:scale-105'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                    <span className={`font-medium text-center text-[11px] sm:text-xs md:text-sm lg:text-base leading-tight min-h-[2.5em] w-20 sm:w-28 md:w-32 lg:w-40 flex items-center justify-center whitespace-pre-line transition-colors duration-200 ${
+                      selectedCategory === category.category 
+                        ? 'text-[#ff6b57]' 
+                        : 'text-gray-800 group-hover:text-gray-900'
+                    }`}>{category.name}</span>
+                  </button>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
         </div>
 
         {loading ? (
@@ -728,14 +785,14 @@ const ShopByPlant = () => {
           </div>
         ) : filteredProducts.length > 0 ? (
           <div className="mb-6 relative">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-3 mb-4">
               <h3 className="text-xl font-bold text-gray-800">{getCurrentCategoryObject().name}</h3>
               
               {/* See All button */}
               {selectedCategory && (
                 <button 
                   onClick={() => handleSeeAllClick(selectedCategory)}
-                  className="text-[#ff6b57] hover:text-[#ff5a43] font-medium flex items-center"
+                  className="text-[#ff6b57] hover:text-[#ff5a43] font-medium flex items-center text-sm"
                 >
                   See All
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
@@ -745,18 +802,12 @@ const ShopByPlant = () => {
               )}
             </div>
 
-            <div key={getCarouselKey()} className="relative px-4">
+            <div className="relative px-4">
               <Swiper
                 ref={swiperRef}
-                modules={[Navigation, Pagination, A11y]}
+                modules={[Navigation, A11y]}
                 spaceBetween={24}
                 slidesPerView={1}
-                pagination={{ 
-                  clickable: true,
-                  bulletActiveClass: 'swiper-pagination-bullet-active',
-                  bulletClass: 'swiper-pagination-bullet',
-                  el: '.swiper-pagination'
-                }}
                 breakpoints={{
                   640: { slidesPerView: 1, spaceBetween: 20 },
                   768: { slidesPerView: 2, spaceBetween: 24 },
@@ -798,9 +849,8 @@ const ShopByPlant = () => {
                           className="h-48 mx-auto mb-4 object-contain mix-blend-multiply hover:scale-105 transition-transform duration-200"
                         />
                         
-                        <div className="flex items-center justify-between mb-3">
-                          {renderStars()}
-                          <span className="text-gray-600 text-sm">{product.reviews} reviews</span>
+                        <div className="flex items-center mb-3">
+                          {renderStars(4.6, product.reviews)}
                         </div>
                         
                         <div className="mb-2">
@@ -808,42 +858,65 @@ const ShopByPlant = () => {
                         </div>
                         
                         {product.variants && product.variants.length > 0 ? (
-                          <div className="mb-4">
-                            <select 
-                              className="w-full py-3 px-4 rounded-full border border-gray-300 focus:outline-none appearance-none cursor-pointer text-gray-800 font-medium flex justify-between"
-                              defaultValue={product.variants[0].id}
-                              style={{ backgroundColor: product.backgroundColorLight }}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) => {
-                                // Update the default selected variant for this product
-                                const selectedVariantId = e.target.value;
-                                product.selectedVariantId = selectedVariantId;
+                          <div className="relative mb-4">
+                            <div 
+                              className="flex justify-between items-center cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent card click
+                                const select = e.currentTarget.querySelector('select');
+                                if (select) select.click();
                               }}
                             >
-                              {product.variants.map(variant => (
-                                <option 
-                                  key={variant.id} 
-                                  value={variant.id}
-                                  className="py-2"
-                                  disabled={!variant.available}
-                                >
-                                  {variant.title.padEnd(20, ' ')}${variant.price.toFixed(2)} {!variant.available ? ' (Out of stock)' : ''}
-                                </option>
-                              ))}
-                            </select>
-                            <style jsx>{`
-                              select {
-                                background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-                                background-position: right 1rem center;
-                                background-repeat: no-repeat;
-                                background-size: 1.5em 1.5em;
-                                padding-right: 2.5rem;
-                              }
+                              <div className="flex items-center border border-gray-300 rounded-full bg-white relative overflow-hidden w-full">
+                                <div className="w-[55%] sm:w-[65%] p-2 pl-4 text-xs sm:text-sm truncate">
+                                  <span className="font-medium">
+                                    {product.selectedVariantId 
+                                      ? product.variants.find(v => v.id === product.selectedVariantId)?.title 
+                                      : product.variants[0].title}
+                                  </span>
+                                </div>
+                                
+                                <div className="h-5 border-l border-gray-300"></div>
+                                
+                                <div className="w-[45%] sm:w-[35%] p-2 pr-8 sm:pr-10 text-center text-xs sm:text-sm">
+                                  <span className="font-medium">
+                                    ${(product.selectedVariantId 
+                                      ? product.variants.find(v => v.id === product.selectedVariantId)?.price 
+                                      : product.variants[0].price).toFixed(2)}
+                                  </span>
+                                </div>
+                                
+                                <div className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                  <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                                
+                                <div className="absolute inset-0 bg-gray-100 bg-opacity-0 hover:bg-opacity-20 transition-all duration-200"></div>
+                              </div>
                               
-                              select option {
-                                background-color: white;
-                              }
-                            `}</style>
+                              <select 
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                                value={product.selectedVariantId || product.variants[0].id}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  product.selectedVariantId = e.target.value;
+                                  // Force a re-render
+                                  const event = new Event('change');
+                                  e.target.dispatchEvent(event);
+                                }}
+                              >
+                                {product.variants.map(variant => (
+                                  <option 
+                                    key={variant.id} 
+                                    value={variant.id}
+                                    disabled={!variant.available}
+                                  >
+                                    {variant.title} - ${variant.price.toFixed(2)} {!variant.available ? ' (Out of stock)' : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
                         ) : (
                           <div className="mb-4">
@@ -928,7 +1001,54 @@ const ShopByPlant = () => {
                 )}
               </Swiper>
               
-              <div className="swiper-pagination mt-6"></div>
+              <style>
+                {`
+                  .swiper-container {
+                    padding: 0 !important;
+                  }
+                  .categories-swiper .swiper-wrapper {
+                    display: flex;
+                    width: auto;
+                    padding: 4px 0;
+                  }
+                  
+                  .categories-swiper .swiper-slide {
+                    flex-shrink: 0;
+                    width: auto;
+                  }
+                  
+                  .categories-swiper .last-slide {
+                    margin-right: 0 !important;
+                    padding-right: 1rem;
+                  }
+                  
+                  @media (min-width: 1024px) {
+                    .categories-swiper {
+                      max-width: 1280px;
+                      margin: 0 auto;
+                      padding: 4px;
+                    }
+                    .categories-swiper .swiper-wrapper {
+                      justify-content: space-between;
+                      width: 100% !important;
+                      transform: none !important;
+                      gap: 24px;
+                      padding: 4px 0;
+                    }
+                    .categories-swiper .swiper-slide {
+                      width: calc((100% - 96px) / 5) !important;
+                      margin-right: 0 !important;
+                      flex: 1;
+                    }
+                    .categories-swiper .last-slide {
+                      padding-right: 0;
+                    }
+                    .categories-swiper button {
+                      width: 100%;
+                    }
+                  }
+                `}
+              </style>
             </div>
           </div>
         ) : (

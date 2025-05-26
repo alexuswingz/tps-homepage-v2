@@ -474,7 +474,7 @@ const NavBar = () => {
       {mobileMenuOpen && !categoriesMenuOpen && (
         <div className="fixed inset-x-0 bottom-0 bg-[#fffbef] overflow-y-auto z-40 md:hidden" style={{ top: "107px" }}>
           {/* Search Bar */}
-          <div className="px-4 pt-4 pb-2 relative">
+          <div className="px-4 pt-2 pb-1 relative">
             <SearchComponent 
               isDesktop={false} 
               isOpen={true}
@@ -487,87 +487,87 @@ const NavBar = () => {
           {/* When search is active, search component handles this view */}
           {!hamburgerSearchActive && (
             /* Menu Items */
-            <div className="px-4 pb-24">
+            <div className="px-4 pb-20">
               {/* BROWSE ALL PRODUCTS */}
               <button 
                 onClick={() => setCategoriesMenuOpen(true)}
-                className="flex items-center justify-between w-full py-4"
+                className="flex items-center justify-between w-full py-2"
               >
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 flex-shrink-0">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 flex-shrink-0">
                     <img 
                       src="/assets/menu/shop-all.PNG" 
                       alt="Browse All Products" 
                       className="w-full h-full object-cover rounded"
                     />
                   </div>
-                  <span className="font-medium text-gray-700">BROWSE ALL PRODUCTS</span>
+                  <span className="font-medium text-gray-700 text-base">BROWSE ALL PRODUCTS</span>
                 </div>
                 <ChevronDownIcon className="h-5 w-5 text-gray-500" />
               </button>
               
               {/* BUILD A BUNDLE */}
-              <Link to="/build-bundle" className="flex items-center space-x-4 py-4" onClick={closeAllMenus}>
-                <div className="w-16 h-16 flex-shrink-0">
+              <Link to="/build-bundle" className="flex items-center space-x-3 py-2" onClick={closeAllMenus}>
+                <div className="w-12 h-12 flex-shrink-0">
                   <img 
                     src="/assets/menu/Bundle Builder Tile.jpg" 
                     alt="Build a Bundle" 
                     className="w-full h-full object-cover rounded"
                   />
                 </div>
-                <span className="font-medium text-gray-700 text-lg">BUILD A BUNDLE & SAVE $10</span>
+                <span className="font-medium text-gray-700 text-base">BUILD A BUNDLE & SAVE $10</span>
               </Link>
               
               {/* First Divider */}
-              <div className="border-t border-gray-200 my-2"></div>
+              <div className="border-t border-gray-200 my-1"></div>
               
               {/* BLOG */}
-              <a href="#" className="flex items-center space-x-4 py-4" onClick={closeAllMenus}>
-                <div className="w-16 h-16 flex-shrink-0">
+              <a href="#" className="flex items-center space-x-3 py-2" onClick={closeAllMenus}>
+                <div className="w-12 h-12 flex-shrink-0">
                   <img 
                     src="/assets/menu/learn-to-grow.PNG" 
                     alt="Blog" 
                     className="w-full h-full object-cover rounded"
                   />
                 </div>
-                <span className="font-medium text-gray-700 text-lg">BLOG: Learn to Grow</span>
+                <span className="font-medium text-gray-700 text-base">BLOG: Learn to Grow</span>
               </a>
               
               {/* Second Divider */}
-              <div className="border-t border-gray-200 my-2"></div>
+              <div className="border-t border-gray-200 my-1"></div>
               
               {/* LOGIN */}
-              <a href="#" className="flex items-center space-x-4 py-4" onClick={closeAllMenus}>
-                <div className="w-16 h-16 flex-shrink-0">
+              <a href="#" className="flex items-center space-x-3 py-2" onClick={closeAllMenus}>
+                <div className="w-12 h-12 flex-shrink-0">
                   <img 
                     src="/assets/menu/login.PNG" 
                     alt="Login" 
                     className="w-full h-full object-cover rounded"
                   />
                 </div>
-                <span className="font-medium text-gray-700 text-lg">LOGIN</span>
+                <span className="font-medium text-gray-700 text-base">LOGIN</span>
               </a>
               
               {/* SUPPORT */}
-              <a href="#" className="flex items-center space-x-4 py-4" onClick={closeAllMenus}>
-                <div className="w-16 h-16 flex-shrink-0">
+              <a href="#" className="flex items-center space-x-3 py-2" onClick={closeAllMenus}>
+                <div className="w-12 h-12 flex-shrink-0">
                   <img 
                     src="/assets/menu/support.PNG" 
                     alt="Support" 
                     className="w-full h-full object-cover rounded"
                   />
                 </div>
-                <span className="font-medium text-gray-700 text-lg">SUPPORT</span>
+                <span className="font-medium text-gray-700 text-base">SUPPORT</span>
               </a>
             </div>
           )}
           
           {/* Sticky Shop All Button - only show when regular menu is visible */}
           {!hamburgerSearchActive && (
-            <div className="fixed bottom-0 left-0 right-0 bg-[#fffbef] p-4 border-t border-gray-200">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#fffbef] p-3 border-t border-gray-200">
               <Link 
                 to="/products" 
-                className="bg-[#ff6b57] hover:bg-[#ff5a43] text-white text-center py-3 px-6 rounded-full w-full block transition-colors font-medium text-lg"
+                className="bg-[#ff6b57] hover:bg-[#ff5a43] text-white text-center py-2.5 px-6 rounded-full w-full block transition-colors font-medium text-base"
                 onClick={closeAllMenus}
               >
                 BROWSE ALL PRODUCTS
@@ -597,100 +597,88 @@ const NavBar = () => {
               {/* Back Button */}
               <button 
                 onClick={() => setCategoriesMenuOpen(false)}
-                className="flex items-center space-x-2 px-4 py-4 text-gray-700"
+                className="flex items-center space-x-2 px-4 py-2 text-gray-700"
               >
-                <ArrowLeftIcon className="h-5 w-5" />
+                <ArrowLeftIcon className="h-4 w-4" />
                 <span className="font-medium">Back</span>
               </button>
               
               {/* Categories */}
-              <div className="px-4 pb-24">
+              <div className="px-4 pb-20">
                 {/* HOUSEPLANT */}
                 <Link 
-                  to={{
-                    pathname: "/products",
-                    state: { scrollToCategory: "House Plants" }
-                  }}
-                  className="flex items-center space-x-4 py-4"
+                  to="/products?category=Houseplant Products"
+                  className="flex items-center space-x-3 py-2"
                   onClick={closeAllMenus}
                 >
-                  <div className="w-16 h-16 flex-shrink-0">
+                  <div className="w-9 h-9 flex-shrink-0">
                     <img 
                       src="/assets/Collection Tiles Images/Houseplants Tile.jpg" 
                       alt="Houseplant" 
                       className="w-full h-full object-cover rounded"
                     />
                   </div>
-                  <span className="font-medium text-gray-700 text-lg">HOUSEPLANT</span>
+                  <span className="font-medium text-gray-700 text-base">HOUSEPLANT</span>
                 </Link>
                 
                 {/* GARDEN PLANTS */}
                 <Link 
-                  to={{
-                    pathname: "/products",
-                    state: { scrollToCategory: "Garden Products" }
-                  }} 
-                  className="flex items-center space-x-4 py-4"
+                  to="/products?category=Garden Products"
+                  className="flex items-center space-x-3 py-2"
                   onClick={closeAllMenus}
                 >
-                  <div className="w-16 h-16 flex-shrink-0">
+                  <div className="w-9 h-9 flex-shrink-0">
                     <img 
                       src="/assets/Collection Tiles Images/Lawn and Garden Tile.jpg" 
                       alt="Garden Plants" 
                       className="w-full h-full object-cover rounded"
                     />
                   </div>
-                  <span className="font-medium text-gray-700 text-lg">GARDEN PLANTS</span>
+                  <span className="font-medium text-gray-700 text-base">GARDEN PLANTS</span>
                 </Link>
                 
                 {/* HYDRO & AQUATIC */}
                 <Link 
-                  to={{
-                    pathname: "/products",
-                    state: { scrollToCategory: "Hydro & Aquatic" }
-                  }}
-                  className="flex items-center space-x-4 py-4"
+                  to="/products?category=Hydrophonic and Aquatic"
+                  className="flex items-center space-x-3 py-2"
                   onClick={closeAllMenus}
                 >
-                  <div className="w-16 h-16 flex-shrink-0">
+                  <div className="w-9 h-9 flex-shrink-0">
                     <img 
                       src="/assets/Collection Tiles Images/Hydro and Aquatic Collection Tile.jpg" 
                       alt="Hydro & Aquatic" 
                       className="w-full h-full object-cover rounded"
                     />
                   </div>
-                  <span className="font-medium text-gray-700 text-lg">HYDRO & AQUATIC</span>
+                  <span className="font-medium text-gray-700 text-base">HYDRO & AQUATIC</span>
                 </Link>
                 
                 {/* PLANT SUPPLEMENTS */}
                 <Link 
-                  to={{
-                    pathname: "/products",
-                    state: { scrollToCategory: "Specialty Supplements" }
-                  }}
-                  className="flex items-center space-x-4 py-4"
+                  to="/products?category=Plant Supplements"
+                  className="flex items-center space-x-3 py-2"
                   onClick={closeAllMenus}
                 >
-                  <div className="w-16 h-16 flex-shrink-0">
+                  <div className="w-9 h-9 flex-shrink-0">
                     <img 
                       src="/assets/Collection Tiles Images/Specialty Supplements Title.jpg" 
                       alt="Plant Supplements" 
                       className="w-full h-full object-cover rounded"
                     />
                   </div>
-                  <span className="font-medium text-gray-700 text-lg">PLANT SUPPLEMENTS</span>
+                  <span className="font-medium text-gray-700 text-base">PLANT SUPPLEMENTS</span>
                 </Link>
                 
                 {/* BUILD A BUNDLE */}
-                <Link to="/build-bundle" className="flex items-center space-x-4 py-4" onClick={closeAllMenus}>
-                  <div className="w-16 h-16 flex-shrink-0">
+                <Link to="/build-bundle" className="flex items-center space-x-3 py-2" onClick={closeAllMenus}>
+                  <div className="w-9 h-9 flex-shrink-0">
                     <img 
                       src="/assets/menu/Bundle Builder Tile.jpg" 
                       alt="Build A Bundle" 
                       className="w-full h-full object-cover rounded"
                     />
                   </div>
-                  <span className="font-medium text-gray-700 text-lg">BUILD A BUNDLE & SAVE $10</span>
+                  <span className="font-medium text-gray-700 text-base">BUILD A BUNDLE & SAVE $10</span>
                 </Link>
               </div>
             </>
@@ -698,10 +686,10 @@ const NavBar = () => {
           
           {/* Sticky Shop All Button - only show when regular menu is visible */}
           {!categoriesSearchActive && (
-            <div className="fixed bottom-0 left-0 right-0 bg-[#fffbef] p-4 border-t border-gray-200">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#fffbef] p-3 border-t border-gray-200">
               <Link 
                 to="/products" 
-                className="bg-[#ff6b57] hover:bg-[#ff5a43] text-white text-center py-3 px-6 rounded-full w-full block transition-colors font-medium text-lg"
+                className="bg-[#ff6b57] hover:bg-[#ff5a43] text-white text-center py-2.5 px-6 rounded-full w-full block transition-colors font-medium text-base"
                 onClick={closeAllMenus}
               >
                 BROWSE ALL PRODUCTS

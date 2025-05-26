@@ -9,6 +9,9 @@ const BuildBundleSection = () => {
   const interactionTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
   const lastTimeRef = useRef(0);
+  const velocityRef = useRef(0);
+  const lastMouseXRef = useRef(0);
+  const isScrollingRef = useRef(false);
   
   useEffect(() => {
     // Include all product images from the folder
@@ -125,107 +128,193 @@ const BuildBundleSection = () => {
       '/assets/products/TPS_8oz_Wrap_PNG/TPS_Daffodil Bulb Fert_8oz_Wrap.png'
     ];
     
-    // Make sure the images array has unique items
     const uniqueImages = Array.from(new Set(images));
     setProductImages(uniqueImages);
   }, []);
 
-  // Setup scrolling function
+  // Smooth scroll animation with easing
+  const smoothScroll = (targetScroll, duration = 500) => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    const startScroll = scrollContainer.scrollLeft;
+    const startTime = performance.now();
+    const distance = targetScroll - startScroll;
+
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+    const animate = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      const easing = easeOutCubic(progress);
+      scrollContainer.scrollLeft = startScroll + (distance * easing);
+
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    animationFrameRef.current = requestAnimationFrame(animate);
+  };
+
+  // Setup auto-scrolling with smooth animation
   const startAutoScroll = () => {
     const scrollContainer = scrollRef.current;
-    if (!scrollContainer || productImages.length === 0) return;
+    if (!scrollContainer || productImages.length === 0 || isUserInteracting) return;
 
-    let scrollAmount = 0;
-    const scrollSpeed = 1.2; // Base speed factor - higher = faster
+    let lastTimestamp = 0;
+    const autoScrollSpeed = 1; // Pixels per frame
 
     const animate = (timestamp) => {
-      if (!lastTimeRef.current) lastTimeRef.current = timestamp;
-      const elapsed = timestamp - lastTimeRef.current;
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const deltaTime = timestamp - lastTimestamp;
       
-      if (scrollContainer && !isUserInteracting) {
-        // Use requestAnimationFrame's timestamp for smoother animation
-        const pixelsToScroll = (elapsed / 16) * scrollSpeed;
-        
-        // Use transform instead of scrollLeft for smoother GPU-accelerated animation
-        scrollAmount += pixelsToScroll;
-        
-        // Apply the transform to all direct children for smooth movement
-        Array.from(scrollContainer.children).forEach(child => {
-          child.style.transform = `translateX(${-scrollAmount}px)`;
-        });
+      if (!isUserInteracting && scrollContainer) {
+        scrollContainer.scrollLeft += autoScrollSpeed * (deltaTime / 16);
 
-        // Reset scroll position to create seamless infinite loop effect
-        if (scrollAmount >= (scrollContainer.scrollWidth / 3)) {
-          scrollAmount = 0;
-          Array.from(scrollContainer.children).forEach(child => {
-            child.style.transform = `translateX(0px)`;
-          });
+        // Reset scroll position for infinite loop
+        if (scrollContainer.scrollLeft >= scrollContainer.scrollWidth / 3) {
+          scrollContainer.scrollLeft = 0;
         }
       }
-      
-      lastTimeRef.current = timestamp;
+
+      lastTimestamp = timestamp;
       animationFrameRef.current = requestAnimationFrame(animate);
     };
 
     animationFrameRef.current = requestAnimationFrame(animate);
-    
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
   };
 
-  // Auto-scrolling effect with improved infinite loop and user interaction handling
   useEffect(() => {
     const cleanup = startAutoScroll();
     return () => {
       if (cleanup) cleanup();
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
   }, [productImages, isUserInteracting]);
 
-  // Handle user interaction
+  // Enhanced scroll handling with momentum
   useEffect(() => {
     const scrollContainer = scrollRef.current;
     if (!scrollContainer) return;
 
-    const handleInteractionStart = () => {
+    let isDragging = false;
+    let startX = 0;
+    let currentX = 0;
+    let lastX = 0;
+    let scrollLeft = 0;
+    let momentumID = null;
+    let lastMoveTime = 0;
+
+    const applyMomentum = () => {
+      if (!isDragging && Math.abs(velocityRef.current) > 0.1) {
+        velocityRef.current *= 0.95; // Decay factor
+        scrollContainer.scrollLeft += velocityRef.current;
+        momentumID = requestAnimationFrame(applyMomentum);
+      } else {
+        velocityRef.current = 0;
+        cancelAnimationFrame(momentumID);
+      }
+    };
+
+    const handleInteractionStart = (e) => {
       setIsUserInteracting(true);
-      clearTimeout(interactionTimeoutRef.current);
+      isDragging = true;
+      startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+      currentX = startX;
+      lastX = startX;
+      scrollLeft = scrollContainer.scrollLeft;
+      lastMoveTime = performance.now();
+      
+      if (momentumID) {
+        cancelAnimationFrame(momentumID);
+      }
+      velocityRef.current = 0;
+    };
+
+    const handleInteractionMove = (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+
+      const currentTime = performance.now();
+      const x = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+      const deltaX = x - currentX;
+      currentX = x;
+
+      // Calculate velocity
+      const timeDelta = currentTime - lastMoveTime;
+      if (timeDelta > 0) {
+        velocityRef.current = (deltaX) / timeDelta * 16; // Scale to roughly pixels per frame
+      }
+
+      scrollContainer.scrollLeft = scrollLeft - (currentX - startX);
+      lastMoveTime = currentTime;
     };
 
     const handleInteractionEnd = () => {
+      isDragging = false;
+      
+      // Apply momentum scrolling
+      if (Math.abs(velocityRef.current) > 0.1) {
+        momentumID = requestAnimationFrame(applyMomentum);
+      }
+
+      // Resume auto-scroll after delay
       clearTimeout(interactionTimeoutRef.current);
       interactionTimeoutRef.current = setTimeout(() => {
         setIsUserInteracting(false);
-      }, 1500); // Resume auto-scroll 1.5 seconds after user stops interacting
+      }, 1500);
     };
 
-    // Add event listeners for different interaction types
+    const handleWheel = (e) => {
+      // Only prevent default for horizontal scrolling or when holding shift
+      if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        e.preventDefault();
+        setIsUserInteracting(true);
+        
+        // Use deltaX for natural horizontal scrolling, fallback to deltaY if shift is held
+        const scrollAmount = e.shiftKey ? e.deltaY * 2 : e.deltaX * 2;
+        smoothScroll(scrollContainer.scrollLeft + scrollAmount, 300);
+
+        clearTimeout(interactionTimeoutRef.current);
+        interactionTimeoutRef.current = setTimeout(() => {
+          setIsUserInteracting(false);
+        }, 1500);
+      }
+      // Don't prevent default for vertical scrolling
+    };
+
+    // Event listeners
     scrollContainer.addEventListener('mousedown', handleInteractionStart);
     scrollContainer.addEventListener('touchstart', handleInteractionStart);
-    scrollContainer.addEventListener('wheel', handleInteractionStart);
-    
+    scrollContainer.addEventListener('mousemove', handleInteractionMove);
+    scrollContainer.addEventListener('touchmove', handleInteractionMove);
     scrollContainer.addEventListener('mouseup', handleInteractionEnd);
     scrollContainer.addEventListener('mouseleave', handleInteractionEnd);
     scrollContainer.addEventListener('touchend', handleInteractionEnd);
-    scrollContainer.addEventListener('touchcancel', handleInteractionEnd);
-    scrollContainer.addEventListener('wheel', handleInteractionEnd, { passive: true });
+    scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
 
-    // Cleanup function
     return () => {
       scrollContainer.removeEventListener('mousedown', handleInteractionStart);
       scrollContainer.removeEventListener('touchstart', handleInteractionStart);
-      scrollContainer.removeEventListener('wheel', handleInteractionStart);
-      
+      scrollContainer.removeEventListener('mousemove', handleInteractionMove);
+      scrollContainer.removeEventListener('touchmove', handleInteractionMove);
       scrollContainer.removeEventListener('mouseup', handleInteractionEnd);
       scrollContainer.removeEventListener('mouseleave', handleInteractionEnd);
       scrollContainer.removeEventListener('touchend', handleInteractionEnd);
-      scrollContainer.removeEventListener('touchcancel', handleInteractionEnd);
-      scrollContainer.removeEventListener('wheel', handleInteractionEnd);
+      scrollContainer.removeEventListener('wheel', handleWheel);
 
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (momentumID) {
+        cancelAnimationFrame(momentumID);
       }
       clearTimeout(interactionTimeoutRef.current);
     };
@@ -248,38 +337,40 @@ const BuildBundleSection = () => {
           backgroundPosition: "center"
         }}
       >
-        <div className="py-8 md:py-12 lg:py-16 px-4 md:px-8">
-          {/* Heading */}
+        <div className="py-8 md:py-12 lg:py-16">
           <div className="text-center mb-6">
             <h2 className="text-4xl md:text-6xl font-bold mb-2">
               Create your own <span className="text-[#F97462]">bundle!</span>
             </h2>
           </div>
 
-          {/* Product Carousel - Made larger but maintaining section height */}
-          <div className="relative overflow-hidden px-1">
+          <div className="relative overflow-hidden -mx-4 md:-mx-8 lg:-mx-12">
             <div 
               ref={scrollRef}
               className="flex overflow-x-auto overflow-y-hidden scrollbar-hide gap-0 py-4 cursor-grab active:cursor-grabbing"
               style={{ 
-                scrollBehavior: 'smooth', 
+                scrollBehavior: 'auto',
                 WebkitOverflowScrolling: 'touch',
                 touchAction: 'pan-x',
-                willChange: 'transform', // Optimize for animations
-                position: 'relative'
-              }}
-              onWheel={(e) => {
-                if (e.deltaY !== 0) {
-                  e.preventDefault();
-                  // User manually scrolling - will be handled by interaction events
-                }
+                willChange: 'transform, scroll-position',
+                position: 'relative',
+                msOverflowStyle: 'none',
+                scrollbarWidth: 'none',
+                paddingLeft: '1rem',
+                paddingRight: '1rem',
+                marginLeft: '-1rem',
+                marginRight: '-1rem',
               }}
             >
-              {/* Duplicate products for infinite loop effect - triple the products for smoother looping */}
+              <div className="flex-shrink-0 w-[1rem]" aria-hidden="true" />
+              
               {[...productImages, ...productImages, ...productImages].map((image, index) => (
                 <div 
                   key={index} 
                   className="flex-shrink-0 w-[145px] md:w-[125px] lg:w-[140px] xl:w-[155px] mr-5 md:mr-4 lg:mr-6"
+                  style={{
+                    transform: 'translate3d(0,0,0)',
+                  }}
                 >
                   <div className="relative flex justify-center items-center">
                     <img 
@@ -292,17 +383,20 @@ const BuildBundleSection = () => {
                         transform: 'scale(3) translateX(-2%)',
                         transformOrigin: 'center 45%',
                         objectPosition: 'center 45%',
-                        objectFit: 'contain'
+                        objectFit: 'contain',
+                        willChange: 'transform',
                       }}
                       onError={handleImageError}
+                      draggable="false"
                     />
                   </div>
                 </div>
               ))}
+              
+              <div className="flex-shrink-0 w-[1rem]" aria-hidden="true" />
             </div>
           </div>
 
-          {/* CTA Button */}
           <div className="text-center mt-6 md:mt-10">
             <Link to="/build-bundle">
               <button className="bg-[#F97462] text-white font-bold py-4 px-16 md:px-20 rounded-full text-xl hover:bg-opacity-90 transition-all">

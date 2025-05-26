@@ -3,7 +3,46 @@ import React from 'react';
 const Footer = () => {
   return (
     <footer className="bg-[#FF5D5D] text-white py-12">
-      <div className="container mx-auto px-6">
+      {/* Mobile Layout */}
+      <div className="container mx-auto px-6 md:hidden">
+        <nav className="flex flex-col items-start space-y-4">
+          <a href="#" className="hover:underline">SHOP ALL</a>
+          <a href="#" className="hover:underline">BUILD A BUNDLE</a>
+          <a href="#" className="hover:underline">HOUSEPLANTS</a>
+          <a href="#" className="hover:underline">GARDEN PLANTS</a>
+          <a href="#" className="hover:underline">HYDRO & AQUATIC</a>
+          <a href="#" className="hover:underline">PLANT SUPPLEMENTS</a>
+          
+          <div className="h-8" /> {/* Spacer */}
+          
+          <a href="#" className="hover:underline">MY ACCOUNT</a>
+          <a href="#" className="hover:underline">ASK A QUESTION</a>
+          <a href="#" className="hover:underline">BLOG: THE POUR SPOUT</a>
+          <a href="#" className="hover:underline">SHIPPING & RETURNS</a>
+          <a href="#" className="hover:underline">WHOLESALE</a>
+          <a href="#" className="hover:underline">AFFILIATES</a>
+        </nav>
+
+        <div className="mt-8 flex flex-col items-center">
+          <img 
+            src="/assets/TPS_Plant Food_White_Horiz_Label_Logo.png" 
+            alt="TPS Plant Foods Logo" 
+            className="h-12" 
+          />
+          <p className="text-base mt-2 font-medium">NOURISH EVERY PLANT</p>
+        </div>
+
+        <div className="mt-4 text-sm flex flex-col items-center">
+          <p className="mb-2">Copyright TPS Nutrients, 2025</p>
+          <div className="flex space-x-4">
+            <a href="#" className="hover:underline">Terms & Conditions</a>
+            <a href="#" className="hover:underline">Privacy Policy</a>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="container mx-auto px-6 hidden md:block">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Left Column - Logo */}
           <div className="flex flex-col items-start">

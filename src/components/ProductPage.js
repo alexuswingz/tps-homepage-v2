@@ -9,6 +9,71 @@ import ComparisonChart from './comparison-chart';
 import IngredientsSlider from './ingredients-slider';
 import BuildBundleSection from './build-bundle-section';
 import MobileNewsletter from './MobileNewsletter';
+// Import Swiper components and styles
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Pagination, Zoom } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/zoom';
+
+// Custom styles for Swiper
+const swiperStyles = `
+  .swiper {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .swiper-slide {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+  }
+  
+  .swiper-zoom-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .swiper-pagination {
+    color: #000;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  
+  .swiper-pagination-fraction {
+    bottom: auto;
+    top: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    width: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+  }
+  
+  .swiper-zoom-container > img {
+    object-fit: contain;
+  }
+  
+  @media (max-width: 768px) {
+    .swiper-button-prev,
+    .swiper-button-next {
+      display: none;
+    }
+  }
+`;
+
+// Add styles to head
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement("style");
+  styleSheet.textContent = swiperStyles;
+  document.head.appendChild(styleSheet);
+}
 
 // Custom hook to detect if on mobile
 const useMediaQuery = (query) => {
@@ -77,138 +142,25 @@ const ImageModal = ({ isOpen, onClose, image, alt }) => {
   );
 };
 
-// Mobile Image Gallery Component (Amazon-like)
+// Mobile Image Gallery Component (Swiper-based)
 const MobileImageGallery = ({ isOpen, onClose, images, initialImage, productName }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [startX, setStartX] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [translateX, setTranslateX] = useState(0);
-  const [scale, setScale] = useState(1);
-  const [lastDistance, setLastDistance] = useState(null);
-  const [showZoomTip, setShowZoomTip] = useState(true);
-  const slideRef = useRef(null);
+  const [isZoomed, setIsZoomed] = useState(false);
   
   useEffect(() => {
     // Find the index of the initial image
     const index = images.findIndex(img => img.src === initialImage) || 0;
     setCurrentIndex(index >= 0 ? index : 0);
     
-    // Hide zoom tip after 3 seconds
-    const timer = setTimeout(() => {
-      setShowZoomTip(false);
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, [images, initialImage]);
-  
-  // Reset when opening
-  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     }
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [images, initialImage, isOpen]);
   
   if (!isOpen) return null;
-  
-  const handleTouchStart = (e) => {
-    if (e.touches.length === 1) {
-      // Single touch for swiping
-      setStartX(e.touches[0].clientX);
-      setIsDragging(true);
-    } else if (e.touches.length === 2) {
-      // Two fingers for pinch zoom
-      const distance = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      setLastDistance(distance);
-      setIsDragging(false); // Disable horizontal dragging during pinch
-    }
-  };
-  
-  const handleTouchMove = (e) => {
-    if (e.touches.length === 2) {
-      // Handle pinch zoom
-      const distance = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      
-      if (lastDistance) {
-        const delta = distance - lastDistance;
-        // Calculate new scale with limits
-        const newScale = Math.min(Math.max(scale + delta * 0.01, 1), 3);
-        setScale(newScale);
-      }
-      
-      setLastDistance(distance);
-      return;
-    }
-    
-    // Handle single touch dragging (only if not zoomed)
-    if (!isDragging || scale > 1) return;
-    
-    const currentX = e.touches[0].clientX;
-    const diff = currentX - startX;
-    
-    // Limit the drag distance when at the first or last slide
-    if ((currentIndex === 0 && diff > 0) || 
-        (currentIndex === images.length - 1 && diff < 0)) {
-      setTranslateX(diff / 3); // Reduced movement to indicate end of gallery
-    } else {
-      setTranslateX(diff);
-    }
-  };
-  
-  const handleTouchEnd = (e) => {
-    // Reset pinch-zoom values
-    setLastDistance(null);
-    
-    // If we're zoomed in, don't handle slide changes
-    if (scale > 1) {
-      return;
-    }
-    
-    setIsDragging(false);
-    
-    // If swiped far enough, change slide
-    if (Math.abs(translateX) > 50) {
-      if (translateX > 0 && currentIndex > 0) {
-        // Swiped right
-        setCurrentIndex(currentIndex - 1);
-      } else if (translateX < 0 && currentIndex < images.length - 1) {
-        // Swiped left
-        setCurrentIndex(currentIndex + 1);
-      }
-    }
-    
-    // Add animation to snap back
-    setTranslateX(0);
-  };
-  
-  // Handle double tap to zoom in/out
-  const handleDoubleTap = () => {
-    setScale(scale === 1 ? 2 : 1);
-  };
-  
-  const goToSlide = (index) => {
-    setCurrentIndex(index);
-    // Reset zoom when changing slides
-    setScale(1);
-  };
-  
-  const containerStyle = {
-    transform: `translateX(${translateX}px)`,
-    transition: isDragging ? 'none' : 'transform 0.3s ease-out',
-  };
-  
-  const imageStyle = {
-    transform: `scale(${scale})`,
-    transition: isDragging ? 'none' : 'transform 0.2s ease-out',
-  };
   
   return (
     <div className="fixed inset-0 bg-white z-[60] flex flex-col">
@@ -227,70 +179,85 @@ const MobileImageGallery = ({ isOpen, onClose, images, initialImage, productName
         </button>
       </div>
       
-      {/* Main image slider */}
-      <div 
-        className="flex-1 overflow-hidden relative touch-none w-full h-full"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        ref={slideRef}
-        onDoubleClick={handleDoubleTap}
-      >
-        <div 
-          className="h-full w-full flex items-center justify-center"
-          style={containerStyle}
+      {/* Swiper Gallery */}
+      <div className="flex-1 bg-white">
+        <Swiper
+          initialSlide={currentIndex}
+          modules={[Pagination, Zoom]}
+          pagination={{
+            type: 'fraction',
+            renderFraction: (currentClass, totalClass) => `
+              <span class="${currentClass} font-medium"></span>
+              <span class="text-gray-400 mx-1">/</span>
+              <span class="${totalClass} text-gray-400"></span>
+            `
+          }}
+          zoom={{
+            maxRatio: 3,
+            minRatio: 1,
+            toggle: true,
+            containerClass: 'swiper-zoom-container'
+          }}
+          onZoomChange={(swiper, scale) => {
+            setIsZoomed(scale !== 1);
+          }}
+          onSlideChange={(swiper) => {
+            setCurrentIndex(swiper.activeIndex);
+            // Reset zoom when changing slides
+            if (isZoomed) {
+              swiper.zoom.out();
+            }
+          }}
+          className="h-full w-full"
+          style={{
+            '--swiper-theme-color': '#FF6B6B',
+            '--swiper-pagination-color': '#FF6B6B'
+          }}
         >
-          {images[currentIndex] && (
-            <img
-              src={images[currentIndex].src}
-              alt={images[currentIndex].alt || productName}
-              className="max-h-full max-w-full object-contain"
-              style={imageStyle}
-            />
-          )}
+          {images.map((image, index) => (
+            <SwiperSlide key={index} className="flex items-center justify-center">
+              <div className="swiper-zoom-container">
+                <img
+                  src={image.src}
+                  alt={image.alt || productName}
+                  className="max-h-full max-w-full object-contain select-none"
+                  draggable="false"
+                />
+              </div>
+              {/* Zoom indicator */}
+              {isZoomed && index === currentIndex && (
+                <div className="absolute top-4 left-4 bg-black/50 text-white text-xs py-1 px-3 rounded-full z-20">
+                  Pinch to zoom out
+                </div>
+              )}
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </div>
+      
+      {/* Thumbnails */}
+      <div className="bg-white border-t border-gray-100 p-4">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+          {images.map((image, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                currentIndex === index 
+                  ? 'border-[#FF6B6B] scale-95 shadow-lg' 
+                  : 'border-transparent hover:border-gray-200'
+              }`}
+            >
+              <img
+                src={image.src}
+                alt={image.alt || `${productName} thumbnail ${index + 1}`}
+                className={`w-full h-full object-cover transition-transform duration-300 ${
+                  currentIndex === index ? 'scale-110' : 'scale-100'
+                }`}
+              />
+            </button>
+          ))}
         </div>
-        
-        {/* Scale indicator - only show when zoomed */}
-        {scale > 1 && (
-          <div className="absolute top-4 left-4 bg-gray-800/50 text-white text-sm py-1 px-3 rounded-full">
-            {Math.round(scale * 100)}%
-          </div>
-        )}
-        
-        {/* Arrow navigation - only if more than one image and not zoomed */}
-        {images.length > 1 && scale === 1 && (
-          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 pointer-events-none">
-            <button
-              className={`p-2 rounded-full bg-gray-200 text-gray-800 pointer-events-auto ${
-                currentIndex === 0 ? 'opacity-50' : 'opacity-80'
-              }`}
-              onClick={() => currentIndex > 0 && goToSlide(currentIndex - 1)}
-              disabled={currentIndex === 0}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              className={`p-2 rounded-full bg-gray-200 text-gray-800 pointer-events-auto ${
-                currentIndex === images.length - 1 ? 'opacity-50' : 'opacity-80'
-              }`}
-              onClick={() => currentIndex < images.length - 1 && goToSlide(currentIndex + 1)}
-              disabled={currentIndex === images.length - 1}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        )}
-        
-        {/* Double-tap indicator - briefly show on first load */}
-        {showZoomTip && (
-          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-gray-800/70 text-white text-xs px-3 py-2 rounded-full pointer-events-none">
-            Double-tap to zoom
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1245,7 +1212,7 @@ const ProductPage = () => {
             <div className="mt-5 mb-4">
               {/* One-time purchase option */}
               <div 
-                className={`border rounded-xl p-5 cursor-pointer transition-all duration-200 mb-3 hover:shadow-sm ${
+                className={`rca-subscription border rounded-xl p-5 cursor-pointer transition-all duration-200 mb-3 hover:shadow-sm ${
                   !isSubscription 
                     ? 'border-black bg-white shadow-sm'
                     : 'border-gray-200 bg-white opacity-70 hover:opacity-90'
@@ -1284,7 +1251,7 @@ const ProductPage = () => {
               
               {/* Subscribe & save option */}
               <div 
-                className={`border rounded-xl p-5 cursor-pointer transition-all duration-200 hover:shadow-sm ${
+                className={`rca-subscription border rounded-xl p-5 cursor-pointer transition-all duration-200 hover:shadow-sm ${
                   isSubscription 
                     ? 'border-black bg-white shadow-sm'
                     : 'border-gray-200 bg-white opacity-70 hover:opacity-90'

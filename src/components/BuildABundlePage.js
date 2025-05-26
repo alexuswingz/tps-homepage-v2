@@ -120,7 +120,7 @@ const BuildABundlePage = () => {
 
   const categories = [
     { id: 1, name: 'ALL PRODUCTS', image: '/assets/Export Landing Page Main Images/Homepage Image 2.jpg', category: ''},
-    { id: 2, name: 'HOUSE PLANTS', image: '/assets/Collection Tiles Images/Houseplants Tile.jpg', category: 'Houseplant Products'},
+    { id: 2, name: 'HOUSE\nPLANT', image: '/assets/Collection Tiles Images/Houseplants Tile.jpg', category: 'Houseplant Products'},
     { id: 3, name: 'LAWN & GARDEN', image: '/assets/Collection Tiles Images/Lawn and Garden Tile.jpg', category: 'Garden Products'},
     { id: 4, name: 'HYDRO & AQUATIC', image: '/assets/Collection Tiles Images/Hydro and Aquatic Collection Tile.jpg', category: 'Hydrophonic and Aquatic'},
     { id: 5, name: 'SPECIALTY SUPPLEMENTS', image: '/assets/Collection Tiles Images/Specialty Supplements Title.jpg', category: 'Plant Supplements'},
@@ -135,10 +135,13 @@ const BuildABundlePage = () => {
   useEffect(() => {
     // Wait a bit after component mount to allow correct positioning
     const initialTimeout = setTimeout(() => {
+      // Check if device is mobile
+      const isMobile = window.innerWidth < 1024; // Using 1024px as breakpoint for lg
+      
       const options = {
         root: null, // use viewport as root
-        rootMargin: '-50px 0px 0px 0px', // Adjust negative top margin to account for navbar
-        threshold: 0.2 // Element is considered visible when 20% is in view
+        rootMargin: isMobile ? '-45px 0px 0px 0px' : '-120px 0px 0px 0px', // Show 10% sooner on mobile
+        threshold: 0.4 // Element is considered visible when 20% is in view
       };
   
       const observer = new IntersectionObserver((entries) => {
@@ -158,7 +161,7 @@ const BuildABundlePage = () => {
         observer.observe(bundleSectionRef.current);
       }
       
-      // Also add scroll listener as fallback
+      // Also add scroll listener as fallback and to handle resize
       const handleScroll = () => {
         const scrollPosition = window.scrollY;
         // Force hide when at the top of the page
@@ -169,11 +172,36 @@ const BuildABundlePage = () => {
       
       window.addEventListener('scroll', handleScroll);
       
+      // Add resize listener to update rootMargin when screen size changes
+      const handleResize = () => {
+        if (bundleSectionRef.current) {
+          observer.unobserve(bundleSectionRef.current);
+          
+          const isMobile = window.innerWidth < 1024;
+          options.rootMargin = isMobile ? '-45px 0px 0px 0px' : '-50px 0px 0px 0px';
+          
+          const newObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (!entry.isIntersecting && !isScrolled) {
+                setTimeout(() => setIsScrolled(true), 50);
+              } else if (entry.isIntersecting && isScrolled) {
+                setTimeout(() => setIsScrolled(false), 50);
+              }
+            });
+          }, options);
+          
+          newObserver.observe(bundleSectionRef.current);
+        }
+      };
+      
+      window.addEventListener('resize', handleResize);
+      
       return () => {
         if (bundleSectionRef.current) {
           observer.unobserve(bundleSectionRef.current);
         }
         window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('resize', handleResize);
       };
     }, 300); // Wait 300ms after mount
     
@@ -680,6 +708,29 @@ const BuildABundlePage = () => {
       // Check if product name matches search term
       return product.name.toLowerCase().includes(searchTerm.toLowerCase());
     })
+    // Hide products when bundle is filled with specific quantities
+    .filter(product => {
+      // Only apply this filter on mobile devices
+      if (window.innerWidth >= 1024) return true;
+      
+      // If we don't have 3 items yet, show all products
+      if (bundleCount < 3) return true;
+
+      // When bundle is full (3/3)
+      if (bundleCount === 3) {
+        // Get all items with quantity 2
+        const itemsWithQuantityTwo = selectedItems.filter(item => item.quantity === 2);
+        
+        // If we have one item with quantity 2
+        if (itemsWithQuantityTwo.length === 1) {
+          // Only show products that are already in the bundle
+          const isInBundle = selectedItems.some(item => item.product.id === product.id);
+          return isInBundle;
+        }
+      }
+      
+      return true;
+    })
     // Sort products by popularity (review count) when showing all products
     .sort((a, b) => {
       if (!selectedCategory) {
@@ -707,6 +758,11 @@ const BuildABundlePage = () => {
       top: 0,
       behavior: 'smooth'
     });
+  };
+  
+  // Get the current selected category object
+  const getCurrentCategory = () => {
+    return categories.find(cat => cat.category === selectedCategory);
   };
 
   // Product card component for the available products
@@ -795,13 +851,13 @@ const BuildABundlePage = () => {
               className={`flex justify-between items-center ${hasMultipleVariants ? 'cursor-pointer' : 'cursor-default'}`}
             >
               <div className="flex items-center border border-gray-300 rounded-full bg-white relative overflow-hidden w-full">
-                <div className="w-[65%] p-2 pl-4 text-xs sm:text-sm truncate">
+                <div className="w-[55%] sm:w-[65%] p-2 pl-4 text-xs sm:text-sm truncate">
                   <span className="font-medium">{activeVariant?.title || '8 Ounces'}</span>
                 </div>
                 
                 <div className="h-5 border-l border-gray-300"></div>
                 
-                <div className="w-[35%] p-2 pr-8 sm:pr-10 text-center text-xs sm:text-sm">
+                <div className="w-[45%] sm:w-[35%] p-2 pr-8 sm:pr-10 text-center text-xs sm:text-sm">
                   <span className="font-medium">${activeVariant ? activeVariant.price.toFixed(2) : product.price.toFixed(2)}</span>
                 </div>
                 
@@ -973,30 +1029,32 @@ const BuildABundlePage = () => {
             {/* Choose Collection */}
             <h2 className="text-gray-500 font-medium mb-4">CHOOSE A COLLECTION</h2>
             
-            {/* Categories */}
-            <div className="flex overflow-x-auto mb-6 pb-2 hide-scrollbar gap-4">
-              {categories.map(category => (
-                <div 
-                  key={category.id} 
-                  className="flex-shrink-0 text-center w-[85px] cursor-pointer"
-                  onClick={() => handleCategoryClick(category.category)}
-                >
-                  <div className={`overflow-hidden rounded-lg mb-2 mx-auto w-16 h-16 sm:w-20 sm:h-20 ${
-                    // If no category is selected (empty string), highlight the ALL PRODUCTS tile (category.category is also empty string)
-                    // Otherwise, highlight the matched category
-                    (selectedCategory === '' && category.category === '') || selectedCategory === category.category
-                      ? 'ring-2 ring-[#ff6b57]' 
-                      : ''
-                  }`}>
-                    <img src={category.image} alt={category.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
-                  </div>
-                  <p className={`text-xs leading-tight ${
-                    (selectedCategory === '' && category.category === '') || selectedCategory === category.category
-                      ? 'font-bold text-[#ff6b57]' 
-                      : ''
-                  }`}>{category.name}</p>
+            <div className="bg-[#ebe6d4] -mx-4 sm:mx-0 sm:rounded-lg mb-8 mt-2">
+              <div className="py-6 sm:py-8 px-2 sm:px-4 max-w-7xl mx-auto">
+                {/* Categories */}
+                <div className="flex overflow-x-auto hide-scrollbar gap-4 lg:flex-wrap lg:justify-between lg:overflow-visible">
+                  {categories.map(category => (
+                    <div 
+                      key={category.id} 
+                      className="flex-shrink-0 text-center w-[85px] lg:w-[calc(16.666%-1rem)] cursor-pointer"
+                      onClick={() => handleCategoryClick(category.category)}
+                    >
+                      <div className={`overflow-hidden rounded-lg mb-2 mx-auto w-16 h-16 sm:w-20 sm:h-20 lg:w-full lg:h-24 ${
+                        (selectedCategory === '' && category.category === '') || selectedCategory === category.category
+                          ? 'ring-2 ring-[#ff6b57]' 
+                          : ''
+                      }`}>
+                        <img src={category.image} alt={category.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
+                      </div>
+                      <p className={`text-xs leading-tight whitespace-pre-line lg:text-sm ${
+                        (selectedCategory === '' && category.category === '') || selectedCategory === category.category
+                          ? 'font-bold text-[#ff6b57]' 
+                          : ''
+                      }`}>{category.name}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
             
             {/* Search Bar */}
@@ -1052,46 +1110,47 @@ const BuildABundlePage = () => {
           <div className="bg-[#fffbef] rounded-b-2xl shadow-md p-3 mx-auto max-w-md border border-gray-200">
             <div className="flex flex-col items-center">
               <div className="flex justify-center space-x-4 mb-3 w-full">
-                {[0, 1, 2].map((index) => {
-                  const item = selectedItems[index];
-                  return (
-                    <div 
-                      key={`floating-${index}`} 
-                      className="relative w-[70px] h-[70px] flex items-center justify-center bg-[#f5f0e6] border border-dashed border-gray-400 rounded-lg"
-                    >
-                      {item && (
-                        <>
-                          <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-white text-gray-800 text-xs rounded-md p-1 shadow-sm border border-gray-200 w-auto whitespace-nowrap z-10">
-                            {item.variant.title} - ${item.variant.price.toFixed(2)}
-                          </div>
-                          <img src={item.product.image} alt={item.product.name} className="h-[80%] w-[80%] object-contain" />
-                          <div className="absolute -bottom-3 left-0 right-0 flex justify-center">
-                            <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200">
-                              <button 
-                                onClick={() => removeFromBundle(item.product.id, item.variant.id)}
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-gray-700 font-medium"
-                              >
-                                -
-                              </button>
-                              <span className="text-xs font-bold mx-1">{item.quantity}</span>
-                              <button 
-                                onClick={() => addToBundle(item.product, item.variant)}
-                                className={`w-6 h-6 rounded-full flex items-center justify-center font-medium ${bundleCount < 3 ? 'text-gray-700' : 'text-gray-400'}`}
-                                disabled={bundleCount >= 3}
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        </>
-                      )}
+                {selectedItems.map((item, index) => (
+                  <div 
+                    key={`floating-${item.product.id}`} 
+                    className="relative w-[70px] h-[70px] flex items-center justify-center bg-[#f5f0e6] border border-dashed border-gray-400 rounded-lg"
+                  >
+                    <img src={item.product.image} alt={item.product.name} className="h-[80%] w-[80%] object-contain" />
+                    <div className="absolute -bottom-3 left-0 right-0 flex justify-center">
+                      <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200">
+                        <button 
+                          onClick={() => removeFromBundle(item.product.id, item.variant.id)}
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-gray-700 font-medium"
+                        >
+                          -
+                        </button>
+                        <span className="text-xs font-bold mx-1">{item.quantity}</span>
+                        <button 
+                          onClick={() => addToBundle(item.product, item.variant)}
+                          className={`w-6 h-6 rounded-full flex items-center justify-center font-medium ${bundleCount < 3 ? 'text-gray-700' : 'text-gray-400'}`}
+                          disabled={bundleCount >= 3}
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
               
-              <div className="border border-gray-300 rounded-full py-2 px-8 bg-[#fffbef] text-center w-full">
-                <p className="font-medium text-gray-800 text-sm">{bundleCount}/3 SELECTED</p>
+              <div className="flex flex-col w-full space-y-2">
+                <div className="border border-gray-300 rounded-full py-2 px-8 bg-[#fffbef] text-center">
+                  <p className="font-medium text-gray-800 text-sm">{bundleCount}/3 SELECTED</p>
+                </div>
+                
+                {bundleCount === 3 && (
+                  <button 
+                    onClick={handleCheckoutBundle}
+                    className="w-full bg-[#ff6b57] hover:bg-[#ff5a5a] text-white font-bold py-2 px-4 rounded-full transition-colors text-sm"
+                  >
+                    CHECKOUT BUNDLE
+                  </button>
+                )}
               </div>
             </div>
           </div>

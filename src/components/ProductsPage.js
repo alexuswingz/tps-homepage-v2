@@ -220,17 +220,19 @@ const ProductCard = ({ product, index }) => {
             }}
             className={`flex justify-between items-center ${hasMultipleVariants ? 'cursor-pointer' : 'cursor-default'}`}
           >
-            <div className="flex flex-1 items-center justify-between border border-gray-300 rounded-full bg-white relative overflow-hidden">
-              <div className="flex-1 p-2 pl-4 text-xs sm:text-sm">
+            <div className="flex items-center border border-gray-300 rounded-full bg-white relative overflow-hidden w-full">
+              <div className="w-[55%] sm:w-[65%] p-2 pl-4 text-xs sm:text-sm truncate">
                 <span className="font-medium">{activeVariant?.title || '8 Ounces'}</span>
               </div>
               
-              <div className="flex-1 p-2 pr-4 text-right text-xs sm:text-sm">
+              <div className="h-5 border-l border-gray-300"></div>
+              
+              <div className="w-[45%] sm:w-[35%] p-2 pr-8 sm:pr-10 text-center text-xs sm:text-sm">
                 <span className="font-medium">${activeVariant ? activeVariant.price.toFixed(2) : product.price.toFixed(2)}</span>
               </div>
               
               {hasMultipleVariants && (
-                <div className="absolute right-4 pointer-events-none">
+                <div className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                   <svg className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${dropdownOpen ? 'transform rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
@@ -341,30 +343,16 @@ const ProductsPage = () => {
   const [loading, setLoading] = useState(true);
   const [showCategoryOverlay, setShowCategoryOverlay] = useState(false);
   const [currentVisibleCategory, setCurrentVisibleCategory] = useState("");
-  const [isCategorySticky, setIsCategorySticky] = useState(false);
   const categoryRefs = useRef({});
   const observerRef = useRef(null);
-  const overlayScrollRef = useRef(null); // Reference to the horizontal scrolling container
-  const categorySelectionRef = useRef(null); // Reference to the category selection div
+  const overlayScrollRef = useRef(null);
+  const scrollAttempts = useRef(0);
 
-  // Track scroll position to show/hide the category overlay and make category selection sticky
+  // Track scroll position to show/hide the category overlay
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       setShowCategoryOverlay(scrollPosition > 400);
-      
-      // Make category selection sticky on mobile
-      if (categorySelectionRef.current) {
-        const categorySelectionTop = categorySelectionRef.current.getBoundingClientRect().top;
-        const isMobile = window.innerWidth < 768; // Define mobile breakpoint
-        
-        // Make sticky when category selection is about to go out of viewport
-        if (isMobile && categorySelectionTop <= 0) {
-          setIsCategorySticky(true);
-        } else {
-          setIsCategorySticky(false);
-        }
-      }
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -1638,11 +1626,13 @@ const ProductsPage = () => {
       setActiveCategory(mappedCategory);
       setCurrentVisibleCategory(mappedCategory);
       
-      console.log("Scrolling to category from location state:", mappedCategory);
+      console.log("Waiting for products to load before scrolling to:", mappedCategory);
       
-      // Add a small delay to ensure the UI is ready before scrolling
-      setTimeout(() => {
-        if (categoryRefs.current[mappedCategory]) {
+      // Create an interval to check for products and attempt scrolling
+      const scrollInterval = setInterval(() => {
+        if (!loading && products.length > 0 && categoryRefs.current[mappedCategory]) {
+          console.log("Products loaded, scrolling to category:", mappedCategory);
+          
           // For mobile, we need to account for the fixed navbar height
           const navbarHeight = window.innerWidth < 768 ? 107 : 120;
           const yOffset = -navbarHeight - 10; // Additional 10px buffer
@@ -1651,10 +1641,18 @@ const ProductsPage = () => {
           const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
           
           window.scrollTo({ top: y, behavior: 'smooth' });
+          
+          // Clear the interval once we've scrolled
+          clearInterval(scrollInterval);
+        } else {
+          console.log("Waiting for products to load...");
         }
-      }, 300);
+      }, 100); // Check every 100ms
+      
+      // Cleanup the interval if component unmounts
+      return () => clearInterval(scrollInterval);
     }
-  }, [location]);
+  }, [location, loading, products]);
 
   // Scroll to category section when category is selected
   useEffect(() => {
@@ -2622,92 +2620,62 @@ const ProductsPage = () => {
     navigate(`/category/${encodeURIComponent(category)}`);
   };
 
+  // Handle URL parameters for category scrolling
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const categoryFromURL = params.get('category');
+
+    if (categoryFromURL) {
+      setActiveCategory(categoryFromURL);
+      setCurrentVisibleCategory(categoryFromURL);
+      
+      console.log("Attempting to scroll to category:", categoryFromURL);
+      
+      // Function to attempt scrolling
+      const attemptScroll = () => {
+        if (!loading && products.length > 0 && categoryRefs.current[categoryFromURL]) {
+          console.log("Products loaded, scrolling to category:", categoryFromURL);
+          
+          // For mobile, we need to account for the fixed navbar height
+          const navbarHeight = window.innerWidth < 768 ? 107 : 120;
+          const yOffset = -navbarHeight - 10; // Additional 10px buffer
+          
+          const element = categoryRefs.current[categoryFromURL];
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          
+          window.scrollTo({ top: y, behavior: 'smooth' });
+          return true; // Scroll successful
+        }
+        return false; // Scroll not successful yet
+      };
+
+      // Try to scroll immediately if possible
+      if (!attemptScroll() && scrollAttempts.current < 50) { // Limit to 5 seconds of attempts
+        const scrollInterval = setInterval(() => {
+          if (attemptScroll() || scrollAttempts.current >= 50) {
+            clearInterval(scrollInterval);
+          }
+          scrollAttempts.current++;
+        }, 100);
+
+        return () => {
+          clearInterval(scrollInterval);
+          scrollAttempts.current = 0;
+        };
+      }
+    }
+  }, [location.search, loading, products]);
+
   return (
     <section className="bg-[#fffbef]">
-      {/* Hero Image */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <Link to="/products" className="block relative rounded-lg overflow-hidden w-full h-48 sm:h-72 md:h-96 cursor-pointer">
-          <img 
-            src="/assets/team-planting.jpg" 
-            alt="Team planting" 
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black bg-opacity-30 hover:bg-opacity-20 transition-opacity duration-300"></div>
-          <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4">
-            <h1 className="text-white text-3xl sm:text-4xl md:text-5xl font-bold mb-2 drop-shadow-lg">
-              Premium Plant Food
-            </h1>
-            <p className="text-white text-lg sm:text-xl md:text-2xl max-w-2xl drop-shadow-md">
-              For Healthier, Happier Plants
-            </p>
-          </div>
-        </Link>
-      </div>
-
       {/* Page Title */}
       <div className="text-center pt-8 mb-6">
         <h2 className="text-4xl font-medium text-[#ff6b57] mb-1">Find Your Plant</h2>
         <p className="text-gray-500 tracking-wide text-sm">CHOOSE A COLLECTION</p>
       </div>
 
-      {/* Sticky Category Selection for Mobile */}
-      <div 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 transform md:hidden ${
-          isCategorySticky 
-            ? 'translate-y-0 opacity-100' 
-            : '-translate-y-full opacity-0'
-        }`}
-      >
-        <div className="backdrop-blur-md bg-white/90 shadow-lg border-b border-gray-100">
-          <div className="px-4 py-3">
-            <p className="text-xs text-center font-medium text-gray-500 uppercase tracking-wider mb-2">Collections</p>
-            <div className="flex overflow-x-auto space-x-4 pb-2 scrollbar-hide">
-              {categories.map((category, index) => (
-                <button 
-                  key={`sticky-${index}`}
-                  onClick={() => handleCategoryClick(category.category)}
-                  className={`flex flex-col items-center group w-16 focus:outline-none flex-shrink-0 transition-all duration-200 ${
-                    activeCategory === category.category 
-                      ? 'scale-105 opacity-100' 
-                      : 'opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  <div className={`relative overflow-hidden rounded-lg mb-1.5 w-12 h-12 shadow-sm ${
-                    activeCategory === category.category 
-                      ? 'ring-2 ring-[#ff6b57]' 
-                      : 'ring-1 ring-gray-200'
-                  }`}>
-                    <img 
-                      src={category.image} 
-                      alt={category.name}
-                      className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 ${
-                        activeCategory === category.category ? 'scale-105' : ''
-                      }`}
-                      onError={(e) => {
-                        e.target.src = "/assets/Collection Tiles Images/default-category.jpg";
-                      }}
-                    />
-                    {activeCategory === category.category && (
-                      <div className="absolute bottom-0 inset-x-0 h-1 bg-[#ff6b57]"></div>
-                    )}
-                  </div>
-                  <span className={`font-medium text-center text-xs truncate w-full ${
-                    activeCategory === category.category 
-                      ? 'text-[#ff6b57]' 
-                      : 'text-gray-800'
-                  }`}>
-                    {category.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Category Selection */}
       <div 
-        ref={categorySelectionRef}
         className="flex justify-start sm:justify-center overflow-x-auto pb-4 px-4 scrollbar-hide"
       >
         <div className="flex space-x-3 sm:space-x-6 mb-8 sm:mb-12 sm:flex-wrap sm:justify-center">

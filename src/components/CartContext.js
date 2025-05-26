@@ -213,49 +213,42 @@ export const CartProvider = ({ children }) => {
             
             // If item is a subscription, add ReCharge-specific properties
             if (item.subscription) {
-              // REQUIRED: Add shipping interval frequency
+              // Add subscription properties
+              const subscriptionInput = document.createElement('input');
+              subscriptionInput.type = 'hidden';
+              subscriptionInput.name = `items[${index}][properties][subscription_id]`;
+              subscriptionInput.value = Date.now().toString() + '-' + Math.floor(Math.random() * 1000000);
+              addForm.appendChild(subscriptionInput);
+              
+              // Add shipping interval frequency
               const freqInput = document.createElement('input');
               freqInput.type = 'hidden';
               freqInput.name = `items[${index}][properties][shipping_interval_frequency]`;
               freqInput.value = item.subscription.interval;
               addForm.appendChild(freqInput);
               
-              // REQUIRED: Add shipping interval unit type
+              // Add shipping interval unit type
               const unitInput = document.createElement('input');
               unitInput.type = 'hidden';
               unitInput.name = `items[${index}][properties][shipping_interval_unit_type]`;
-              unitInput.value = item.subscription.intervalUnit;
+              unitInput.value = 'month';
               addForm.appendChild(unitInput);
               
-              // REQUIRED: Add subscription ID (unique identifier)
-              const subIdInput = document.createElement('input');
-              subIdInput.type = 'hidden';
-              subIdInput.name = `items[${index}][properties][subscription_id]`;
-              subIdInput.value = Date.now().toString() + '-' + Math.floor(Math.random() * 1000000);
-              addForm.appendChild(subIdInput);
-              
-              // For ReCharge 2.0+ - Makes sure the order goes through ReCharge
-              const rechargeWidget = document.createElement('input');
-              rechargeWidget.type = 'hidden';
-              rechargeWidget.name = `items[${index}][properties][_rc_widget]`;
-              rechargeWidget.value = '1';
-              addForm.appendChild(rechargeWidget);
-              
-              // Add discount information
+              // Add discount information if applicable
               if (item.subscription.discount > 0) {
                 const discountInput = document.createElement('input');
                 discountInput.type = 'hidden';
                 discountInput.name = `items[${index}][properties][discount_percentage]`;
                 discountInput.value = item.subscription.discount.toString();
                 addForm.appendChild(discountInput);
-                
-                // Add original price for reference
-                const originalPriceInput = document.createElement('input');
-                originalPriceInput.type = 'hidden';
-                originalPriceInput.name = `items[${index}][properties][original_price]`;
-                originalPriceInput.value = item.price.toFixed(2);
-                addForm.appendChild(originalPriceInput);
               }
+
+              // Add ReCharge widget identifier
+              const widgetInput = document.createElement('input');
+              widgetInput.type = 'hidden';
+              widgetInput.name = `items[${index}][properties][_rc_widget]`;
+              widgetInput.value = '1';
+              addForm.appendChild(widgetInput);
             }
           });
           

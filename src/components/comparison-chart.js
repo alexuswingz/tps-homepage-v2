@@ -63,7 +63,6 @@ function ComparisonChart() {
               <video className="h-full w-full object-cover" autoPlay loop muted playsInline>
                 <source src="/assets/watering.mp4" type="video/mp4" />
               </video>
-              <div className="absolute inset-0 bg-green-900/60"></div>
             </div>
             
             <div className="relative z-10">
@@ -172,7 +171,6 @@ function ComparisonChart() {
                 <video className="h-full w-full object-cover" autoPlay loop muted playsInline>
                   <source src="/assets/watering.mp4" type="video/mp4" />
                 </video>
-                <div className="absolute inset-0 bg-green-900/60"></div>
               </div>
               
               <div className="relative z-10">
