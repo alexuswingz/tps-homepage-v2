@@ -51,8 +51,8 @@ const ShopByPlantAlternative = () => {
       
       return (
         <div className="product-name-container h-20 flex flex-col justify-start">
-          <p className="text-xl font-bold text-gray-800 mb-1 truncate overflow-hidden">{firstPart}</p>
-          <p className="text-lg text-gray-700 truncate overflow-hidden">{secondPart}</p>
+          <p className="text-xl font-bold text-gray-800 mb-1">{firstPart}</p>
+          <p className="text-xl font-bold text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">{secondPart}</p>
         </div>
       );
     }
@@ -60,7 +60,7 @@ const ShopByPlantAlternative = () => {
     // Fallback if no split is possible
     return (
       <div className="product-name-container h-20 flex flex-col justify-start">
-        <p className="text-xl font-bold text-gray-800 truncate overflow-hidden">{upperName}</p>
+        <p className="text-xl font-bold text-gray-800">{upperName}</p>
         <div className="h-6"></div>
       </div>
     );
@@ -799,7 +799,9 @@ const ShopByPlantAlternative = () => {
                     selectedCategory === cat.category
                       ? 'border-2 border-black rounded-2xl group-hover:scale-105'
                       : 'group-hover:scale-105'
-                  }`}>
+                  }`}
+                    style={{ backgroundColor: '#a8a18c' }}
+                  >
                     <img
                       src={cat.image}
                       alt={cat.name}
