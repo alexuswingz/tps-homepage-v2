@@ -1,0 +1,43 @@
+.glide__arrow {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: none;
+  cursor: pointer;
+  color: #FF6B6B;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.glide__arrow:hover {
+  background: #FF6B6B;
+  color: white;
+}
+
+.glide__arrow--left {
+  left: -20px;
+}
+
+.glide__arrow--right {
+  right: -20px;
+}
+
+.glide__slide {
+  height: auto;
+  padding: 1rem 0;
+}
+
+/* Hide arrows on mobile */
+@media (max-width: 640px) {
+  .glide__arrow {
+    display: none;
+  }
+} 

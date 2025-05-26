@@ -4,7 +4,7 @@ import NavBar from './components/nav-bar';
 import HeroSection from './components/hero-section';
 import BuildBundleSection from './components/build-bundle-section';
 import BuildABundlePage from './components/BuildABundlePage';
-import ShopByPlant from './components/shopy-by-plant';
+import ShopByPlantAlternative from './components/ShopByPlantAlternative';
 import MonsteraProductSection from './components/monstera-product-section';
 import CustomerReviews from './components/customer-reviews';
 import ComparisonChart from './components/comparison-chart';
@@ -35,7 +35,7 @@ function App() {
                 <LeafDivider />
                 <BuildBundleSection />
                 <LeafDivider />
-                <ShopByPlant />
+                <ShopByPlantAlternative />
                 <LeafDivider />
                 <MonsteraProductSection />
                 <LeafDivider />
