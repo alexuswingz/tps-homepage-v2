@@ -16,6 +16,9 @@ import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/zoom';
 import ShopByPlantAlternative from './ShopByPlantAlternative';
+import Glide from '@glidejs/glide';
+import '@glidejs/glide/dist/css/glide.core.min.css';
+import '@glidejs/glide/dist/css/glide.theme.css';
 
 // Custom styles for Swiper
 const swiperStyles = `
@@ -258,6 +261,70 @@ const MobileImageGallery = ({ isOpen, onClose, images, initialImage, productName
               />
             </button>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Mobile Product Carousel Component
+const MobileProductCarousel = ({ images, onImageClick }) => {
+  const glideRef = useRef(null);
+
+  useEffect(() => {
+    if (glideRef.current) {
+      const glide = new Glide(glideRef.current, {
+        type: 'carousel',
+        perView: 1,
+        gap: 0,
+        animationDuration: 600,
+      });
+
+      glide.mount();
+
+      return () => {
+        glide.destroy();
+      };
+    }
+  }, [images]);
+
+  return (
+    <div className="relative w-[90%] mx-auto mb-6">
+      <div ref={glideRef} className="glide">
+        <div className="glide__track" data-glide-el="track">
+          <ul className="glide__slides">
+            {images.map((image, index) => (
+              <li key={index} className="glide__slide">
+                <div 
+                  className="relative aspect-[3/4] bg-white rounded-2xl overflow-hidden shadow-sm"
+                  onClick={() => onImageClick(index + 1)}
+                >
+                  {/* Background video - only show for slides that have hasVideo true */}
+                  {image.hasVideo && (
+                    <div className="absolute inset-0 z-0">
+                      <video 
+                        src="/assets/productbg.mp4"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover opacity-100"
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Product image */}
+                  <div className={`relative h-full ${image.hasVideo ? 'z-10' : ''}`}>
+                    <img 
+                      src={image.src}
+                      alt={image.alt}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>
@@ -871,34 +938,47 @@ const ProductPage = () => {
           <section aria-labelledby="product-images-heading">
             <h2 id="product-images-heading" className="sr-only">Product Images</h2>
             <div className="flex flex-col">
-              {/* Main Image Container */}
-              <div 
-                className={`relative mb-6 rounded-2xl overflow-hidden bg-white shadow-sm cursor-pointer`}
-                style={{ aspectRatio: '3/4' }}
-                onClick={() => setImageModalOpen(true)}
-              >
-                {/* Background video - only show for slides that have hasVideo true */}
-                {productImages[selectedImage - 1]?.hasVideo && (
-                  <div className="absolute inset-0 z-0">
-                    <video 
-                      src="/assets/productbg.mp4"
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="w-full h-full object-cover opacity-100"
+              {/* Mobile Carousel */}
+              <div className="md:hidden">
+                <MobileProductCarousel 
+                  images={productImages}
+                  onImageClick={(index) => {
+                    setSelectedImage(index);
+                    setImageModalOpen(true);
+                  }}
+                />
+              </div>
+
+              {/* Desktop Image View */}
+              <div className="hidden md:block">
+                <div 
+                  className="relative mb-6 rounded-2xl overflow-hidden bg-white shadow-sm cursor-pointer"
+                  style={{ aspectRatio: '3/4' }}
+                  onClick={() => setImageModalOpen(true)}
+                >
+                  {/* Background video - only show for slides that have hasVideo true */}
+                  {productImages[selectedImage - 1]?.hasVideo && (
+                    <div className="absolute inset-0 z-0">
+                      <video 
+                        src="/assets/productbg.mp4"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover opacity-100"
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Main product image */}
+                  <div className={`relative h-full ${productImages[selectedImage - 1]?.hasVideo ? 'z-10' : ''}`}>
+                    <img 
+                      src={productImages[selectedImage - 1]?.src || product.image}
+                      alt={productImages[selectedImage - 1]?.alt || product.name}
+                      className="w-full h-full object-contain transition-transform duration-300"
                     />
                   </div>
-                )}
-                
-                {/* Main product image */}
-                <div className={`relative h-full ${productImages[selectedImage - 1]?.hasVideo ? 'z-10' : ''}`}>
-                  <img 
-                    src={productImages[selectedImage - 1]?.src || product.image}
-                    alt={productImages[selectedImage - 1]?.alt || product.name}
-                    className="w-full h-full object-contain transition-transform duration-300"
-                  />
-                  
+
                   {/* Best seller badge */}
                   {product.bestSeller && (
                     <div className="absolute bottom-6 left-6 flex items-center gap-2 animate-fade-in">
@@ -942,56 +1022,56 @@ const ProductPage = () => {
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
-                      {isMobile ? 'Tap to view gallery' : 'Click to zoom'}
+                      Click to zoom
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Thumbnails - only show if there's more than one image */}
-              {productImages.length > 1 && (
-                <div className="relative">
-                  <div className="flex gap-3 overflow-x-auto pb-2 snap-x scrollbar-hide">
-                    {productImages.map((image) => (
-                      <button 
-                        key={image.id}
-                        onClick={() => setSelectedImage(image.id)}
-                        className={`relative flex-shrink-0 w-20 aspect-square rounded-lg overflow-hidden bg-white transition-all duration-300 ${
-                          selectedImage === image.id 
-                            ? 'ring-2 ring-[#FF6B6B] scale-95' 
-                            : 'hover:ring-2 hover:ring-gray-300'
-                        }`}
-                      >
-                        <div className="absolute inset-0 bg-black/5"></div>
-                        <img 
-                          src={image.src}
-                          alt={image.alt}
-                          className={`w-full h-full object-cover transition-transform duration-300 ${
-                            selectedImage === image.id ? 'scale-110' : 'scale-100'
+                {/* Desktop Thumbnails */}
+                {productImages.length > 1 && (
+                  <div className="relative">
+                    <div className="flex gap-3 overflow-x-auto pb-2 snap-x scrollbar-hide">
+                      {productImages.map((image) => (
+                        <button 
+                          key={image.id}
+                          onClick={() => setSelectedImage(image.id)}
+                          className={`relative flex-shrink-0 w-20 aspect-square rounded-lg overflow-hidden bg-white transition-all duration-300 ${
+                            selectedImage === image.id 
+                              ? 'ring-2 ring-[#FF6B6B] scale-95' 
+                              : 'hover:ring-2 hover:ring-gray-300'
+                          }`}
+                        >
+                          <div className="absolute inset-0 bg-black/5"></div>
+                          <img 
+                            src={image.src}
+                            alt={image.alt}
+                            className={`w-full h-full object-cover transition-transform duration-300 ${
+                              selectedImage === image.id ? 'scale-110' : 'scale-100'
+                            }`}
+                          />
+                          {selectedImage === image.id && (
+                            <div className="absolute inset-0 bg-[#FF6B6B]/10"></div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Progress indicator */}
+                    <div className="mt-2 flex justify-center gap-1.5">
+                      {productImages.map((_, index) => (
+                        <div
+                          key={index}
+                          className={`h-1 rounded-full transition-all duration-300 ${
+                            selectedImage === index + 1
+                              ? 'w-4 bg-[#FF6B6B]'
+                              : 'w-1.5 bg-gray-300'
                           }`}
                         />
-                        {selectedImage === image.id && (
-                          <div className="absolute inset-0 bg-[#FF6B6B]/10"></div>
-                        )}
-                      </button>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-
-                  {/* Progress indicator */}
-                  <div className="mt-2 flex justify-center gap-1.5">
-                    {productImages.map((_, index) => (
-                      <div
-                        key={index}
-                        className={`h-1 rounded-full transition-all duration-300 ${
-                          selectedImage === index + 1
-                            ? 'w-4 bg-[#FF6B6B]'
-                            : 'w-1.5 bg-gray-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </section>
 
