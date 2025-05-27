@@ -22,6 +22,10 @@ const CartDrawer = () => {
   useEffect(() => {
     if (isCartOpen) {
       document.body.style.overflow = 'hidden';
+      // Set a CSS variable for the viewport height
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+      
       if (suggestedProducts.length === 0) {
         fetchSuggestedProducts();
       }
@@ -29,8 +33,17 @@ const CartDrawer = () => {
       document.body.style.overflow = '';
     }
     
+    // Update the height variable on resize
+    const handleResize = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    window.addEventListener('resize', handleResize);
+    
     return () => {
       document.body.style.overflow = '';
+      window.removeEventListener('resize', handleResize);
     };
   }, [isCartOpen]);
 
@@ -248,9 +261,10 @@ const CartDrawer = () => {
       
       {/* Cart Drawer */}
       <div 
-        className={`fixed right-0 top-0 w-full md:w-[420px] h-screen bg-[#fffbef] z-[100] shadow-xl transform transition-transform duration-300 ease-in-out flex flex-col ${
+        className={`fixed right-0 top-0 w-full md:w-[420px] h-[100vh] md:h-screen bg-[#fffbef] z-[100] shadow-xl transform transition-transform duration-300 ease-in-out flex flex-col ${
           isCartOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
+        style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
       >
         {/* Cart Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-white">

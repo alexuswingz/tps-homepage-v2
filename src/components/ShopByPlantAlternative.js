@@ -635,7 +635,7 @@ const ShopByPlantAlternative = () => {
           <img 
             src={product.image} 
             alt={product.name} 
-            className="h-32 sm:h-48 mx-auto mb-2 sm:mb-4 object-contain mix-blend-multiply"
+            className="h-32 sm:h-48 mx-auto mb-2 sm:mb-4 object-contain bg-white rounded-lg"
           />
           
           <div className="flex items-center justify-between mb-1 sm:mb-3">

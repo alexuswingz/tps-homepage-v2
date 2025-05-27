@@ -348,6 +348,7 @@ const ProductPage = () => {
   const [deliveryInterval, setDeliveryInterval] = useState(2); // Default 2 months delivery interval
   const [showStickyBar, setShowStickyBar] = useState(false);
   const productHeroRef = useRef(null);
+  const [sellingPlans, setSellingPlans] = useState([]);
   
   // Detect if on mobile
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -847,14 +848,92 @@ const ProductPage = () => {
     }
   ];
 
+  useEffect(() => {
+    const fetchSellingPlans = async () => {
+      if (product) {
+        const query = `
+          {
+            product(id: "${product.id}") {
+              sellingPlanGroups(first: 5) {
+                edges {
+                  node {
+                    id
+                    name
+                    sellingPlans(first: 5) {
+                      edges {
+                        node {
+                          id
+                          name
+                          options {
+                            name
+                            value
+                          }
+                          priceAdjustments {
+                            adjustmentValue {
+                              ... on SellingPlanFixedAmountAdjustment {
+                                adjustmentAmount {
+                                  amount
+                                  currencyCode
+                                }
+                              }
+                              ... on SellingPlanPercentagePriceAdjustment {
+                                adjustmentPercentage
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        `;
+
+        try {
+          const result = await fetchFromStorefrontAPI(query);
+          if (result?.data?.product?.sellingPlanGroups?.edges) {
+            const plans = result.data.product.sellingPlanGroups.edges.flatMap(group => 
+              group.node.sellingPlans.edges.map(plan => ({
+                id: plan.node.id,
+                name: plan.node.name,
+                groupId: group.node.id,
+                options: plan.node.options,
+                priceAdjustments: plan.node.priceAdjustments
+              }))
+            );
+            setSellingPlans(plans);
+          }
+        } catch (error) {
+          console.error('Error fetching selling plans:', error);
+        }
+      }
+    };
+
+    fetchSellingPlans();
+  }, [product]);
+
   const handleAddToCart = () => {
     if (product && selectedVariant) {
-      // Build subscription properties if selected
-      const subscriptionProps = isSubscription ? {
-        isSubscription: true,
-        interval: deliveryInterval,
-        intervalUnit: 'month',
-        discount: 15, // 15% discount for subscriptions (matches 0.85 pricing)
+      // Find the appropriate selling plan based on delivery interval
+      const selectedPlan = isSubscription ? sellingPlans.find(plan => 
+        plan.name.includes(`${deliveryInterval} month subscription`)
+      ) : null;
+
+      // Build subscription properties for ReCharge
+      const subscriptionProps = isSubscription && selectedPlan ? {
+        selling_plan: selectedPlan.id.replace('gid://shopify/SellingPlan/', ''),
+        selling_plan_group_id: selectedPlan.groupId.replace('gid://shopify/SellingPlanGroup/', ''),
+        charge_interval_frequency: deliveryInterval,
+        order_interval_frequency: deliveryInterval,
+        order_interval_unit: 'month',
+        subscription_id: `${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
+        properties: {
+          shipping_interval_frequency: deliveryInterval,
+          shipping_interval_unit_type: 'Months',
+          subscription_id: `${Date.now()}-${Math.floor(Math.random() * 1000000)}`
+        }
       } : null;
       
       if (selectedBundle === 'single') {
@@ -866,6 +945,16 @@ const ProductPage = () => {
         
         // Only add silica if it was successfully fetched
         if (silicaProduct && silicaProduct.variant) {
+          // Find the same subscription plan for silica if it exists
+          const silicaSubscriptionProps = subscriptionProps ? {
+            ...subscriptionProps,
+            subscription_id: `${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
+            properties: {
+              ...subscriptionProps.properties,
+              subscription_id: `${Date.now()}-${Math.floor(Math.random() * 1000000)}`
+            }
+          } : null;
+
           // Create a simplified product object for silica
           const silicaProductForCart = {
             id: silicaProduct.id,
@@ -875,7 +964,7 @@ const ProductPage = () => {
             price: silicaProduct.price
           };
           // Add silica with the same subscription settings as the main product
-          addToCart(silicaProductForCart, silicaProduct.variant, quantity, subscriptionProps);
+          addToCart(silicaProductForCart, silicaProduct.variant, quantity, silicaSubscriptionProps);
         }
       }
     }
@@ -895,6 +984,14 @@ const ProductPage = () => {
         ))}
       </div>
     );
+  };
+
+  // Add this function to calculate the discounted price
+  const calculatePrice = (basePrice, isSubscriptionPrice = false) => {
+    if (isSubscriptionPrice) {
+      return (basePrice * 0.85).toFixed(2); // 15% discount
+    }
+    return basePrice.toFixed(2);
   };
 
   if (loading) {
@@ -1322,10 +1419,9 @@ const ProductPage = () => {
                     <label htmlFor="one-time" className="font-bold text-gray-900 tracking-wide block">ONE-TIME PURCHASE</label>
                   </div>
                   <div className="font-bold text-xl">
-                    ${selectedBundle === 'single' 
-                      ? (selectedVariant ? selectedVariant.price.toFixed(2) : '14.99')
-                      : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)).toFixed(2) : '24.99')
-                    }
+                    ${calculatePrice(selectedBundle === 'single'
+                      ? (selectedVariant ? selectedVariant.price : 14.99)
+                      : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)) : 24.99))}
                   </div>
                 </div>
               </div>
@@ -1381,11 +1477,18 @@ const ProductPage = () => {
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-xl">
-                      ${selectedBundle === 'single'
-                        ? (selectedVariant ? (selectedVariant.price * 0.85).toFixed(2) : '12.74')
-                        : (selectedVariant ? ((selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)) * 0.85).toFixed(2) : '21.24')
-                      }
+                      ${calculatePrice(selectedBundle === 'single'
+                        ? (selectedVariant ? selectedVariant.price : 14.99)
+                        : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)) : 24.99),
+                        true)}
                     </div>
+                    {isSubscription && (
+                      <div className="text-sm text-gray-500 line-through">
+                        ${calculatePrice(selectedBundle === 'single'
+                          ? (selectedVariant ? selectedVariant.price : 14.99)
+                          : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)) : 24.99))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

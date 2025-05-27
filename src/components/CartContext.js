@@ -174,164 +174,122 @@ export const CartProvider = ({ children }) => {
       // Get bundle discount if available
       const bundleDiscount = localStorage.getItem('bundleDiscount');
       
-      if (hasSubscription) {
-        // For subscription orders, we need to use the ReCharge checkout
-        // First create a form to submit to Shopify's cart endpoint
-        const form = document.createElement('form');
-        form.method = 'post';
-        form.action = `${checkoutDomain}/cart/clear`;
+      // Create a form to submit to cart
+      const form = document.createElement('form');
+      form.method = 'post';
+      form.action = `${checkoutDomain}/cart/clear`;
+      
+      document.body.appendChild(form);
+      form.submit();
+      
+      // After clearing cart, add items and redirect to checkout
+      setTimeout(() => {
+        const addForm = document.createElement('form');
+        addForm.method = 'post';
+        addForm.action = `${checkoutDomain}/cart/add`;
         
-        // Append form to body and submit to clear cart first
-        document.body.appendChild(form);
-        form.submit();
-        
-        // After clearing cart, redirect to a function that will add items with ReCharge properties
-        setTimeout(() => {
-          // Create a new form for adding items
-          const addForm = document.createElement('form');
-          addForm.method = 'post';
-          addForm.action = `${checkoutDomain}/cart/add`;
+        // Process each cart item
+        cartItems.forEach((item, index) => {
+          // Get variant ID without GraphQL prefix
+          const variantId = item.variantId.replace('gid://shopify/ProductVariant/', '');
           
-          // Process each cart item
-          cartItems.forEach((item, index) => {
-            // Get variant ID without GraphQL prefix
-            const variantId = item.variantId.replace('gid://shopify/ProductVariant/', '');
+          // Create input for ID
+          const idInput = document.createElement('input');
+          idInput.type = 'hidden';
+          idInput.name = `items[${index}][id]`;
+          idInput.value = variantId;
+          addForm.appendChild(idInput);
+          
+          // Create input for quantity
+          const quantityInput = document.createElement('input');
+          quantityInput.type = 'hidden';
+          quantityInput.name = `items[${index}][quantity]`;
+          quantityInput.value = item.quantity;
+          addForm.appendChild(quantityInput);
+          
+          // If item is a subscription, add ReCharge-specific properties
+          if (item.subscription) {
+            // Add selling plan
+            const sellingPlanInput = document.createElement('input');
+            sellingPlanInput.type = 'hidden';
+            sellingPlanInput.name = `items[${index}][selling_plan]`;
+            sellingPlanInput.value = item.subscription.selling_plan;
+            addForm.appendChild(sellingPlanInput);
             
-            // Create input for ID
-            const idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = `items[${index}][id]`;
-            idInput.value = variantId;
-            addForm.appendChild(idInput);
+            // Add subscription properties
+            const subscriptionInput = document.createElement('input');
+            subscriptionInput.type = 'hidden';
+            subscriptionInput.name = `items[${index}][properties][subscription_id]`;
+            subscriptionInput.value = item.subscription.subscription_id;
+            addForm.appendChild(subscriptionInput);
             
-            // Create input for quantity
-            const quantityInput = document.createElement('input');
-            quantityInput.type = 'hidden';
-            quantityInput.name = `items[${index}][quantity]`;
-            quantityInput.value = item.quantity;
-            addForm.appendChild(quantityInput);
+            // Add shipping interval frequency
+            const freqInput = document.createElement('input');
+            freqInput.type = 'hidden';
+            freqInput.name = `items[${index}][properties][shipping_interval_frequency]`;
+            freqInput.value = item.subscription.charge_interval_frequency;
+            addForm.appendChild(freqInput);
             
-            // If item is a subscription, add ReCharge-specific properties
-            if (item.subscription) {
-              // Add subscription properties
-              const subscriptionInput = document.createElement('input');
-              subscriptionInput.type = 'hidden';
-              subscriptionInput.name = `items[${index}][properties][subscription_id]`;
-              subscriptionInput.value = Date.now().toString() + '-' + Math.floor(Math.random() * 1000000);
-              addForm.appendChild(subscriptionInput);
-              
-              // Add shipping interval frequency
-              const freqInput = document.createElement('input');
-              freqInput.type = 'hidden';
-              freqInput.name = `items[${index}][properties][shipping_interval_frequency]`;
-              freqInput.value = item.subscription.interval;
-              addForm.appendChild(freqInput);
-              
-              // Add shipping interval unit type
-              const unitInput = document.createElement('input');
-              unitInput.type = 'hidden';
-              unitInput.name = `items[${index}][properties][shipping_interval_unit_type]`;
-              unitInput.value = 'month';
-              addForm.appendChild(unitInput);
-              
-              // Add discount information if applicable
-              if (item.subscription.discount > 0) {
-                const discountInput = document.createElement('input');
-                discountInput.type = 'hidden';
-                discountInput.name = `items[${index}][properties][discount_percentage]`;
-                discountInput.value = item.subscription.discount.toString();
-                addForm.appendChild(discountInput);
-              }
+            // Add shipping interval unit type
+            const unitInput = document.createElement('input');
+            unitInput.type = 'hidden';
+            unitInput.name = `items[${index}][properties][shipping_interval_unit_type]`;
+            unitInput.value = item.subscription.order_interval_unit;
+            addForm.appendChild(unitInput);
+            
+            // Add ReCharge widget identifier
+            const widgetInput = document.createElement('input');
+            widgetInput.type = 'hidden';
+            widgetInput.name = `items[${index}][properties][_rc_widget]`;
+            widgetInput.value = '1';
+            addForm.appendChild(widgetInput);
 
-              // Add ReCharge widget identifier
-              const widgetInput = document.createElement('input');
-              widgetInput.type = 'hidden';
-              widgetInput.name = `items[${index}][properties][_rc_widget]`;
-              widgetInput.value = '1';
-              addForm.appendChild(widgetInput);
-            }
-          });
-          
-          // Add ReCharge checkout parameter
-          const rechargeCheckoutInput = document.createElement('input');
-          rechargeCheckoutInput.type = 'hidden';
-          rechargeCheckoutInput.name = 'checkout';
-          rechargeCheckoutInput.value = 'recharge';
-          addForm.appendChild(rechargeCheckoutInput);
-          
-          // Add redirect to checkout
-          const returnToInput = document.createElement('input');
-          returnToInput.type = 'hidden';
-          returnToInput.name = 'return_to';
-          returnToInput.value = '/checkout';
-          addForm.appendChild(returnToInput);
-          
-          // If bundle discount exists, add it to the checkout URL
-          if (bundleDiscount) {
+            // Add selling plan group ID
+            const groupInput = document.createElement('input');
+            groupInput.type = 'hidden';
+            groupInput.name = `items[${index}][properties][selling_plan_group_id]`;
+            groupInput.value = item.subscription.selling_plan_group_id;
+            addForm.appendChild(groupInput);
+
+            // Add discount percentage
             const discountInput = document.createElement('input');
             discountInput.type = 'hidden';
-            discountInput.name = 'discount';
-            discountInput.value = bundleDiscount;
+            discountInput.name = `items[${index}][properties][discount_percentage]`;
+            discountInput.value = '15';
             addForm.appendChild(discountInput);
           }
-          
-          // Submit the form
-          document.body.appendChild(addForm);
-          console.log('Submitting form with ReCharge subscription properties');
-          addForm.submit();
-        }, 500); // Wait a bit for the cart to clear
-      } else {
-        // Standard Shopify cart for one-time purchases
-        // Create a form to submit to cart
-        const form = document.createElement('form');
-        form.method = 'post';
-        form.action = `${checkoutDomain}/cart/clear`;
+        });
         
-        document.body.appendChild(form);
-        form.submit();
+        // Add redirect to checkout
+        const returnToInput = document.createElement('input');
+        returnToInput.type = 'hidden';
+        returnToInput.name = 'return_to';
+        returnToInput.value = '/checkout';
+        addForm.appendChild(returnToInput);
+
+        // Add checkout type for subscriptions
+        if (hasSubscription) {
+          const checkoutTypeInput = document.createElement('input');
+          checkoutTypeInput.type = 'hidden';
+          checkoutTypeInput.name = 'checkout_type';
+          checkoutTypeInput.value = 'subscription';
+          addForm.appendChild(checkoutTypeInput);
+        }
         
-        // After clearing cart, add items and redirect to checkout
-        setTimeout(() => {
-          const addForm = document.createElement('form');
-          addForm.method = 'post';
-          addForm.action = `${checkoutDomain}/cart/add`;
-          
-          // Add each item
-          cartItems.forEach((item, index) => {
-            const variantId = item.variantId.replace('gid://shopify/ProductVariant/', '');
-            
-            const idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = `items[${index}][id]`;
-            idInput.value = variantId;
-            addForm.appendChild(idInput);
-            
-            const quantityInput = document.createElement('input');
-            quantityInput.type = 'hidden';
-            quantityInput.name = `items[${index}][quantity]`;
-            quantityInput.value = item.quantity;
-            addForm.appendChild(quantityInput);
-          });
-          
-          // Add redirect to checkout
-          const returnToInput = document.createElement('input');
-          returnToInput.type = 'hidden';
-          returnToInput.name = 'return_to';
-          
-          // If bundle discount exists, add it to the checkout URL
-          if (bundleDiscount) {
-            returnToInput.value = `/checkout?discount=${bundleDiscount}`;
-          } else {
-            returnToInput.value = '/checkout';
-          }
-          
-          addForm.appendChild(returnToInput);
-          
-          document.body.appendChild(addForm);
-          console.log('Submitting standard checkout form');
-          addForm.submit();
-        }, 500);
-      }
+        // If bundle discount exists, add it to the checkout URL
+        if (bundleDiscount) {
+          const discountInput = document.createElement('input');
+          discountInput.type = 'hidden';
+          discountInput.name = 'discount';
+          discountInput.value = bundleDiscount;
+          addForm.appendChild(discountInput);
+        }
+        
+        // Submit the form
+        document.body.appendChild(addForm);
+        console.log('Submitting checkout form with subscription properties');
+        addForm.submit();
+      }, 500);
     } catch (error) {
       console.error('Error processing checkout:', error);
       alert('There was an error processing your checkout. Please try again.');
