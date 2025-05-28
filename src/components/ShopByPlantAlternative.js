@@ -11,6 +11,7 @@ const ShopByPlantAlternative = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("Houseplant Products");
+  const [categoriesVisible, setCategoriesVisible] = useState(false);
   const glideRef = useRef(null);
 
   // Background gradient styles for each product card
@@ -499,17 +500,25 @@ const ShopByPlantAlternative = () => {
         rewind: false,
         perView: 4,
         gap: 16,
+        touchRatio: 0.5,
+        touchAngle: 45,
+        animationDuration: 400,
+        animationTimingFunc: 'cubic-bezier(0.165, 0.840, 0.440, 1.000)',
         breakpoints: {
           1280: { perView: 3 },
           1024: { perView: 2.5 },
           768: { perView: 2.2 },
           640: { 
             perView: 2.2,
-            bound: true // Ensure it stops at the last slide on mobile
+            bound: true,
+            touchRatio: 0.8,
+            animationDuration: 300
           },
           480: { 
             perView: 2.2,
-            bound: true // Ensure it stops at the last slide on mobile
+            bound: true,
+            touchRatio: 0.8,
+            animationDuration: 300
           }
         }
       });
@@ -777,17 +786,68 @@ const ShopByPlantAlternative = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#fff9f2] py-4 sm:py-8">
+    <div className="bg-[#fff9f2] py-2 sm:py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8 px-1">
-          <h1 className="text-5xl sm:text-6xl font-bold text-[#ff6b6b] mb-2">Shop by Plant</h1>
-          <p className="text-gray-500 text-sm sm:text-base tracking-widest uppercase">Choose a Collection</p>
+          <h1 className="text-5xl sm:text-6xl font-bold text-[#ff6b6b] mb-2 hidden sm:block">Shop by Plant</h1>
+          <p className="text-gray-500 text-sm sm:text-base tracking-widest uppercase hidden sm:block">Choose a Collection</p>
         </div>
 
-        {/* Category Navigation - Mobile Scrollable */}
-        <div className="relative mb-8 sm:mb-12">
-          <div className="flex justify-start sm:justify-center gap-4 sm:gap-6 overflow-x-auto pb-4 px-1 sm:px-4 no-scrollbar">
+        {/* Mobile Plant Categories Header */}
+        <div className="block sm:hidden px-4 mb-4">
+          <button 
+            onClick={() => setCategoriesVisible(!categoriesVisible)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <h1 className="text-4xl font-bold text-[#ff6b6b]">Plant Categories</h1>
+            <svg 
+              className={`w-6 h-6 text-[#ff6b6b] transition-transform duration-300 ${
+                categoriesVisible ? 'transform rotate-180' : ''
+              }`}
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Category Navigation - Mobile List / Desktop Tiles */}
+        <div className="relative mb-2 sm:mb-12">
+          {/* Mobile List Layout */}
+          <div className="block sm:hidden">
+            <div 
+              className={`px-4 transition-all duration-300 ease-in-out overflow-hidden ${
+                categoriesVisible ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <div className="space-y-2 pb-2">
+                {categories.map((cat, index) => (
+                  <button
+                    key={cat.category}
+                    onClick={() => {
+                      setSelectedCategory(cat.category);
+                      setCategoriesVisible(false); // Hide categories after selection
+                    }}
+                    className={`text-left transition-all duration-200 ${
+                      selectedCategory === cat.category
+                        ? 'border-2 border-[#ff6b6b] rounded-full px-4 py-2 bg-white'
+                        : 'px-4 py-2'
+                    }`}
+                  >
+                    <div className="text-xl font-medium text-black">
+                      {cat.name.replace('\n', ' ')}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Tile Layout */}
+          <div className="hidden sm:flex justify-center gap-6 overflow-x-auto pb-4 px-4 no-scrollbar">
             {categories.map((cat) => (
               <button
                 key={cat.category}
@@ -795,7 +855,7 @@ const ShopByPlantAlternative = () => {
                 className="flex-shrink-0 group"
               >
                 <div className="relative p-1">
-                  <div className={`w-20 h-20 sm:w-32 sm:h-32 relative overflow-hidden transition-transform duration-200 origin-center ${
+                  <div className={`w-32 h-32 relative overflow-hidden transition-transform duration-200 origin-center ${
                     selectedCategory === cat.category
                       ? 'border-2 border-black rounded-2xl group-hover:scale-105'
                       : 'group-hover:scale-105'
@@ -825,7 +885,7 @@ const ShopByPlantAlternative = () => {
                         selectedCategory === cat.category
                           ? i === 0 ? 'text-black' : 'text-gray-500'
                           : i === 0 ? 'text-gray-400' : 'text-gray-400'
-                      } text-[10px] sm:text-sm whitespace-nowrap transition-colors duration-200`}
+                      } text-sm whitespace-nowrap transition-colors duration-200`}
                     >
                       {line}
                     </div>
@@ -838,7 +898,7 @@ const ShopByPlantAlternative = () => {
 
         {/* Products Grid with Glide.js */}
         {loading ? (
-          <div className="text-center py-8 sm:py-12">
+          <div className="text-center py-4 sm:py-12">
             <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-[#FF6B6B] mx-auto"></div>
             <p className="mt-4 text-gray-600 text-sm sm:text-base">Loading products...</p>
           </div>
@@ -883,7 +943,7 @@ const ShopByPlantAlternative = () => {
             </div>
           </div>
         ) : (
-          <div className="text-center py-8 sm:py-12">
+          <div className="text-center py-4 sm:py-12">
             <p className="text-gray-600 mb-4 text-sm sm:text-base">No products found in this category.</p>
             <button
               onClick={() => setSelectedCategory("Houseplant Products")}

@@ -174,6 +174,9 @@ export const CartProvider = ({ children }) => {
       // Get bundle discount if available
       const bundleDiscount = localStorage.getItem('bundleDiscount');
       
+      // Debug: Log cart items to console
+      console.log('Cart items for checkout:', cartItems);
+      
       // Create a form to submit to cart
       const form = document.createElement('form');
       form.method = 'post';
@@ -190,8 +193,26 @@ export const CartProvider = ({ children }) => {
         
         // Process each cart item
         cartItems.forEach((item, index) => {
-          // Get variant ID without GraphQL prefix
-          const variantId = item.variantId.replace('gid://shopify/ProductVariant/', '');
+          // Handle variant ID more robustly
+          let variantId = item.variantId;
+          
+          // Remove GraphQL prefix if present
+          if (typeof variantId === 'string' && variantId.includes('gid://shopify/ProductVariant/')) {
+            variantId = variantId.replace('gid://shopify/ProductVariant/', '');
+          }
+          
+          // Ensure we have a valid variant ID (should be numeric)
+          if (!variantId || (typeof variantId === 'string' && isNaN(variantId))) {
+            console.error('Invalid variant ID for item:', item);
+            console.error('Original variant ID:', item.variantId);
+            console.error('Processed variant ID:', variantId);
+            return; // Skip this item
+          }
+          
+          // Convert to string if it's a number
+          variantId = String(variantId);
+          
+          console.log(`Processing item ${index}: ${item.name}, Original ID: ${item.variantId}, Processed ID: ${variantId}`);
           
           // Create input for ID
           const idInput = document.createElement('input');
@@ -207,35 +228,94 @@ export const CartProvider = ({ children }) => {
           quantityInput.value = item.quantity;
           addForm.appendChild(quantityInput);
           
-          // If item is a subscription, add ReCharge-specific properties
+          // For subscription items, we need to handle pricing differently
           if (item.subscription) {
-            // Add selling plan
-            const sellingPlanInput = document.createElement('input');
-            sellingPlanInput.type = 'hidden';
-            sellingPlanInput.name = `items[${index}][selling_plan]`;
-            sellingPlanInput.value = item.subscription.selling_plan;
-            addForm.appendChild(sellingPlanInput);
+            console.log('Adding subscription properties for item:', item.name);
+            console.log('Subscription object:', item.subscription);
             
-            // Add subscription properties
-            const subscriptionInput = document.createElement('input');
-            subscriptionInput.type = 'hidden';
-            subscriptionInput.name = `items[${index}][properties][subscription_id]`;
-            subscriptionInput.value = item.subscription.subscription_id;
-            addForm.appendChild(subscriptionInput);
+            // Calculate the discounted price
+            const originalPrice = item.price;
+            const discountPercentage = item.subscription.discount || 15;
+            const discountedPrice = originalPrice * (1 - discountPercentage / 100);
             
-            // Add shipping interval frequency
-            const freqInput = document.createElement('input');
-            freqInput.type = 'hidden';
-            freqInput.name = `items[${index}][properties][shipping_interval_frequency]`;
-            freqInput.value = item.subscription.charge_interval_frequency;
-            addForm.appendChild(freqInput);
+            console.log(`Original price: $${originalPrice}, Discount: ${discountPercentage}%, Discounted price: $${discountedPrice.toFixed(2)}`);
             
-            // Add shipping interval unit type
-            const unitInput = document.createElement('input');
-            unitInput.type = 'hidden';
-            unitInput.name = `items[${index}][properties][shipping_interval_unit_type]`;
-            unitInput.value = item.subscription.order_interval_unit;
-            addForm.appendChild(unitInput);
+            // Add the discounted price as a property for ReCharge to use
+            const priceInput = document.createElement('input');
+            priceInput.type = 'hidden';
+            priceInput.name = `items[${index}][properties][subscription_price]`;
+            priceInput.value = discountedPrice.toFixed(2);
+            addForm.appendChild(priceInput);
+            
+            // Try to override the price using ReCharge's expected format
+            const rechargeDiscountInput = document.createElement('input');
+            rechargeDiscountInput.type = 'hidden';
+            rechargeDiscountInput.name = `items[${index}][properties][discount_amount]`;
+            rechargeDiscountInput.value = (originalPrice - discountedPrice).toFixed(2);
+            addForm.appendChild(rechargeDiscountInput);
+            
+            // Add ReCharge subscription discount type
+            const discountTypeInput = document.createElement('input');
+            discountTypeInput.type = 'hidden';
+            discountTypeInput.name = `items[${index}][properties][discount_type]`;
+            discountTypeInput.value = 'percentage';
+            addForm.appendChild(discountTypeInput);
+            
+            // Add selling plan only if it exists and is valid
+            if (item.subscription.selling_plan && item.subscription.selling_plan !== 'undefined' && item.subscription.selling_plan !== '') {
+              const sellingPlanInput = document.createElement('input');
+              sellingPlanInput.type = 'hidden';
+              sellingPlanInput.name = `items[${index}][selling_plan]`;
+              sellingPlanInput.value = item.subscription.selling_plan;
+              addForm.appendChild(sellingPlanInput);
+              console.log('Added selling plan:', item.subscription.selling_plan);
+            } else {
+              console.warn('No valid selling plan ID found for subscription item:', item.name);
+              console.warn('This item will be processed as a regular subscription without Shopify selling plan');
+            }
+            
+            // Add ReCharge subscription properties
+            // Shipping interval frequency
+            const shipFreqInput = document.createElement('input');
+            shipFreqInput.type = 'hidden';
+            shipFreqInput.name = `items[${index}][properties][shipping_interval_frequency]`;
+            shipFreqInput.value = item.subscription.charge_interval_frequency || item.subscription.interval || '2';
+            addForm.appendChild(shipFreqInput);
+            
+            // Shipping interval unit type
+            const shipUnitInput = document.createElement('input');
+            shipUnitInput.type = 'hidden';
+            shipUnitInput.name = `items[${index}][properties][shipping_interval_unit_type]`;
+            shipUnitInput.value = item.subscription.intervalUnit || 'month';
+            addForm.appendChild(shipUnitInput);
+            
+            // Order interval frequency (for ReCharge)
+            const orderFreqInput = document.createElement('input');
+            orderFreqInput.type = 'hidden';
+            orderFreqInput.name = `items[${index}][properties][order_interval_frequency]`;
+            orderFreqInput.value = item.subscription.order_interval_frequency || item.subscription.interval || '2';
+            addForm.appendChild(orderFreqInput);
+            
+            // Order interval unit
+            const orderUnitInput = document.createElement('input');
+            orderUnitInput.type = 'hidden';
+            orderUnitInput.name = `items[${index}][properties][order_interval_unit]`;
+            orderUnitInput.value = item.subscription.order_interval_unit || 'month';
+            addForm.appendChild(orderUnitInput);
+            
+            // Charge interval frequency
+            const chargeFreqInput = document.createElement('input');
+            chargeFreqInput.type = 'hidden';
+            chargeFreqInput.name = `items[${index}][properties][charge_interval_frequency]`;
+            chargeFreqInput.value = item.subscription.charge_interval_frequency || item.subscription.interval || '2';
+            addForm.appendChild(chargeFreqInput);
+            
+            // Add discount percentage (for reference)
+            const discountInput = document.createElement('input');
+            discountInput.type = 'hidden';
+            discountInput.name = `items[${index}][properties][discount_percentage]`;
+            discountInput.value = item.subscription.discount || '15';
+            addForm.appendChild(discountInput);
             
             // Add ReCharge widget identifier
             const widgetInput = document.createElement('input');
@@ -243,20 +323,15 @@ export const CartProvider = ({ children }) => {
             widgetInput.name = `items[${index}][properties][_rc_widget]`;
             widgetInput.value = '1';
             addForm.appendChild(widgetInput);
-
-            // Add selling plan group ID
-            const groupInput = document.createElement('input');
-            groupInput.type = 'hidden';
-            groupInput.name = `items[${index}][properties][selling_plan_group_id]`;
-            groupInput.value = item.subscription.selling_plan_group_id;
-            addForm.appendChild(groupInput);
-
-            // Add discount percentage
-            const discountInput = document.createElement('input');
-            discountInput.type = 'hidden';
-            discountInput.name = `items[${index}][properties][discount_percentage]`;
-            discountInput.value = '15';
-            addForm.appendChild(discountInput);
+            
+            // Add subscription identifier
+            const subscriptionInput = document.createElement('input');
+            subscriptionInput.type = 'hidden';
+            subscriptionInput.name = `items[${index}][properties][subscription_id]`;
+            subscriptionInput.value = item.subscription.subscription_id || `sub_${Date.now()}_${index}`;
+            addForm.appendChild(subscriptionInput);
+            
+            console.log('Added ReCharge subscription properties for:', item.name);
           }
         });
         
@@ -266,23 +341,36 @@ export const CartProvider = ({ children }) => {
         returnToInput.name = 'return_to';
         returnToInput.value = '/checkout';
         addForm.appendChild(returnToInput);
-
-        // Add checkout type for subscriptions
-        if (hasSubscription) {
-          const checkoutTypeInput = document.createElement('input');
-          checkoutTypeInput.type = 'hidden';
-          checkoutTypeInput.name = 'checkout_type';
-          checkoutTypeInput.value = 'subscription';
-          addForm.appendChild(checkoutTypeInput);
-        }
         
-        // If bundle discount exists, add it to the checkout URL
-        if (bundleDiscount) {
+        // Check if we have subscription items and add discount code
+        const hasSubscriptionItems = cartItems.some(item => item.subscription);
+        // TEMPORARILY DISABLED: Uncomment after creating SUBSCRIBE15 discount code in Shopify Admin
+        /*
+        if (hasSubscriptionItems) {
+          // Add subscription discount code
+          const subscriptionDiscountInput = document.createElement('input');
+          subscriptionDiscountInput.type = 'hidden';
+          subscriptionDiscountInput.name = 'discount';
+          subscriptionDiscountInput.value = 'SUBSCRIBE15'; // 15% discount code for subscriptions
+          addForm.appendChild(subscriptionDiscountInput);
+          console.log('Added subscription discount code: SUBSCRIBE15');
+        }
+        */
+        
+        // If bundle discount exists, add it to the checkout URL (this will override subscription discount if both exist)
+        if (bundleDiscount && !hasSubscriptionItems) {
           const discountInput = document.createElement('input');
           discountInput.type = 'hidden';
           discountInput.name = 'discount';
           discountInput.value = bundleDiscount;
           addForm.appendChild(discountInput);
+        }
+        
+        // Debug: Log form data before submission
+        const formData = new FormData(addForm);
+        console.log('Form data being submitted:');
+        for (let [key, value] of formData.entries()) {
+          console.log(`${key}: ${value}`);
         }
         
         // Submit the form

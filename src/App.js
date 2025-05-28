@@ -15,6 +15,10 @@ import ProductsPage from './components/ProductsPage';
 import CategoryPage from './components/CategoryPage';
 import ProductPage from './components/ProductPage';
 import MobileNewsletter from './components/MobileNewsletter';
+import TestReCharge from './components/TestReCharge';
+import SubscriptionManager from './components/SubscriptionManager';
+import DebugVariants from './components/DebugVariants';
+import SellingPlanDebug from './components/SellingPlanDebug';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './components/CartContext';
 import CartDrawer from './components/CartDrawer';
@@ -49,6 +53,10 @@ function App() {
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/category/:categoryId" element={<CategoryPage />} />
             <Route path="/product/:productId" element={<ProductPage />} />
+            <Route path="/test-recharge" element={<TestReCharge />} />
+            <Route path="/subscriptions" element={<SubscriptionManager />} />
+            <Route path="/debug-variants" element={<DebugVariants />} />
+            <Route path="/selling-plan-debug" element={<SellingPlanDebug />} />
           </Routes>
           <Footer />
         </div>

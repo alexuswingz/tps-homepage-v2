@@ -857,7 +857,6 @@ const ProductPage = () => {
               sellingPlanGroups(first: 5) {
                 edges {
                   node {
-                    id
                     name
                     sellingPlans(first: 5) {
                       edges {
@@ -870,8 +869,8 @@ const ProductPage = () => {
                           }
                           priceAdjustments {
                             adjustmentValue {
-                              ... on SellingPlanFixedAmountAdjustment {
-                                adjustmentAmount {
+                              ... on SellingPlanFixedPriceAdjustment {
+                                price {
                                   amount
                                   currencyCode
                                 }
@@ -893,12 +892,18 @@ const ProductPage = () => {
 
         try {
           const result = await fetchFromStorefrontAPI(query);
+          
+          if (result?.errors) {
+            console.error('GraphQL Errors:', result.errors);
+            return;
+          }
+          
           if (result?.data?.product?.sellingPlanGroups?.edges) {
             const plans = result.data.product.sellingPlanGroups.edges.flatMap(group => 
               group.node.sellingPlans.edges.map(plan => ({
                 id: plan.node.id,
                 name: plan.node.name,
-                groupId: group.node.id,
+                groupName: group.node.name,
                 options: plan.node.options,
                 priceAdjustments: plan.node.priceAdjustments
               }))
@@ -916,25 +921,37 @@ const ProductPage = () => {
 
   const handleAddToCart = () => {
     if (product && selectedVariant) {
-      // Find the appropriate selling plan based on delivery interval
+      // Find the appropriate selling plan based on delivery interval (optional)
       const selectedPlan = isSubscription ? sellingPlans.find(plan => 
-        plan.name.includes(`${deliveryInterval} month subscription`)
+        plan.name.toLowerCase().includes(`${deliveryInterval} month`) ||
+        plan.name.toLowerCase().includes(`deliver every ${deliveryInterval} month`)
       ) : null;
 
-      // Build subscription properties for ReCharge
-      const subscriptionProps = isSubscription && selectedPlan ? {
-        selling_plan: selectedPlan.id.replace('gid://shopify/SellingPlan/', ''),
-        selling_plan_group_id: selectedPlan.groupId.replace('gid://shopify/SellingPlanGroup/', ''),
+      // Build subscription properties for ReCharge (create even without selling plan)
+      const subscriptionProps = isSubscription ? {
+        isSubscription: true,
+        // Only include selling plan if one was found
+        ...(selectedPlan && { selling_plan: selectedPlan.id.replace('gid://shopify/SellingPlan/', '') }),
         charge_interval_frequency: deliveryInterval,
         order_interval_frequency: deliveryInterval,
         order_interval_unit: 'month',
+        interval: deliveryInterval,
+        intervalUnit: 'month',
+        discount: 15, // 15% discount for subscriptions
         subscription_id: `${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
         properties: {
           shipping_interval_frequency: deliveryInterval,
-          shipping_interval_unit_type: 'Months',
-          subscription_id: `${Date.now()}-${Math.floor(Math.random() * 1000000)}`
+          shipping_interval_unit_type: 'month',
+          order_interval_frequency: deliveryInterval,
+          order_interval_unit: 'month',
+          charge_interval_frequency: deliveryInterval,
+          discount_percentage: '15',
+          subscription_id: `${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
+          _rc_widget: '1' // ReCharge widget identifier
         }
       } : null;
+      
+      console.log('Adding to cart with subscription props:', subscriptionProps);
       
       if (selectedBundle === 'single') {
         // Add just the main product
@@ -945,7 +962,7 @@ const ProductPage = () => {
         
         // Only add silica if it was successfully fetched
         if (silicaProduct && silicaProduct.variant) {
-          // Find the same subscription plan for silica if it exists
+          // Create subscription props for silica with same settings
           const silicaSubscriptionProps = subscriptionProps ? {
             ...subscriptionProps,
             subscription_id: `${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
@@ -1554,7 +1571,10 @@ const ProductPage = () => {
                 <div>
                   <h3 className="text-xs font-bold text-gray-900 line-clamp-1">{product?.name}</h3>
                   <span className="text-xs font-bold text-[#E94F37]">
-                    ${selectedVariant ? selectedVariant.price.toFixed(2) : product?.price.toFixed(2)}
+                    ${isSubscription 
+                      ? calculatePrice(selectedVariant ? selectedVariant.price : product?.price, true)
+                      : (selectedVariant ? selectedVariant.price.toFixed(2) : product?.price.toFixed(2))
+                    }
                   </span>
                 </div>
               </div>
@@ -1612,7 +1632,10 @@ const ProductPage = () => {
                 <h3 className="text-sm font-bold text-gray-900 line-clamp-1">{product?.name}</h3>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm font-bold text-[#E94F37]">
-                    ${selectedVariant ? selectedVariant.price.toFixed(2) : product?.price.toFixed(2)}
+                    ${isSubscription 
+                      ? calculatePrice(selectedVariant ? selectedVariant.price : product?.price, true)
+                      : (selectedVariant ? selectedVariant.price.toFixed(2) : product?.price.toFixed(2))
+                    }
                   </span>
                   <span className="text-xs text-gray-600">|</span>
                   <div className="flex items-center">
