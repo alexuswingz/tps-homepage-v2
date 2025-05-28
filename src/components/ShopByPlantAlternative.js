@@ -11,7 +11,6 @@ const ShopByPlantAlternative = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("Houseplant Products");
-  const [categoriesVisible, setCategoriesVisible] = useState(false);
   const glideRef = useRef(null);
 
   // Background gradient styles for each product card
@@ -523,14 +522,17 @@ const ShopByPlantAlternative = () => {
         }
       });
 
-      // Add a custom bound to prevent scrolling past the Shop All card on mobile
-      glide.on('run.before', () => {
+      // Prevent over-scrolling on mobile past the "See All" card
+      glide.on('run.before', (move) => {
         if (window.innerWidth <= 640) {
-          const totalSlides = filteredProducts.length > 5 ? 6 : filteredProducts.length;
-          const lastPossibleTranslate = -(totalSlides - 2.2) * (glide.settings.perView / totalSlides) * 100;
+          // On mobile we have 6 slides (5 products + 1 "See All")
+          // With perView 2.2, the maximum meaningful position is 3
+          // (position 3 shows slides 3, 4, 5 where slide 5 is the "See All" card)
+          const mobileSlideCount = Math.min(filteredProducts.length, 5) + 1; // +1 for "See All"
+          const maxPosition = Math.max(0, mobileSlideCount - Math.ceil(2.2));
           
-          if (glide.translate <= lastPossibleTranslate) {
-            glide.disable();
+          if (glide.index + move.direction > maxPosition) {
+            move.direction = maxPosition - glide.index;
           }
         }
       });
@@ -795,52 +797,35 @@ const ShopByPlantAlternative = () => {
         </div>
 
         {/* Mobile Plant Categories Header */}
-        <div className="block sm:hidden px-4 mb-4">
-          <button 
-            onClick={() => setCategoriesVisible(!categoriesVisible)}
-            className="flex items-center justify-between w-full text-left"
-          >
-            <h1 className="text-4xl font-bold text-[#ff6b6b]">Plant Categories</h1>
-            <svg 
-              className={`w-6 h-6 text-[#ff6b6b] transition-transform duration-300 ${
-                categoriesVisible ? 'transform rotate-180' : ''
-              }`}
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+        <div className="block sm:hidden px-4 mb-2">
+          <h1 className="text-4xl font-bold text-[#ff6b6b]">Plant Categories</h1>
         </div>
 
         {/* Category Navigation - Mobile List / Desktop Tiles */}
         <div className="relative mb-2 sm:mb-12">
           {/* Mobile List Layout */}
           <div className="block sm:hidden">
-            <div 
-              className={`px-4 transition-all duration-300 ease-in-out overflow-hidden ${
-                categoriesVisible ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-              }`}
-            >
-              <div className="space-y-2 pb-2">
+            <div className="px-4">
+              <div className="space-y-0.5 pb-1">
                 {categories.map((cat, index) => (
-                  <button
-                    key={cat.category}
-                    onClick={() => {
-                      setSelectedCategory(cat.category);
-                      setCategoriesVisible(false); // Hide categories after selection
-                    }}
-                    className={`text-left transition-all duration-200 ${
-                      selectedCategory === cat.category
-                        ? 'border-2 border-[#ff6b6b] rounded-full px-4 py-2 bg-white'
-                        : 'px-4 py-2'
-                    }`}
-                  >
-                    <div className="text-xl font-medium text-black">
-                      {cat.name.replace('\n', ' ')}
-                    </div>
-                  </button>
+                  <div key={cat.category} className="block">
+                    <button
+                      onClick={() => {
+                        setSelectedCategory(cat.category);
+                      }}
+                      className="text-left transition-all duration-200"
+                    >
+                      <div className={`inline-block ${
+                        selectedCategory === cat.category
+                          ? 'border-2 border-[#ff6b6b] rounded-full px-3 py-1 bg-white'
+                          : 'px-3 py-1'
+                      }`}>
+                        <span className="text-base font-medium text-black">
+                          {cat.name.replace('\n', ' ')}
+                        </span>
+                      </div>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
