@@ -140,8 +140,8 @@ const BuildABundlePage = () => {
       
       const options = {
         root: null, // use viewport as root
-        rootMargin: isMobile ? '-45px 0px 0px 0px' : '-120px 0px 0px 0px', // Show 10% sooner on mobile
-        threshold: 0.4 // Element is considered visible when 20% is in view
+        rootMargin: isMobile ? '-45px 0px 0px 0px' : '-20px 0px 0px 0px', // Show 10% sooner on mobile
+        threshold: 0.1 // Element is considered visible when 20% is in view
       };
   
       const observer = new IntersectionObserver((entries) => {
@@ -951,56 +951,173 @@ const BuildABundlePage = () => {
         <div className="flex flex-col lg:flex-row">
           {/* Bundle Section - Will be first on mobile and right on desktop */}
           <div className="w-full lg:w-[30%] pt-6 pl-0 lg:pl-6 order-first lg:order-last mb-8 lg:mb-0" ref={bundleSectionRef}>
-            <div className="bg-[#fffbef] rounded-2xl p-6 shadow-sm border border-gray-200 lg:sticky lg:top-[140px]">
+            {/* Mobile Bundle Format - Only show on mobile */}
+            <div className="lg:hidden bg-[#fffbef] rounded-2xl p-6 shadow-sm border border-gray-200">
+              <h2 className="text-2xl font-bold text-center mb-1">Your Bundle</h2>
+              <p className="text-center text-gray-600 mb-6">Make a bundle of 3 or 5!</p>
+              
+              {/* Mobile Three Boxes Layout */}
+              <div className="flex justify-center space-x-4 mb-6">
+                {(() => {
+                  // Create an array to represent the 3 bundle slots for mobile
+                  const mobileBundleSlots = [];
+                  let currentSlot = 0;
+                  
+                  // Fill slots based on selected items and their quantities
+                  selectedItems.forEach(item => {
+                    for (let i = 0; i < item.quantity; i++) {
+                      if (currentSlot < 3) {
+                        mobileBundleSlots[currentSlot] = {
+                          ...item,
+                          slotIndex: currentSlot,
+                          isFirstOfProduct: i === 0 // Only show controls on first instance
+                        };
+                        currentSlot++;
+                      }
+                    }
+                  });
+                  
+                  // Fill remaining slots with empty placeholders
+                  while (mobileBundleSlots.length < 3) {
+                    mobileBundleSlots.push(null);
+                  }
+                  
+                  return mobileBundleSlots.map((slot, index) => (
+                    <div 
+                      key={`mobile-slot-${index}`} 
+                      className="relative w-[90px] h-[90px] flex items-center justify-center bg-[#f5f0e6] border-2 border-dashed border-gray-400 rounded-lg"
+                    >
+                      {slot ? (
+                        <>
+                          <img src={slot.product.image} alt={slot.product.name} className="h-[80%] w-[80%] object-contain" />
+                          {slot.isFirstOfProduct && (
+                            <div className="absolute -bottom-3 left-0 right-0 flex justify-center">
+                              <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200">
+                                <button 
+                                  onClick={() => removeFromBundle(slot.product.id, slot.variant.id)}
+                                  className="w-6 h-6 rounded-full flex items-center justify-center text-gray-700 font-medium"
+                                >
+                                  -
+                                </button>
+                                <span className="text-xs font-bold mx-1">{slot.quantity}</span>
+                                <button 
+                                  onClick={() => addToBundle(slot.product, slot.variant)}
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center font-medium ${bundleCount < 3 ? 'text-gray-700' : 'text-gray-400'}`}
+                                  disabled={bundleCount >= 3}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="h-[70%] w-[20px] bg-gray-300 rounded-sm opacity-50"></div>
+                      )}
+                    </div>
+                  ));
+                })()}
+              </div>
+              
+              {/* Selected count */}
+              <div className="border border-gray-300 rounded-full py-3 text-center mb-4 bg-white">
+                <p className="font-medium text-gray-700">{bundleCount}/3 SELECTED</p>
+              </div>
+              
+              <p className="text-center text-gray-600">Add 3 bottles to save $10!</p>
+              
+              {bundleCount === 3 && (
+                <>
+                  <div className="bg-[#f8f0ff] border border-[#e0c6ff] rounded-lg p-3 mt-4 mb-4">
+                    <p className="text-center text-sm font-medium text-[#7b2cbf]">
+                      BUY3SAVE10 discount will be applied at checkout!
+                    </p>
+                  </div>
+                  <button className="w-full bg-[#ff6b57] hover:bg-[#ff5a5a] text-white font-bold py-3 px-4 rounded-full transition-colors" onClick={handleCheckoutBundle}>
+                    CHECKOUT BUNDLE
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Desktop Bundle Format - Only show on desktop */}
+            <div className="hidden lg:block bg-[#fffbef] rounded-2xl p-6 shadow-sm border border-gray-200 lg:sticky lg:top-[140px]">
               <h2 className="text-2xl font-bold text-center mb-1">Your Bundle</h2>
               <p className="text-center text-gray-600 mb-6">Make a bundle of 3 or 5!</p>
               
               {/* Bundle Items */}
-              {selectedItems.length > 0 ? (
-                <div className="space-y-4 mb-4">
-                  {selectedItems.map((item, index) => (
-                    <div key={`${item.product.id}-${item.variant.id}-${index}`} className="border border-gray-300 rounded-lg p-2 bg-white flex flex-col sm:flex-row items-center">
-                      <div className="w-20 h-20 sm:w-16 sm:h-16 relative overflow-hidden flex-shrink-0 mb-2 sm:mb-0">
-                        <img src={item.product.image} alt={item.product.name} className="h-full w-full object-contain" />
+              {(() => {
+                // Create an array to represent the 3 bundle slots
+                const bundleSlots = [];
+                let currentSlot = 0;
+                
+                // Fill slots based on selected items and their quantities
+                selectedItems.forEach(item => {
+                  for (let i = 0; i < item.quantity; i++) {
+                    if (currentSlot < 3) {
+                      bundleSlots[currentSlot] = {
+                        ...item,
+                        slotIndex: currentSlot,
+                        isFirstOfProduct: i === 0 // Only show controls on first instance
+                      };
+                      currentSlot++;
+                    }
+                  }
+                });
+                
+                // Fill remaining slots with empty placeholders
+                while (bundleSlots.length < 3) {
+                  bundleSlots.push(null);
+                }
+                
+                return (
+                  <div className="space-y-4 mb-4">
+                    {bundleSlots.map((slot, index) => (
+                      <div key={`slot-${index}`} className="border border-gray-300 rounded-lg p-2 bg-white flex flex-col sm:flex-row items-center min-h-[84px]">
+                        {slot ? (
+                          <>
+                            <div className="w-20 h-20 sm:w-16 sm:h-16 relative overflow-hidden flex-shrink-0 mb-2 sm:mb-0">
+                              <img src={slot.product.image} alt={slot.product.name} className="h-full w-full object-contain" />
+                            </div>
+                            <div className="ml-0 sm:ml-3 flex-grow text-center sm:text-left">
+                              <p className="font-medium text-sm truncate">{slot.product.name}</p>
+                              <p className="text-xs text-gray-500">{slot.variant.title} - ${slot.variant.price.toFixed(2)}</p>
+                              {slot.isFirstOfProduct && (
+                                <div className="flex items-center justify-center sm:justify-start mt-1">
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeFromBundle(slot.product.id, slot.variant.id);
+                                    }}
+                                    className="w-6 h-6 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-sm hover:bg-gray-200"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="mx-2 text-sm font-bold">{slot.quantity}</span>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      addToBundle(slot.product, slot.variant);
+                                    }}
+                                    className={`w-6 h-6 rounded-full ${bundleCount < 3 ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed'} flex items-center justify-center text-sm`}
+                                    disabled={bundleCount >= 3}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div className="h-[70%] w-[20px] bg-gray-200 rounded-sm"></div>
+                          </div>
+                        )}
                       </div>
-                      <div className="ml-0 sm:ml-3 flex-grow text-center sm:text-left">
-                        <p className="font-medium text-sm truncate">{item.product.name}</p>
-                        <p className="text-xs text-gray-500">{item.variant.title} - ${item.variant.price.toFixed(2)}</p>
-                        <div className="flex items-center justify-center sm:justify-start mt-1">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeFromBundle(item.product.id, item.variant.id);
-                            }}
-                            className="w-6 h-6 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-sm hover:bg-gray-200"
-                          >
-                            -
-                          </button>
-                          <span className="mx-2 text-sm font-bold">{item.quantity}</span>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToBundle(item.product, item.variant);
-                            }}
-                            className={`w-6 h-6 rounded-full ${bundleCount < 3 ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed'} flex items-center justify-center text-sm`}
-                            disabled={bundleCount >= 3}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4 mb-4">
-                  {[0, 1, 2].map((_, index) => (
-                    <div key={index} className="border border-gray-300 rounded-lg h-[80px] flex items-center justify-center relative overflow-hidden bg-white">
-                      <div className="h-[70%] w-[20px] bg-gray-200 rounded-sm"></div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
               
               {/* Selected count */}
               <div className="border border-gray-300 rounded-full py-3 text-center mb-4 bg-white">
@@ -1110,32 +1227,65 @@ const BuildABundlePage = () => {
           <div className="bg-[#fffbef] rounded-b-2xl shadow-md p-3 mx-auto max-w-md border border-gray-200">
             <div className="flex flex-col items-center">
               <div className="flex justify-center space-x-4 mb-3 w-full">
-                {selectedItems.map((item, index) => (
-                  <div 
-                    key={`floating-${item.product.id}`} 
-                    className="relative w-[70px] h-[70px] flex items-center justify-center bg-[#f5f0e6] border border-dashed border-gray-400 rounded-lg"
-                  >
-                    <img src={item.product.image} alt={item.product.name} className="h-[80%] w-[80%] object-contain" />
-                    <div className="absolute -bottom-3 left-0 right-0 flex justify-center">
-                      <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200">
-                        <button 
-                          onClick={() => removeFromBundle(item.product.id, item.variant.id)}
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-gray-700 font-medium"
-                        >
-                          -
-                        </button>
-                        <span className="text-xs font-bold mx-1">{item.quantity}</span>
-                        <button 
-                          onClick={() => addToBundle(item.product, item.variant)}
-                          className={`w-6 h-6 rounded-full flex items-center justify-center font-medium ${bundleCount < 3 ? 'text-gray-700' : 'text-gray-400'}`}
-                          disabled={bundleCount >= 3}
-                        >
-                          +
-                        </button>
-                      </div>
+                {(() => {
+                  // Create an array to represent the 3 bundle slots for mobile
+                  const mobileBundleSlots = [];
+                  let currentSlot = 0;
+                  
+                  // Fill slots based on selected items and their quantities
+                  selectedItems.forEach(item => {
+                    for (let i = 0; i < item.quantity; i++) {
+                      if (currentSlot < 3) {
+                        mobileBundleSlots[currentSlot] = {
+                          ...item,
+                          slotIndex: currentSlot,
+                          isFirstOfProduct: i === 0 // Only show controls on first instance
+                        };
+                        currentSlot++;
+                      }
+                    }
+                  });
+                  
+                  // Fill remaining slots with empty placeholders
+                  while (mobileBundleSlots.length < 3) {
+                    mobileBundleSlots.push(null);
+                  }
+                  
+                  return mobileBundleSlots.map((slot, index) => (
+                    <div 
+                      key={`floating-slot-${index}`} 
+                      className="relative w-[70px] h-[70px] flex items-center justify-center bg-[#f5f0e6] border-2 border-dashed border-gray-400 rounded-lg"
+                    >
+                      {slot ? (
+                        <>
+                          <img src={slot.product.image} alt={slot.product.name} className="h-[80%] w-[80%] object-contain" />
+                          {slot.isFirstOfProduct && (
+                            <div className="absolute -bottom-3 left-0 right-0 flex justify-center">
+                              <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200">
+                                <button 
+                                  onClick={() => removeFromBundle(slot.product.id, slot.variant.id)}
+                                  className="w-6 h-6 rounded-full flex items-center justify-center text-gray-700 font-medium"
+                                >
+                                  -
+                                </button>
+                                <span className="text-xs font-bold mx-1">{slot.quantity}</span>
+                                <button 
+                                  onClick={() => addToBundle(slot.product, slot.variant)}
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center font-medium ${bundleCount < 3 ? 'text-gray-700' : 'text-gray-400'}`}
+                                  disabled={bundleCount >= 3}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="h-[70%] w-[20px] bg-gray-300 rounded-sm opacity-50"></div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
               
               <div className="flex flex-col w-full space-y-2">

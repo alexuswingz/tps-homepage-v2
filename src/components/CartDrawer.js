@@ -12,7 +12,8 @@ const CartDrawer = () => {
     removeFromCart,
     updateQuantity,
     addToCart,
-    checkout
+    checkout,
+    forceCleanCart
   } = useCart();
   
   const [suggestedProducts, setSuggestedProducts] = useState([]);
@@ -272,12 +273,28 @@ const CartDrawer = () => {
             <ShoppingBagIcon className="h-5 w-5 text-gray-700 mr-3" />
             <h2 className="text-lg font-medium">Your Bag <span className="text-gray-500">({cartCount})</span></h2>
           </div>
-          <button 
-            onClick={toggleCart}
-            className="text-gray-500 hover:text-gray-700 focus:outline-none transition-colors duration-200"
-          >
-            <XMarkIcon className="h-6 w-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Clear Cart Button - only show when cart has items */}
+            {cartItems.length > 0 && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to clear your cart?')) {
+                    forceCleanCart();
+                  }
+                }}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors duration-200 px-2 py-1 rounded"
+                title="Clear Cart"
+              >
+                Clear
+              </button>
+            )}
+            <button 
+              onClick={toggleCart}
+              className="text-gray-500 hover:text-gray-700 focus:outline-none transition-colors duration-200"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+          </div>
         </div>
 
         {/* Progress Indicator */}

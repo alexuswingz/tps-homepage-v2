@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useCart } from './CartContext';
 
 const TestReCharge = () => {
-  const { addToCart, cartItems, checkout } = useCart();
+  const { addToCart, cartItems, checkout, forceCleanCart } = useCart();
   const [testStatus, setTestStatus] = useState('');
 
   // Real product data from your Shopify store
@@ -134,9 +134,26 @@ const TestReCharge = () => {
   };
 
   const clearCart = () => {
-    // Clear cart items from localStorage
-    localStorage.removeItem('cart');
-    window.location.reload(); // Refresh to clear cart state
+    // Use the improved cart clearing function from CartContext
+    forceCleanCart();
+    setTestStatus('✅ Cart cleared successfully');
+  };
+
+  const simulateCheckoutCompletion = () => {
+    // Simulate checkout completion by setting localStorage flag
+    localStorage.setItem('checkoutCompleted', 'true');
+    setTestStatus('🔄 Simulating checkout completion...');
+    
+    // Trigger storage event to test cross-tab clearing
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'checkoutCompleted',
+      newValue: 'true',
+      oldValue: null
+    }));
+    
+    setTimeout(() => {
+      setTestStatus('✅ Checkout completion simulated - cart should be cleared');
+    }, 500);
   };
 
   return (
@@ -215,7 +232,7 @@ const TestReCharge = () => {
           {/* Checkout Test */}
           <div className="border-t pt-6">
             <h2 className="text-xl font-semibold mb-4">Test Checkout Process</h2>
-            <div className="flex gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <button
                 onClick={handleTestCheckout}
                 className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
@@ -228,6 +245,13 @@ const TestReCharge = () => {
                 className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
               >
                 Clear Cart
+              </button>
+              
+              <button
+                onClick={simulateCheckoutCompletion}
+                className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+              >
+                Simulate Checkout Complete
               </button>
             </div>
             
@@ -286,9 +310,12 @@ const TestReCharge = () => {
             <ol className="text-sm text-yellow-700 space-y-1 list-decimal list-inside">
               <li>Select a product and variant above</li>
               <li>Add items to cart (try both one-time and subscription)</li>
-              <li>Click "Test Checkout" to test the checkout process</li>
+              <li>Click "Test Checkout" to test the checkout process (cart will be cleared automatically)</li>
+              <li>Use "Clear Cart" to manually clear the cart at any time</li>
+              <li>Use "Simulate Checkout Complete" to test the checkout completion detection</li>
               <li>Check browser console for detailed logs</li>
               <li>Verify that the checkout redirects properly to your Shopify checkout</li>
+              <li>After real checkout completion, cart should remain empty when returning to the site</li>
             </ol>
           </div>
         </div>

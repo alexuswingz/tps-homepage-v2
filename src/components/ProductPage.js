@@ -1383,9 +1383,19 @@ const ProductPage = () => {
                       </div>
                     </div>
                     <span className="text-xs text-center font-medium">{product.name} + {silicaProduct ? silicaProduct.name : "Silica For Plants"}</span>
-                    <span className="font-bold mt-2 text-[#E94F37]">
-                      ${(selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)).toFixed(2)}
-                    </span>
+                    <div className="mt-2 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="font-bold text-[#E94F37] text-lg">
+                          ${((selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)) * 0.9).toFixed(2)}
+                        </span>
+                        <span className="text-sm text-gray-500 line-through">
+                          ${(selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="text-xs text-green-600 font-medium mt-1">
+                        Save ${((selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)) * 0.1).toFixed(2)}
+                      </div>
+                    </div>
                     <div className="absolute bottom-0 left-0 w-full h-1 bg-[#E94F37] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
                   </button>
                 </>

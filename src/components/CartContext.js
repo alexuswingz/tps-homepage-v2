@@ -13,10 +13,37 @@ export const CartProvider = ({ children }) => {
   const [discount, setDiscount] = useState(null);
 
   useEffect(() => {
+    // Check URL parameters for checkout completion
+    const urlParams = new URLSearchParams(window.location.search);
+    const checkoutComplete = urlParams.get('checkout') === 'complete' || 
+                            urlParams.get('order') || 
+                            urlParams.get('thank_you') ||
+                            window.location.pathname.includes('/thank') ||
+                            window.location.pathname.includes('/order');
+    
+    // If checkout was completed, ensure cart is cleared
+    if (checkoutComplete) {
+      localStorage.removeItem('cart');
+      localStorage.removeItem('bundleDiscount');
+      setCartItems([]);
+      setDiscount(null);
+      console.log('Checkout completed - cart cleared');
+      return;
+    }
+    
     // Load cart from localStorage when component mounts
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        // Additional validation - ensure cart items are valid
+        if (Array.isArray(parsedCart) && parsedCart.length > 0) {
+          setCartItems(parsedCart);
+        }
+      } catch (error) {
+        console.error('Error parsing saved cart:', error);
+        localStorage.removeItem('cart'); // Clear corrupted cart data
+      }
     }
     
     // Check for bundle discount
@@ -156,7 +183,69 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCartItems([]);
+    localStorage.removeItem('cart');
+    localStorage.removeItem('bundleDiscount');
+    setDiscount(null);
   };
+
+  // Add a function to force clear cart (useful for debugging or manual clearing)
+  const forceCleanCart = () => {
+    clearCart();
+    console.log('Cart forcefully cleared');
+  };
+
+  // Listen for page visibility changes to detect return from checkout
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Page became visible again - check if we should clear cart
+        const urlParams = new URLSearchParams(window.location.search);
+        const checkoutComplete = urlParams.get('checkout') === 'complete' || 
+                                urlParams.get('order') || 
+                                urlParams.get('thank_you') ||
+                                window.location.pathname.includes('/thank') ||
+                                window.location.pathname.includes('/order');
+        
+        if (checkoutComplete) {
+          clearCart();
+          console.log('Returned from checkout - cart cleared');
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  // Listen for storage events to sync cart clearing across tabs
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'cart' && e.newValue === null) {
+        // Cart was cleared in another tab
+        setCartItems([]);
+        setCartCount(0);
+        setCartTotal(0);
+        console.log('Cart cleared in another tab');
+      } else if (e.key === 'bundleDiscount' && e.newValue === null) {
+        // Bundle discount was cleared in another tab
+        setDiscount(null);
+      } else if (e.key === 'checkoutCompleted' && e.newValue === 'true') {
+        // Checkout was completed - clear cart
+        clearCart();
+        localStorage.removeItem('checkoutCompleted');
+        console.log('Checkout completed - clearing cart');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const toggleCart = () => {
     setIsCartOpen(!isCartOpen);
@@ -177,6 +266,17 @@ export const CartProvider = ({ children }) => {
       // Debug: Log cart items to console
       console.log('Cart items for checkout:', cartItems);
       
+      // Store cart items temporarily in case we need to restore them
+      const cartItemsForCheckout = [...cartItems];
+      
+      // Clear the cart immediately since we're redirecting to external checkout
+      // This prevents items from staying in cart after successful purchase
+      clearCart();
+      
+      // Also clear any bundle discount
+      localStorage.removeItem('bundleDiscount');
+      setDiscount(null);
+      
       // Create a form to submit to cart
       const form = document.createElement('form');
       form.method = 'post';
@@ -192,7 +292,7 @@ export const CartProvider = ({ children }) => {
         addForm.action = `${checkoutDomain}/cart/add`;
         
         // Process each cart item
-        cartItems.forEach((item, index) => {
+        cartItemsForCheckout.forEach((item, index) => {
           // Handle variant ID more robustly
           let variantId = item.variantId;
           
@@ -343,7 +443,7 @@ export const CartProvider = ({ children }) => {
         addForm.appendChild(returnToInput);
         
         // Check if we have subscription items and add discount code
-        const hasSubscriptionItems = cartItems.some(item => item.subscription);
+        const hasSubscriptionItems = cartItemsForCheckout.some(item => item.subscription);
         // TEMPORARILY DISABLED: Uncomment after creating SUBSCRIBE15 discount code in Shopify Admin
         /*
         if (hasSubscriptionItems) {
@@ -395,6 +495,7 @@ export const CartProvider = ({ children }) => {
         removeFromCart, 
         updateQuantity, 
         clearCart,
+        forceCleanCart,
         toggleCart,
         notification,
         checkout,
