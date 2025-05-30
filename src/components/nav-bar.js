@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useCart } from './CartContext';
+import { useNav } from './NavContext';
 import { ShoppingBagIcon, UserIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, Bars3Icon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import AnnouncementBar from './announcement-bar';
 import SearchComponent from './SearchComponent';
@@ -140,19 +141,60 @@ const MobileSearchResults = ({ closeMenus }) => (
 );
 
 const NavBar = () => {
+  const location = useLocation();
   const { cartCount, toggleCart } = useCart();
+  const { mobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useNav();
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoriesMenuOpen, setCategoriesMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [hamburgerSearchActive, setHamburgerSearchActive] = useState(false);
   const [categoriesSearchActive, setCategoriesSearchActive] = useState(false);
   
+  // Close mobile menu when route changes
+  useEffect(() => {
+    closeAllMenus();
+  }, [location.pathname]);
+  
+  // Handle click outside to close mobile menu
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Only handle if mobile menu is open
+      if (!mobileMenuOpen) return;
+      
+      // Check if click is on the hamburger button or its children
+      const hamburgerButton = document.querySelector('[data-hamburger-button]');
+      if (hamburgerButton && hamburgerButton.contains(event.target)) {
+        return; // Don't close if clicking the hamburger button
+      }
+      
+      // Check if click is inside the mobile menu content
+      const mobileMenuContent = document.querySelector('[data-mobile-menu]');
+      if (mobileMenuContent && mobileMenuContent.contains(event.target)) {
+        return; // Don't close if clicking inside the menu
+      }
+      
+      // Close the menu if clicking outside
+      closeMobileMenu();
+      setCategoriesMenuOpen(false);
+      setMobileSearchOpen(false);
+    };
+
+    if (mobileMenuOpen || mobileSearchOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+      
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('touchstart', handleClickOutside);
+      };
+    }
+  }, [mobileMenuOpen, mobileSearchOpen, closeMobileMenu]);
+  
   // Function to close all menus
   const closeAllMenus = () => {
     setShopMenuOpen(false);
-    setMobileMenuOpen(false);
+    closeMobileMenu();
     setCategoriesMenuOpen(false);
     setSearchOpen(false);
     setMobileSearchOpen(false);
@@ -163,7 +205,7 @@ const NavBar = () => {
   // Close other menus when search is opened in mobile
   const handleMobileSearchOpen = () => {
     setMobileSearchOpen(true);
-    setMobileMenuOpen(false);
+    closeMobileMenu();
     setCategoriesMenuOpen(false);
     setHamburgerSearchActive(false);
   };
@@ -279,9 +321,10 @@ const NavBar = () => {
           <div className="flex items-center justify-between px-4 py-5">
             {/* Hamburger/X Menu Toggle */}
             <button 
+              data-hamburger-button
               className="text-olive-700 hover:text-olive-900 focus:outline-none"
               onClick={() => {
-                setMobileMenuOpen(!mobileMenuOpen);
+                toggleMobileMenu();
                 setCategoriesMenuOpen(false);
                 setMobileSearchOpen(false);
               }}
@@ -441,30 +484,28 @@ const NavBar = () => {
 
       {/* Overlay to cover main content when mobile menu or search is active */}
       {(mobileMenuOpen || mobileSearchOpen) && (
-        <div className="fixed inset-0 bg-[#fffbef] z-30 md:hidden" style={{ top: "107px" }}></div>
+        <div 
+          className="fixed inset-0 bg-[#fffbef] z-30 md:hidden" 
+          style={{ top: "107px" }}
+          onClick={closeAllMenus}
+        ></div>
       )}
 
       {/* Mobile Search Overlay - Updated to use our new SearchComponent */}
       {mobileSearchOpen && (
-        <div className="fixed inset-x-0 bottom-0 bg-[#fffbef] overflow-y-auto z-40 md:hidden" style={{ top: "107px" }}>
-          {/* Search Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-            <button 
-              onClick={handleMobileSearchClose}
-              className="text-gray-500 hover:text-gray-700"
-              aria-label="Close search"
-            >
-              <XMarkIcon className="h-6 w-6" />
-            </button>
-          </div>
-          
-          {/* Search Component */}
+        <div 
+          data-mobile-menu
+          className="fixed inset-x-0 bottom-0 bg-[#fffbef] overflow-y-auto z-40 md:hidden" 
+          style={{ top: "107px" }}
+        >
+          {/* Search Component with close button integrated */}
           <div className="px-4 py-2">
             <SearchComponent 
               isDesktop={false} 
               isOpen={true}
               onClose={handleMobileSearchClose}
               onCategoryClick={closeAllMenus}
+              showMobileCloseButton={true}
             />
           </div>
         </div>
@@ -472,7 +513,11 @@ const NavBar = () => {
 
       {/* Mobile Menu - Completely separate from the navbar */}
       {mobileMenuOpen && !categoriesMenuOpen && (
-        <div className="fixed inset-x-0 bottom-0 bg-[#fffbef] overflow-y-auto z-40 md:hidden" style={{ top: "107px" }}>
+        <div 
+          data-mobile-menu
+          className="fixed inset-x-0 bottom-0 bg-[#fffbef] overflow-y-auto z-40 md:hidden" 
+          style={{ top: "107px" }}
+        >
           {/* Search Bar */}
           <div className="px-4 pt-2 pb-1 relative">
             <SearchComponent 
@@ -579,7 +624,11 @@ const NavBar = () => {
 
       {/* Mobile Categories Submenu */}
       {mobileMenuOpen && categoriesMenuOpen && (
-        <div className="fixed inset-x-0 bottom-0 bg-[#fffbef] overflow-y-auto z-40 md:hidden" style={{ top: "107px" }}>
+        <div 
+          data-mobile-menu
+          className="fixed inset-x-0 bottom-0 bg-[#fffbef] overflow-y-auto z-40 md:hidden" 
+          style={{ top: "107px" }}
+        >
           {/* Search Bar */}
           <div className="px-4 py-2 relative border-b border-gray-200">
             <SearchComponent 

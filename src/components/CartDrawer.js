@@ -18,6 +18,7 @@ const CartDrawer = () => {
   
   const [suggestedProducts, setSuggestedProducts] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [selectedVariants, setSelectedVariants] = useState({});
 
   // Prevent body scrolling when cart is open
   useEffect(() => {
@@ -139,21 +140,34 @@ const CartDrawer = () => {
   // Map Shopify product to our format
   const mapProductFromShopify = (productEdge) => {
     const { node } = productEdge;
-    const defaultVariant = node.variants.edges[0].node;
     const defaultImage = node.images.edges[0]?.node.transformedSrc || '';
+    
+    // Map all variants
+    const variants = node.variants.edges.map(edge => ({
+      id: edge.node.id,
+      title: edge.node.title,
+      price: parseFloat(edge.node.price.amount),
+      available: edge.node.availableForSale,
+      inventory: edge.node.quantityAvailable || 0
+    }));
+
+    // Ensure we have at least one variant
+    const defaultVariant = variants[0] || {
+      id: `${node.id}-default`,
+      title: 'Default',
+      price: 0,
+      available: false,
+      inventory: 0
+    };
     
     return {
       id: node.id,
       name: node.title,
       description: node.description,
-      price: parseFloat(defaultVariant.price.amount),
+      price: defaultVariant.price,
       image: defaultImage,
-      variant: {
-        id: defaultVariant.id,
-        title: defaultVariant.title,
-        price: parseFloat(defaultVariant.price.amount),
-        available: defaultVariant.availableForSale
-      }
+      variants: variants,
+      selectedVariant: defaultVariant
     };
   };
 
@@ -176,7 +190,7 @@ const CartDrawer = () => {
                   }
                 }
               }
-              variants(first: 1) {
+              variants(first: 10) {
                 edges {
                   node {
                     id
@@ -185,6 +199,7 @@ const CartDrawer = () => {
                       amount
                     }
                     availableForSale
+                    quantityAvailable
                   }
                 }
               }
@@ -211,14 +226,31 @@ const CartDrawer = () => {
         {
           id: 'gid://shopify/Product/123456789',
           name: 'SILICA FOR PLANTS',
-          description: 'Stengthen cell walls for stronger stems and leaves.',
+          description: 'Strengthen cell walls for stronger stems and leaves.',
           price: 14.99,
           image: 'https://via.placeholder.com/300x300?text=SILICA',
-          variant: {
+          variants: [
+            {
+              id: 'gid://shopify/ProductVariant/123456789',
+              title: '8 Ounces',
+              price: 14.99,
+              available: true,
+              inventory: 10
+            },
+            {
+              id: 'gid://shopify/ProductVariant/123456790',
+              title: '16 Ounces',
+              price: 24.99,
+              available: true,
+              inventory: 5
+            }
+          ],
+          selectedVariant: {
             id: 'gid://shopify/ProductVariant/123456789',
             title: '8 Ounces',
             price: 14.99,
-            available: true
+            available: true,
+            inventory: 10
           }
         },
         {
@@ -227,11 +259,21 @@ const CartDrawer = () => {
           description: 'Boost growth and resilience with natural plant hormones and micronutrients.',
           price: 14.99,
           image: 'https://via.placeholder.com/300x300?text=SEAWEED',
-          variant: {
+          variants: [
+            {
+              id: 'gid://shopify/ProductVariant/987654321',
+              title: '8 Ounces',
+              price: 14.99,
+              available: true,
+              inventory: 8
+            }
+          ],
+          selectedVariant: {
             id: 'gid://shopify/ProductVariant/987654321',
             title: '8 Ounces',
             price: 14.99,
-            available: true
+            available: true,
+            inventory: 8
           }
         }
       ]);
@@ -240,9 +282,20 @@ const CartDrawer = () => {
     setLoadingSuggestions(false);
   };
 
+  // Handle variant selection for suggested products
+  const handleVariantSelect = (productId, variant) => {
+    setSuggestedProducts(prev => 
+      prev.map(product => 
+        product.id === productId 
+          ? { ...product, selectedVariant: variant }
+          : product
+      )
+    );
+  };
+
   // Handle add to cart for suggested product
   const handleAddSuggestion = (product) => {
-    addToCart(product, product.variant);
+    addToCart(product, product.selectedVariant);
   };
 
   const { message, progressWidth } = getProgressInfo();
@@ -418,53 +471,146 @@ const CartDrawer = () => {
                 </ul>
                 
                 {/* Essential Add-Ons Section - Now inside scrollable cart items area */}
-                {suggestedProducts.length > 0 && (
-                  <div className="mt-6 bg-[#F4F0E2] rounded-lg px-4 py-3">
-                    <h3 className="text-sm font-semibold text-center mb-2 text-[#4A4A46]">POPULAR ADD-ONS</h3>
-                    <div className="space-y-3">
-                      {suggestedProducts.map((product) => (
-                        <div key={product.id} className="flex flex-col">
-                          <div className="flex items-start gap-2 mb-1">
-                            <div className="h-12 w-12 flex-shrink-0 overflow-hidden bg-[#e0f5ed] rounded-md p-1">
-                              <img 
-                                src={product.image} 
-                                alt={product.name} 
-                                className="w-full h-full object-contain mix-blend-multiply"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="font-semibold uppercase text-xs mb-0.5 text-[#4A4A46]">{product.name.split(' ')[0]} <span className="font-normal normal-case">FOR PLANTS</span></h4>
-                              <p className="text-xs text-gray-700 leading-tight line-clamp-2">
-                                {product.description || (product.name.includes('SILICA') ? 
-                                  'Stengthen cell walls for stronger stems and leaves.' :
-                                  'Boost growth and resilience with natural plant hormones and micronutrients.')}
-                              </p>
-                            </div>
-                          </div>
+                {(suggestedProducts.length > 0 || loadingSuggestions) && (
+                  <div className="mt-6 sm:mt-8 bg-gradient-to-br from-[#f8f5e4] to-[#f1ede0] rounded-lg sm:rounded-xl px-3 sm:px-5 py-4 sm:py-6 border border-[#e8e3d3] shadow-sm">
+                    <div className="flex items-center justify-center mb-3 sm:mb-4">
+                      <div className="flex-grow h-px bg-gradient-to-r from-transparent via-[#d4c4a8] to-transparent"></div>
+                      <h3 className="text-xs sm:text-sm font-bold text-center mx-3 sm:mx-4 text-[#6b5b37] tracking-wide uppercase">
+                        ✨ Popular Add-Ons
+                      </h3>
+                      <div className="flex-grow h-px bg-gradient-to-r from-transparent via-[#d4c4a8] to-transparent"></div>
+                    </div>
+                    
+                    {loadingSuggestions ? (
+                      <div className="flex items-center justify-center py-6 sm:py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-2 border-[#ff6b57] border-t-transparent"></div>
+                        <span className="ml-2 sm:ml-3 text-xs sm:text-sm text-[#6b5b37]">Finding perfect add-ons...</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 sm:space-y-4">
+                        {suggestedProducts.map((product, index) => {
+                          // Safety checks to ensure we have valid data
+                          const selectedVariant = product.selectedVariant || product.variants?.[0] || {
+                            id: 'fallback',
+                            title: 'Default',
+                            price: 0,
+                            available: false,
+                            inventory: 0
+                          };
+                          const variants = product.variants || [selectedVariant];
                           
-                          <div className="flex items-center mt-1">
-                            <div className="flex-1 flex">
-                              <div className="inline-flex items-center rounded-l-full border border-gray-300 bg-white overflow-hidden">
-                                <div className="px-2 py-0.5 text-xs font-medium">8 Ounces</div>
-                                <div className="text-gray-300 mx-0.5">|</div>
-                                <div className="px-1 py-0.5 text-xs font-medium">${product.price.toFixed(2)}</div>
-                                <div className="pl-1 pr-1.5">
-                                  <svg className="w-2 h-2 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                  </svg>
+                          return (
+                            <div 
+                              key={product.id} 
+                              className="bg-white rounded-lg border border-[#e8e3d3] p-3 sm:p-4 hover:shadow-md transition-all duration-200 hover:border-[#ff6b57]/20 group"
+                            >
+                              <div className="flex gap-3">
+                                {/* Product Image */}
+                                <div className="h-14 w-14 sm:h-16 sm:w-16 flex-shrink-0 overflow-hidden bg-gradient-to-br from-[#e0f5ed] to-[#d1f0e4] rounded-lg p-2 group-hover:shadow-sm transition-shadow flex items-center justify-center">
+                                  <img 
+                                    src={product.image} 
+                                    alt={product.name} 
+                                    className="max-w-full max-h-full object-contain mix-blend-multiply"
+                                  />
+                                </div>
+                                
+                                {/* Product Details */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="mb-2">
+                                    <h4 className="font-bold text-xs sm:text-sm text-[#2d3748] mb-1 leading-tight">
+                                      {product.name}
+                                    </h4>
+                                    <p className="text-xs text-[#6b5b37] leading-relaxed line-clamp-1 sm:line-clamp-2 mb-2">
+                                      {product.description || (product.name.includes('SILICA') ? 
+                                        'Strengthen cell walls for stronger stems and leaves.' :
+                                        'Boost growth and resilience with natural plant hormones and micronutrients.')}
+                                    </p>
+                                  </div>
+                                  
+                                  {/* Variant Selection and Price */}
+                                  <div className="space-y-2">
+                                    {/* Variant Selector and Add Button - Same Line */}
+                                    <div className="flex items-center gap-2">
+                                      {/* Variant Selector */}
+                                      {variants.length > 1 ? (
+                                        <div className="relative flex-1">
+                                          <select
+                                            value={selectedVariant.id}
+                                            onChange={(e) => {
+                                              const newSelectedVariant = variants.find(v => v.id === e.target.value);
+                                              if (newSelectedVariant) {
+                                                handleVariantSelect(product.id, newSelectedVariant);
+                                              }
+                                            }}
+                                            className="w-full text-xs sm:text-sm bg-[#f7f3e9] border border-[#e8e3d3] rounded-md px-2 py-1.5 pr-8 focus:outline-none focus:ring-2 focus:ring-[#ff6b57]/20 focus:border-[#ff6b57] appearance-none"
+                                          >
+                                            {variants.map((variant) => (
+                                              <option key={variant.id} value={variant.id} disabled={!variant.available || variant.inventory === 0}>
+                                                {variant.title} - ${variant.price.toFixed(2)} 
+                                                {variant.inventory <= 5 && variant.inventory > 0 ? ` (${variant.inventory} left)` : ''}
+                                                {!variant.available || variant.inventory === 0 ? ' (Out of Stock)' : ''}
+                                              </option>
+                                            ))}
+                                          </select>
+                                          <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                            <svg className="w-3 h-3 text-[#6b5b37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="bg-[#f7f3e9] border border-[#e8e3d3] rounded-md px-2 py-1.5 flex-1">
+                                          <span className="text-xs sm:text-sm text-[#6b5b37] font-medium">
+                                            {selectedVariant.title} - ${selectedVariant.price.toFixed(2)}
+                                          </span>
+                                          {selectedVariant.inventory <= 5 && selectedVariant.inventory > 0 && (
+                                            <span className="text-xs text-orange-600 ml-2">
+                                              ({selectedVariant.inventory} left)
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                      
+                                      {/* Add Button */}
+                                      <button 
+                                        onClick={() => handleAddSuggestion({...product, selectedVariant})}
+                                        disabled={!selectedVariant.available || selectedVariant.inventory === 0}
+                                        className="bg-gradient-to-r from-[#ff6b57] to-[#ff5a43] hover:from-[#ff5a43] hover:to-[#e8533e] disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm px-3 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-105 active:scale-95 disabled:transform-none flex items-center justify-center space-x-1 flex-shrink-0"
+                                      >
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        <span className="hidden sm:inline">
+                                          {!selectedVariant.available || selectedVariant.inventory === 0 
+                                            ? 'OUT OF STOCK' 
+                                            : 'ADD TO CART'
+                                          }
+                                        </span>
+                                        <span className="sm:hidden">
+                                          {!selectedVariant.available || selectedVariant.inventory === 0 
+                                            ? 'OUT' 
+                                            : 'ADD'
+                                          }
+                                        </span>
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                              <button 
-                                onClick={() => handleAddSuggestion(product)}
-                                className="bg-[#FF6B57] text-white font-bold text-xs px-3 py-0.5 rounded-r-full border border-[#FF6B57]"
-                              >
-                                ADD
-                              </button>
                             </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    
+                    {/* Bottom CTA */}
+                    {!loadingSuggestions && suggestedProducts.length > 0 && (
+                      <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#e8e3d3]/50">
+                        <p className="text-center text-xs text-[#6b5b37] font-medium">
+                          💡 Complete your plant care routine with these essentials
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -473,14 +619,14 @@ const CartDrawer = () => {
           
           {/* Cart Footer */}
           {cartItems.length > 0 && (
-            <div className="border-t border-gray-200 p-5 bg-white">
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm text-gray-500">
+            <div className="border-t border-gray-200 p-3 bg-white">
+              <div className="space-y-1 mb-3">
+                <div className="flex justify-between text-xs text-gray-500">
                   <span>Subtotal</span>
                   <span>${cartTotal.toFixed(2)}</span>
                 </div>
                 
-                <div className="flex justify-between text-sm text-gray-500">
+                <div className="flex justify-between text-xs text-gray-500">
                   <span>Shipping</span>
                   {shippingCost === 0 ? (
                     <span className="text-green-600">FREE</span>
@@ -490,30 +636,30 @@ const CartDrawer = () => {
                 </div>
                 
                 {bundleDiscount > 0 && (
-                  <div className="flex justify-between text-sm text-green-600">
+                  <div className="flex justify-between text-xs text-green-600">
                     <span>{cartCount >= BUNDLE_6_THRESHOLD ? 'Bundle of 6 Discount' : 'Bundle of 3 Discount'}</span>
                     <span>-${bundleDiscount.toFixed(2)}</span>
                   </div>
                 )}
                 
-                <div className="flex justify-between pt-2 border-t border-gray-100">
-                  <span className="text-base font-semibold">Total</span>
-                  <span className="text-base font-semibold">${finalTotal}</span>
+                <div className="flex justify-between pt-1 border-t border-gray-100">
+                  <span className="text-sm font-semibold">Total</span>
+                  <span className="text-sm font-semibold">${finalTotal}</span>
                 </div>
               </div>
               
-              <div className="mt-6">
+              <div className="mt-3">
                 <button 
                   onClick={checkout}
-                  className="w-full bg-[#ff6b57] hover:bg-[#ff5a43] text-white py-3 px-4 rounded-full transition-colors font-medium shadow-sm flex items-center justify-center uppercase"
+                  className="w-full bg-[#ff6b57] hover:bg-[#ff5a43] text-white py-2.5 px-4 rounded-full transition-colors font-medium shadow-sm flex items-center justify-center uppercase text-sm"
                 >
                   <span>CHECKOUT</span>
                 </button>
                 
-                <div className="mt-6 text-center">
-                  <p className="text-xs text-gray-500">Shipping and Taxes Calculated at checkout</p>
+                <div className="mt-3 text-center">
+                  <p className="text-xs text-gray-500">Taxes Calculated at checkout</p>
                   {cartItems.some(item => item.subscription) && (
-                    <p className="text-xs font-medium text-[#FF6B57] mt-1">
+                    <p className="text-xs font-medium text-[#FF6B57] mt-0.5">
                       Your cart contains subscription items
                     </p>
                   )}

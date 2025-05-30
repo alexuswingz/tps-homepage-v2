@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import LeafDivider from './LeafDivider';
 import { useCart } from './CartContext';
+import { useNav } from './NavContext';
 
 // Category definitions matching the ShopByPlant component
 const categories = [
@@ -40,18 +41,25 @@ const cardBackgrounds = [
   'bg-gradient-to-br from-[#f8effc] to-[#f1e3fa]'  // Light lavender gradient
 ];
 
+// Global debounce mechanism to prevent multiple rapid calls
+const addToCartDebounce = new Map();
+
 // Product Card Component
 const ProductCard = ({ product, index }) => {
-  // State to track selected quantity for this product
-  const [quantity, setQuantity] = useState(1);
   // State to track selected variant
   const [selectedVariant, setSelectedVariant] = useState(null);
   // State for dropdown open/close
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  // State to prevent double-clicks
+  const [isAdding, setIsAdding] = useState(false);
   // Ref for dropdown container
   const dropdownRef = useRef(null);
+  // Ref to track last add time for more robust debouncing
+  const lastAddTimeRef = useRef(0);
+  // Ref to track if we're currently processing an add operation
+  const processingRef = useRef(false);
   
-  const { addToCart } = useCart();
+  const { addToCartSilent, cartItems } = useCart();
   const navigate = useNavigate();
   
   // Initialize selected variant on component mount
@@ -83,41 +91,74 @@ const ProductCard = ({ product, index }) => {
   // Get active variant (selected or first available)
   const activeVariant = selectedVariant || (product.variants.find(variant => variant.available) || product.variants[0]);
   
-  // Calculate max quantity that can be ordered (respect inventory limits)
-  const maxQuantity = activeVariant && activeVariant.available 
-    ? (activeVariant.quantity > 0 ? activeVariant.quantity : 10)  // Default to 10 if no quantity specified
-    : 0;
+  // Check if this product/variant combination is already in the cart
+  const isInCart = cartItems.some(item => 
+    item.id === product.id && item.variantId === activeVariant?.id
+  );
   
-  // Ensure quantity doesn't exceed available stock when variant changes
-  useEffect(() => {
-    if (quantity > maxQuantity) {
-      setQuantity(maxQuantity || 1);
-    }
-  }, [maxQuantity, quantity, activeVariant]);
+  // Get current quantity in cart for debugging
+  const cartItem = cartItems.find(item => 
+    item.id === product.id && item.variantId === activeVariant?.id
+  );
+  const currentQuantityInCart = cartItem ? cartItem.quantity : 0;
   
-  const handleQuantityChange = (e) => {
-    const newQuantity = parseInt(e.target.value);
-    if (!isNaN(newQuantity) && newQuantity > 0 && newQuantity <= maxQuantity) {
-      setQuantity(newQuantity);
-    }
-  };
-  
-  const incrementQuantity = () => {
-    if (quantity < maxQuantity) {
-      setQuantity(quantity + 1);
-    }
-  };
-  
-  const decrementQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(quantity - 1);
-    }
-  };
-  
-  const handleAddToCart = (e) => {
+  const handleAddToCart = async (e) => {
     e.stopPropagation(); // Prevent navigation when clicking add to cart
+    
+    // Create a unique key for this product/variant combination
+    const debounceKey = `${product.id}-${activeVariant?.id}`;
+    
+    // Check if we're already processing an add operation for this product/variant
+    if (addToCartDebounce.has(debounceKey)) {
+      console.log('Already processing an add operation for this product/variant combination');
+      return;
+    }
+    
+    // More robust debouncing - prevent calls within 1 second of each other
+    const now = Date.now();
+    if (now - lastAddTimeRef.current < 1000) {
+      console.log('Prevented rapid successive call - time since last:', now - lastAddTimeRef.current, 'ms');
+      return;
+    }
+    
+    // Prevent double-clicks
+    if (isAdding) {
+      console.log('Prevented double-click - isAdding is true');
+      return;
+    }
+    
     if (activeVariant && activeVariant.available) {
-      addToCart(product, activeVariant, quantity);
+      console.log('Adding to cart:', {
+        productName: product.name,
+        variantId: activeVariant.id,
+        currentQuantityInCart,
+        isInCart,
+        timestamp: now,
+        debounceKey
+      });
+      
+      // Set the debounce lock
+      addToCartDebounce.set(debounceKey, now);
+      
+      // Set all our locks
+      processingRef.current = true;
+      lastAddTimeRef.current = now;
+      setIsAdding(true);
+      
+      try {
+        addToCartSilent(product, activeVariant, 1); // Always add quantity of 1, don't auto-open cart
+        console.log('Successfully called addToCartSilent');
+      } catch (error) {
+        console.error('Error adding to cart:', error);
+      }
+      
+      // Reset the adding state and processing lock after a longer delay
+      setTimeout(() => {
+        setIsAdding(false);
+        processingRef.current = false;
+        addToCartDebounce.delete(debounceKey);
+        console.log('Reset isAdding, processingRef, and removed debounce key');
+      }, 1000);
     }
   };
   
@@ -212,7 +253,7 @@ const ProductCard = ({ product, index }) => {
         {formatProductName(product.name)}
         
         {/* Variant selection dropdown */}
-        <div className="relative mb-2 sm:mb-4" ref={dropdownRef}>
+        <div className="relative mb-3 sm:mb-4" ref={dropdownRef}>
           <div 
             onClick={(e) => {
               e.stopPropagation(); // Prevent card click when clicking dropdown
@@ -272,63 +313,22 @@ const ProductCard = ({ product, index }) => {
           )}
         </div>
         
-        {/* Quantity selector - only show if the product is available */}
-        {activeVariant && activeVariant.available && (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
-            <label htmlFor={`quantity-${product.id}`} className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-0">
-              Quantity: {maxQuantity > 0 ? `(${maxQuantity} available)` : ''}
-            </label>
-            <div className="flex items-center border border-gray-300 rounded self-start sm:self-auto">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent card click
-                  decrementQuantity();
-                }}
-                className="px-2 py-1 text-gray-600 hover:bg-gray-100"
-                disabled={quantity <= 1}
-              >
-                -
-              </button>
-              <input
-                id={`quantity-${product.id}`}
-                type="number"
-                min="1"
-                max={maxQuantity}
-                value={quantity}
-                onChange={handleQuantityChange}
-                onClick={(e) => e.stopPropagation()} // Prevent card click
-                className="w-12 px-2 py-1 text-center text-sm border-x border-gray-300"
-              />
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent card click
-                  incrementQuantity();
-                }}
-                className="px-2 py-1 text-gray-600 hover:bg-gray-100"
-                disabled={quantity >= maxQuantity}
-              >
-                +
-              </button>
-            </div>
-          </div>
-        )}
-        
         <button 
           onClick={handleAddToCart}
           className={`w-full font-bold text-sm sm:text-base py-2 sm:py-3 px-2 sm:px-4 rounded-full transition-all duration-200 flex items-center justify-center
             ${activeVariant && activeVariant.available 
               ? 'bg-[#ff6b57] hover:bg-[#ff5a43] hover:shadow-md active:scale-[0.98] text-white shadow-sm' 
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-          disabled={!activeVariant || !activeVariant.available || maxQuantity === 0}
+          disabled={!activeVariant || !activeVariant.available}
         >
           {activeVariant && activeVariant.available ? (
             <>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-              ADD TO CART
+              {isInCart ? 'ADD ANOTHER' : 'ADD TO CART'}
             </>
-          ) : maxQuantity === 0 ? 'OUT OF STOCK' : 'UNAVAILABLE'}
+          ) : 'OUT OF STOCK'}
         </button>
       </div>
     </div>
@@ -338,21 +338,51 @@ const ProductCard = ({ product, index }) => {
 const ProductsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { mobileMenuOpen } = useNav();
   const [activeCategory, setActiveCategory] = useState("");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCategoryOverlay, setShowCategoryOverlay] = useState(false);
   const [currentVisibleCategory, setCurrentVisibleCategory] = useState("");
+  const [showMobileCategorySticky, setShowMobileCategorySticky] = useState(false);
+  const [mobileCategoryExpanded, setMobileCategoryExpanded] = useState(false);
   const categoryRefs = useRef({});
   const observerRef = useRef(null);
   const overlayScrollRef = useRef(null);
   const scrollAttempts = useRef(0);
+  const mobileCategoryStickyRef = useRef(null);
+
+  // Separate effect to handle mobile menu state changes immediately
+  useEffect(() => {
+    // Immediately hide sticky when mobile menu opens
+    if (mobileMenuOpen && window.innerWidth < 768) {
+      setShowMobileCategorySticky(false);
+    } else if (!mobileMenuOpen && window.innerWidth < 768) {
+      // Re-evaluate if sticky should be shown when menu closes
+      const scrollPosition = window.scrollY;
+      const shouldShowMobileSticky = scrollPosition > 200 && activeCategory;
+      setShowMobileCategorySticky(shouldShowMobileSticky);
+    }
+  }, [mobileMenuOpen, activeCategory]);
 
   // Track scroll position to show/hide the category overlay
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       setShowCategoryOverlay(scrollPosition > 400);
+      
+      // Mobile sticky category logic
+      if (window.innerWidth < 768) { // Mobile breakpoint
+        // Show sticky when scrolled past the mobile category list (around 200px) and a category is active
+        // but hide when mobile menu is open
+        const shouldShowMobileSticky = scrollPosition > 200 && activeCategory && !mobileMenuOpen;
+        setShowMobileCategorySticky(shouldShowMobileSticky);
+        
+        // Note: Removed auto-close on scroll to allow users to interact with dropdown
+      } else {
+        // Hide mobile sticky on desktop
+        setShowMobileCategorySticky(false);
+      }
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -362,7 +392,7 @@ const ProductsPage = () => {
     
     // Cleanup
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [activeCategory, mobileMenuOpen]);
   
   // Set up intersection observer to detect which category is currently visible
   useEffect(() => {
@@ -1633,9 +1663,18 @@ const ProductsPage = () => {
         if (!loading && products.length > 0 && categoryRefs.current[mappedCategory]) {
           console.log("Products loaded, scrolling to category:", mappedCategory);
           
-          // For mobile, we need to account for the fixed navbar height
-          const navbarHeight = window.innerWidth < 768 ? 107 : 120;
-          const yOffset = -navbarHeight - 10; // Additional 10px buffer
+          // Calculate offset based on device type
+          const isMobile = window.innerWidth < 768;
+          let yOffset;
+          
+          if (isMobile) {
+            // Mobile: Account for navbar (107px) + sticky selector (approx 70px) + some padding
+            // Reduce offset when sticky is visible to bring content closer
+            yOffset = showMobileCategorySticky ? -120 : -110;
+          } else {
+            // Desktop: Account for navbar height + some padding
+            yOffset = -130;
+          }
           
           const element = categoryRefs.current[mappedCategory];
           const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
@@ -1659,9 +1698,18 @@ const ProductsPage = () => {
     if (activeCategory && categoryRefs.current[activeCategory]) {
       console.log("Scrolling to active category:", activeCategory);
       
-      // For mobile, we need to account for the fixed navbar height
-      const navbarHeight = window.innerWidth < 768 ? 107 : 120;
-      const yOffset = -navbarHeight - 10; // Additional 10px buffer
+      // Calculate offset based on device type
+      const isMobile = window.innerWidth < 768;
+      let yOffset;
+      
+      if (isMobile) {
+        // Mobile: Account for navbar (107px) + sticky selector (approx 70px) + some padding
+        // Reduce offset when sticky is visible to bring content closer
+        yOffset = showMobileCategorySticky ? -190 : -180;
+      } else {
+        // Desktop: Account for navbar height + some padding
+        yOffset = -130;
+      }
       
       const element = categoryRefs.current[activeCategory];
       const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
@@ -1670,7 +1718,7 @@ const ProductsPage = () => {
     } else if (activeCategory) {
       console.warn("Category ref not found for:", activeCategory);
     }
-  }, [activeCategory]);
+  }, [activeCategory, showMobileCategorySticky]);
 
   // Function to scroll the active category into view in the horizontal scrollbar
   const scrollActiveCategoryIntoView = (categoryName) => {
@@ -1704,17 +1752,34 @@ const ProductsPage = () => {
     console.log("Category clicked:", category);
     setActiveCategory(category);
     
+    // Close mobile category expanded state when selecting a category
+    setMobileCategoryExpanded(false);
+    
     // Also set as current visible for the overlay highlighting
     setCurrentVisibleCategory(category);
     
-    // Find the matching category in the original data to get its name
-    const categoryObj = categories.find(cat => cat.category === category);
-    if (categoryObj) {
-      // After a short delay to allow the overlay to update
-      setTimeout(() => {
-        scrollActiveCategoryIntoView(categoryObj.name);
-      }, 100);
-    }
+    // Scroll directly to the category section
+    setTimeout(() => {
+      const categoryElement = categoryRefs.current[category];
+      if (categoryElement) {
+        // Calculate offset based on device type
+        const isMobile = window.innerWidth < 768;
+        let yOffset;
+        
+        if (isMobile) {
+          // Mobile: Account for navbar (107px) + sticky selector (approx 70px) + some padding
+          // Reduce offset when sticky is visible to bring content closer
+          yOffset = showMobileCategorySticky ? -190 : -180;
+        } else {
+          // Desktop: Account for navbar height + some padding
+          yOffset = -130;
+        }
+        
+        const y = categoryElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    }, 100);
   };
 
   // Scroll active category into view when current visible category changes
@@ -1726,6 +1791,23 @@ const ProductsPage = () => {
       }
     }
   }, [currentVisibleCategory, showCategoryOverlay, categories]);
+
+  // Handle click outside mobile sticky category selector
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (mobileCategoryStickyRef.current && !mobileCategoryStickyRef.current.contains(event.target)) {
+        setMobileCategoryExpanded(false);
+      }
+    };
+
+    if (mobileCategoryExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mobileCategoryExpanded]);
 
   // Group products by category
   const groupedProducts = {};
@@ -2636,9 +2718,17 @@ const ProductsPage = () => {
         if (!loading && products.length > 0 && categoryRefs.current[categoryFromURL]) {
           console.log("Products loaded, scrolling to category:", categoryFromURL);
           
-          // For mobile, we need to account for the fixed navbar height
-          const navbarHeight = window.innerWidth < 768 ? 107 : 120;
-          const yOffset = -navbarHeight - 10; // Additional 10px buffer
+          // Calculate offset based on device type
+          const isMobile = window.innerWidth < 768;
+          let yOffset;
+          
+          if (isMobile) {
+            // Mobile: Account for navbar (107px) + sticky selector (approx 70px) + some padding
+            yOffset = showMobileCategorySticky ? -190 : -180;
+          } else {
+            // Desktop: Account for navbar height + some padding
+            yOffset = -130;
+          }
           
           const element = categoryRefs.current[categoryFromURL];
           const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
@@ -2669,40 +2759,72 @@ const ProductsPage = () => {
   return (
     <section className="bg-[#fffbef]">
       {/* Page Title */}
-      <div className="text-center pt-8 mb-6">
-        <h2 className="text-4xl font-medium text-[#ff6b57] mb-1">Find Your Plant</h2>
-        <p className="text-gray-500 tracking-wide text-sm">CHOOSE A COLLECTION</p>
+      <div className="text-center pt-2 mb-6">
+        <h2 className="text-4xl font-medium text-[#ff6b57] mb-1 hidden sm:block">Find Your Plant</h2>
+        <p className="text-gray-500 tracking-wide text-sm hidden sm:block">CHOOSE A COLLECTION</p>
+      </div>
+
+      {/* Mobile Plant Categories Header */}
+      <div className="block sm:hidden px-4 mb-2">
+        <h1 className="text-4xl font-bold text-[#ff6b6b]">Plant Categories</h1>
       </div>
 
       {/* Category Selection */}
-      <div 
-        className="flex justify-start sm:justify-center overflow-x-auto pb-4 px-4 scrollbar-hide"
-      >
-        <div className="flex space-x-3 sm:space-x-6 mb-8 sm:mb-12 sm:flex-wrap sm:justify-center">
-          {categories.map((category, index) => (
-            <button 
-              key={index}
-              onClick={() => handleCategoryClick(category.category)}
-              className={`flex flex-col items-center group w-20 sm:w-24 focus:outline-none flex-shrink-0 sm:flex-shrink sm:mb-4 ${
-                activeCategory === category.category ? 'opacity-100' : 'opacity-70 hover:opacity-100'
-              }`}
-            >
-              <div className={`overflow-hidden rounded-md mb-2 w-16 h-16 sm:w-20 sm:h-20 ${
-                activeCategory === category.category ? 'ring-2 ring-[#ff6b57]' : ''
-              }`}>
-                <img 
-                  src={category.image} 
-                  alt={category.name}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  onError={(e) => {
-                    console.error(`Failed to load category image: ${category.image}`);
-                    e.target.src = "/assets/Collection Tiles Images/default-category.jpg";
-                  }}
-                />
-              </div>
-              <span className="font-medium text-gray-800 text-center text-xs">{category.name}</span>
-            </button>
-          ))}
+      <div className="relative mb-2 sm:mb-12">
+        {/* Mobile List Layout */}
+        <div className="block sm:hidden">
+          <div className="px-4">
+            <div className="space-y-0.5 pb-1 mb-8">
+              {categories.map((cat, index) => (
+                <div key={cat.category} className="block">
+                  <button
+                    onClick={() => handleCategoryClick(cat.category)}
+                    className="text-left transition-all duration-200"
+                  >
+                    <div className={`inline-block ${
+                      activeCategory === cat.category
+                        ? 'border-2 border-[#ff6b6b] rounded-full px-3 py-1 bg-white'
+                        : 'px-3 py-1'
+                    }`}>
+                      <span className="text-base font-medium text-black">
+                        {cat.name.replace('\n', ' ')}
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Tile Layout */}
+        <div className="hidden sm:flex justify-center overflow-x-auto pb-4 px-4 scrollbar-hide">
+          <div className="flex space-x-6 mb-8 sm:mb-12 flex-wrap justify-center">
+            {categories.map((category, index) => (
+              <button 
+                key={index}
+                onClick={() => handleCategoryClick(category.category)}
+                className={`flex flex-col items-center group w-24 focus:outline-none flex-shrink-0 mb-4 ${
+                  activeCategory === category.category ? 'opacity-100' : 'opacity-70 hover:opacity-100'
+                }`}
+              >
+                <div className={`overflow-hidden rounded-md mb-2 w-20 h-20 ${
+                  activeCategory === category.category ? 'ring-2 ring-[#ff6b57]' : ''
+                }`}>
+                  <img 
+                    src={category.image} 
+                    alt={category.name}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    onError={(e) => {
+                      console.error(`Failed to load category image: ${category.image}`);
+                      e.target.src = "/assets/Collection Tiles Images/default-category.jpg";
+                    }}
+                  />
+                </div>
+                <span className="font-medium text-gray-800 text-center text-xs">{category.name}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -2756,6 +2878,58 @@ const ProductsPage = () => {
         </div>
       </div>
 
+      {/* Mobile Sticky Category Selector - shown when scrolled down (mobile only) */}
+      <div 
+        ref={mobileCategoryStickyRef}
+        className={`fixed left-0 right-0 z-50 bg-[#fffbef] shadow-lg transition-all duration-300 transform md:hidden ${
+          showMobileCategorySticky ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+        }`}
+        style={{ top: '107px' }} // Position below navbar (42px announcement + 65px navbar)
+      >
+        <div className="px-4 py-3">
+          <div className="relative">
+            {/* Plant Categories Header with Caret */}
+            <button
+              onClick={() => setMobileCategoryExpanded(!mobileCategoryExpanded)}
+              className="w-full flex items-center justify-between bg-white border-2 border-[#ff6b6b] rounded-full px-4 py-2 text-left"
+            >
+              <span className="text-base font-medium text-black">
+                {(currentVisibleCategory || activeCategory) ? categories.find(cat => cat.category === (currentVisibleCategory || activeCategory))?.name.replace('\n', ' ') : 'Plant Categories'}
+              </span>
+              <svg 
+                className={`w-5 h-5 text-[#ff6b6b] transition-transform duration-200 ${
+                  mobileCategoryExpanded ? 'rotate-180' : ''
+                }`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {/* Collapsible Category List */}
+            {mobileCategoryExpanded && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-[#fffbef] shadow-lg max-h-60 overflow-y-auto z-10">
+                {categories.map((cat, index) => (
+                  <button
+                    key={cat.category}
+                    onClick={() => handleCategoryClick(cat.category)}
+                    className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors duration-150 ${
+                      (currentVisibleCategory || activeCategory) === cat.category ? 'bg-[#ff6b6b] text-white' : 'text-black'
+                    }`}
+                  >
+                    <span className="text-base font-medium">
+                      {cat.name.replace('\n', ' ')}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Products by Category */}
       {loading ? (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
@@ -2774,97 +2948,91 @@ const ProductsPage = () => {
                 ref={el => categoryRefs.current[category.category] = el}
                 id={`category-${category.category.toLowerCase().replace(/\s+/g, '-')}`}
               >
-                {/* Category Banner */}
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-                  <Link 
-                    to={`/category/${encodeURIComponent(category.category)}`}
-                    className="block relative h-48 md:h-64 lg:h-80 w-full overflow-hidden bg-cover bg-center rounded-lg cursor-pointer"
-                    style={{ 
-                      backgroundColor: '#f0f0f0' // Fallback color in case image doesn't load
-                    }}
-                  >
-                    {/* Image with fallback handling */}
-                    <img 
-                      src={category.image} 
-                      alt={category.name}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      onError={(e) => {
-                        console.error(`Failed to load image: ${category.image}`);
-                        e.target.style.backgroundColor = '#f0f0f0';
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-20 hover:bg-opacity-10 transition-opacity duration-300"></div>
-                    <div className="absolute inset-0 flex items-center justify-start p-8 md:p-16">
-                      <div>
-                        <h1 className="text-white text-4xl md:text-5xl font-bold mb-2">
-                          Grow beautiful
-                        </h1>
-                        <h2 className="text-white text-5xl md:text-6xl font-bold">
-                          {category.name}
-                        </h2>
-                      </div>
-                    </div>
-                    
-                    {/* See All Button */}
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-8 md:pr-16">
-                      <div 
-                        className="bg-white text-[#ff6b57] px-4 py-2 rounded-full font-medium shadow-md hover:bg-[#ff6b57] hover:text-white transition-colors duration-200"
-                      >
-                        See All
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-                
                 {/* Products Grid */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                   {categoryProducts.length > 0 ? (
                     <>
-                      {/* Mobile view: 5 products + See All tile */}
-                      <div className="grid grid-cols-2 gap-6 md:hidden">
-                        {categoryProducts.slice(0, 5).map((product, index) => (
-                          <ProductCard key={product.id} product={product} index={index} />
-                        ))}
-                        {categoryProducts.length > 5 && (
-                          <div 
-                            onClick={() => handleSeeAllClick(category.category)}
-                            className="rounded-lg overflow-hidden shadow-sm cursor-pointer h-full relative bg-[#e0f5ed]"
-                          >
-                            {/* Full-size image */}
-                            <img 
-                              src={category.image} 
-                              alt={`See all ${category.name}`}
-                              className="absolute inset-0 w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.src = "/assets/Collection Tiles Images/default-category.jpg";
-                                console.log("Error loading image:", category.image);
-                              }}
-                            />
-                            
-                            {/* Gradient overlay for text visibility */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.6)] to-[rgba(0,0,0,0.1)]"></div>
-                            
-                            {/* Content positioned at the bottom */}
-                            <div className="absolute inset-x-0 bottom-0 p-4">
-                              <div className="text-center">
-                                <p className="text-xl font-bold text-white mb-3 drop-shadow-md">
-                                  {category.name}
-                                </p>
-                                <div className="bg-[#ff6b57] text-white px-4 py-2 rounded-full font-medium shadow-sm">
-                                  SEE ALL
-                                </div>
+                      {/* Modern "See All" Header Card - Mobile Only */}
+                      <div className="block md:hidden">
+                        <div 
+                          onClick={() => handleSeeAllClick(category.category)}
+                          className="cursor-pointer group transition-all duration-300"
+                          style={{ height: '98px' }}
+                        >
+                          {/* Content */}
+                          <div className="flex items-center justify-between p-4 h-full">
+                            <div className="flex-1">
+                              <h3 className="text-gray-900 text-xl font-bold mb-1">
+                                {category.name.replace('\n', ' ')}
+                              </h3>
+                              <div className="inline-block bg-gray-800 text-white text-xs font-medium px-3 py-1 rounded-full">
+                                Top Trending
                               </div>
                             </div>
+                            
+                            {/* Modern CTA Button */}
+                            <div className="flex items-center space-x-4 bg-[#ff6b57] hover:bg-[#ff5a43] rounded-full px-6 py-3 group-hover:scale-105 transition-all duration-300">
+                              <span className="text-white font-semibold text-sm">SHOP ALL</span>
+                              <svg 
+                                className="w-4 h-4 text-white transform group-hover:translate-x-1 transition-transform duration-300" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </div>
                           </div>
-                        )}
+                        </div>
                       </div>
-                      
-                      {/* Desktop view: all products */}
-                      <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {categoryProducts.map((product, index) => (
+
+                      {/* Mobile Products Grid */}
+                      <div className="grid grid-cols-2 gap-4 md:hidden">
+                        {categoryProducts.slice(0, 6).map((product, index) => (
                           <ProductCard key={product.id} product={product} index={index} />
                         ))}
+                      </div>
+                      
+                      {/* Desktop view: Modern "See All" Header + Products */}
+                      <div className="hidden md:block">
+                        {/* Desktop "See All" Header Card */}
+                        <div 
+                          onClick={() => handleSeeAllClick(category.category)}
+                          className="cursor-pointer group transition-all duration-300 mb-4"
+                          style={{ height: '126px' }}
+                        >
+                          {/* Content */}
+                          <div className="flex items-center justify-between p-8 h-full">
+                            <div className="flex-1">
+                              <h3 className="text-gray-900 text-3xl font-bold mb-2">
+                                {category.name.replace('\n', ' ')}
+                              </h3>
+                              <div className="inline-block bg-gray-800 text-white text-sm font-medium px-4 py-2 rounded-full">
+                                Top Trending
+                              </div>
+                            </div>
+                            
+                            {/* Modern CTA Button */}
+                            <div className="flex items-center space-x-6 bg-[#ff6b57] hover:bg-[#ff5a43] rounded-full px-12 py-6 group-hover:scale-105 transition-all duration-300">
+                              <span className="text-white font-semibold text-lg">Shop All Products</span>
+                              <svg 
+                                className="w-5 h-5 text-white transform group-hover:translate-x-1 transition-transform duration-300" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Desktop Products Grid */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                          {categoryProducts.slice(0, 8).map((product, index) => (
+                            <ProductCard key={product.id} product={product} index={index} />
+                          ))}
+                        </div>
                       </div>
                     </>
                   ) : (

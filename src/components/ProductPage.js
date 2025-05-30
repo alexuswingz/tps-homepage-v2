@@ -1278,7 +1278,7 @@ const ProductPage = () => {
               <div className="flex items-center justify-between mb-2">
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {product.variants.map((variant, index) => (
+                {product.variants.filter(variant => variant.available).map((variant, index) => (
                   <button
                     key={variant.id}
                     onClick={() => {
@@ -1298,7 +1298,6 @@ const ProductPage = () => {
                         }
                       }
                     }}
-                    disabled={!variant.available}
                     className={`relative p-4 rounded-xl transition-all duration-300 ${
                       selectedVariant?.id === variant.id
                         ? 'bg-[#E94F37] text-white shadow-lg scale-[1.02]'

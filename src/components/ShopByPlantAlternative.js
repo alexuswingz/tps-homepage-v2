@@ -50,18 +50,18 @@ const ShopByPlantAlternative = () => {
       const secondPart = upperName.substring(splitIndex).trim();
       
       return (
-        <div className="product-name-container h-20 flex flex-col justify-start">
-          <p className="text-xl font-bold text-gray-800 mb-1">{firstPart}</p>
-          <p className="text-xl font-bold text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">{secondPart}</p>
+        <div className="product-name-container h-16 xs:h-20 flex flex-col justify-start">
+          <p className="text-sm xs:text-xl font-bold text-gray-800 mb-0.5 xs:mb-1 leading-tight">{firstPart}</p>
+          <p className="text-sm xs:text-xl font-bold text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis leading-tight">{secondPart}</p>
         </div>
       );
     }
     
     // Fallback if no split is possible
     return (
-      <div className="product-name-container h-20 flex flex-col justify-start">
-        <p className="text-xl font-bold text-gray-800">{upperName}</p>
-        <div className="h-6"></div>
+      <div className="product-name-container h-16 xs:h-20 flex flex-col justify-start">
+        <p className="text-sm xs:text-xl font-bold text-gray-800 leading-tight">{upperName}</p>
+        <div className="h-4 xs:h-6"></div>
       </div>
     );
   };
@@ -518,6 +518,13 @@ const ShopByPlantAlternative = () => {
             bound: true,
             touchRatio: 0.8,
             animationDuration: 300
+          },
+          400: { 
+            perView: 1.8,
+            gap: 12,
+            bound: true,
+            touchRatio: 0.9,
+            animationDuration: 300
           }
         }
       });
@@ -526,10 +533,10 @@ const ShopByPlantAlternative = () => {
       glide.on('run.before', (move) => {
         if (window.innerWidth <= 640) {
           // On mobile we have 6 slides (5 products + 1 "See All")
-          // With perView 2.2, the maximum meaningful position is 3
-          // (position 3 shows slides 3, 4, 5 where slide 5 is the "See All" card)
+          // Adjust max position based on screen size
+          const perView = window.innerWidth <= 400 ? 1.8 : 2.2;
           const mobileSlideCount = Math.min(filteredProducts.length, 5) + 1; // +1 for "See All"
-          const maxPosition = Math.max(0, mobileSlideCount - Math.ceil(2.2));
+          const maxPosition = Math.max(0, mobileSlideCount - Math.ceil(perView));
           
           if (glide.index + move.direction > maxPosition) {
             move.direction = maxPosition - glide.index;
@@ -548,13 +555,13 @@ const ShopByPlantAlternative = () => {
   // Render star rating
   const renderStars = (rating, reviews) => {
     return (
-      <div className="flex items-center gap-1">
-        <span className="text-sm font-medium text-[#FF6B6B]">{rating}</span>
+      <div className="flex items-center gap-0.5 xs:gap-1">
+        <span className="text-[10px] xs:text-sm font-medium text-[#FF6B6B]">{rating}</span>
         <div className="flex">
           {[1, 2, 3, 4, 5].map(i => (
             <svg
               key={i}
-              className={`w-4 h-4 ${i <= Math.floor(rating) ? 'text-[#FF6B6B]' : 'text-gray-300'}`}
+              className={`w-3 h-3 xs:w-4 xs:h-4 ${i <= Math.floor(rating) ? 'text-[#FF6B6B]' : 'text-gray-300'}`}
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -562,7 +569,7 @@ const ShopByPlantAlternative = () => {
             </svg>
           ))}
         </div>
-        <span className="text-gray-600 text-xs sm:text-sm">({reviews})</span>
+        <span className="text-gray-600 text-[9px] xs:text-xs sm:text-sm">({reviews})</span>
       </div>
     );
   };
@@ -633,32 +640,32 @@ const ShopByPlantAlternative = () => {
         onClick={handleProductClick}
       >
         {product.bestSeller && (
-          <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm">
+          <div className="absolute top-1 left-1 xs:top-2 xs:left-2 sm:top-4 sm:left-4 bg-[#ff6b57] text-white font-bold py-0.5 px-1 xs:py-1 xs:px-2 sm:px-4 rounded-full text-[10px] xs:text-xs sm:text-sm">
             BEST SELLER!
           </div>
         )}
         {!available && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="bg-red-500 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-bold text-sm sm:text-base">OUT OF STOCK</span>
+            <span className="bg-red-500 text-white px-1 xs:px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-bold text-xs xs:text-sm sm:text-base">OUT OF STOCK</span>
           </div>
         )}
-        <div className="p-3 sm:p-6">
+        <div className="p-2 xs:p-3 sm:p-6">
           <img 
             src={product.image} 
             alt={product.name} 
-            className="h-32 sm:h-48 mx-auto mb-2 sm:mb-4 object-contain bg-white rounded-lg"
+            className="h-24 xs:h-32 sm:h-48 mx-auto mb-1 xs:mb-2 sm:mb-4 object-contain bg-white rounded-lg"
           />
           
-          <div className="flex items-center justify-between mb-1 sm:mb-3">
+          <div className="flex items-center justify-between mb-1 xs:mb-1 sm:mb-3">
             {renderStars(product.rating, product.reviews)}
           </div>
           
-          <div className="mb-2 sm:mb-4">
+          <div className="mb-1 xs:mb-2 sm:mb-4">
             {formatProductName(product.name)}
           </div>
           
           {/* Variant selection dropdown */}
-          <div className="variant-selector relative mb-2 sm:mb-4" ref={dropdownRef}>
+          <div className="variant-selector relative mb-1 xs:mb-2 sm:mb-4" ref={dropdownRef}>
             <div 
               onClick={(e) => {
                 e.stopPropagation(); // Prevent card click when clicking dropdown
@@ -666,20 +673,20 @@ const ShopByPlantAlternative = () => {
               }}
               className={`flex justify-between items-center ${hasMultipleVariants ? 'cursor-pointer' : 'cursor-default'}`}
             >
-              <div className="flex items-center border border-gray-300 rounded-full bg-white relative overflow-hidden w-full">
-                <div className="w-[55%] sm:w-[65%] p-2 pl-4 text-xs sm:text-sm truncate">
+              <div className="flex items-center border border-gray-300 rounded-full bg-white relative overflow-hidden w-full min-h-[32px] xs:min-h-[36px] sm:min-h-[40px]">
+                <div className="w-[55%] sm:w-[65%] p-1 xs:p-2 pl-2 xs:pl-4 text-[10px] xs:text-xs sm:text-sm truncate">
                   <span className="font-medium">{activeVariant?.title || '8 Ounces'}</span>
                 </div>
                 
-                <div className="h-5 border-l border-gray-300"></div>
+                <div className="h-4 xs:h-5 border-l border-gray-300"></div>
                 
-                <div className="w-[45%] sm:w-[35%] p-2 pr-8 sm:pr-10 text-center text-xs sm:text-sm">
+                <div className="w-[45%] sm:w-[35%] p-1 xs:p-2 pr-6 xs:pr-8 sm:pr-10 text-center text-[10px] xs:text-xs sm:text-sm">
                   <span className="font-medium">${activeVariant ? activeVariant.price.toFixed(2) : product.price.toFixed(2)}</span>
                 </div>
                 
                 {hasMultipleVariants && (
-                  <div className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <svg className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${dropdownOpen ? 'transform rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                  <div className="absolute right-1 xs:right-2 sm:right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className={`h-3 w-3 xs:h-4 xs:w-4 text-gray-500 transition-transform duration-200 ${dropdownOpen ? 'transform rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                   </div>
@@ -693,7 +700,7 @@ const ShopByPlantAlternative = () => {
             
             {/* Dropdown options */}
             {hasMultipleVariants && dropdownOpen && (
-              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 xs:max-h-52 overflow-y-auto">
                 {product.variants.map((variant, idx) => (
                   <div 
                     key={variant.id || idx}
@@ -702,7 +709,7 @@ const ShopByPlantAlternative = () => {
                       setSelectedVariant(variant);
                       setDropdownOpen(false);
                     }}
-                    className={`p-2 px-4 text-xs sm:text-sm cursor-pointer transition-colors duration-150
+                    className={`p-1.5 xs:p-2 px-3 xs:px-4 text-[10px] xs:text-xs sm:text-sm cursor-pointer transition-colors duration-150
                       ${!variant.available ? 'text-gray-400 hover:bg-gray-50' : 'hover:bg-gray-100'}
                       ${activeVariant?.id === variant.id ? 'bg-gray-100 font-medium' : ''}`}
                   >
@@ -711,7 +718,7 @@ const ShopByPlantAlternative = () => {
                       <span>${variant.price.toFixed(2)}</span>
                     </div>
                     {!variant.available && (
-                      <span className="text-xs text-red-500 block mt-1">Out of stock</span>
+                      <span className="text-[9px] xs:text-xs text-red-500 block mt-1">Out of stock</span>
                     )}
                   </div>
                 ))}
@@ -726,7 +733,7 @@ const ShopByPlantAlternative = () => {
                 e.stopPropagation();
                 addToCart(product, activeVariant);
               }}
-              className={`w-full font-bold py-2 sm:py-3 px-2 sm:px-4 rounded-full transition-colors text-xs sm:text-base ${available ? 'bg-[#ff6b57] hover:bg-[#ff5a43] text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+              className={`w-full font-bold py-1.5 xs:py-2 sm:py-3 px-1 xs:px-2 sm:px-4 rounded-full transition-colors text-[10px] xs:text-xs sm:text-base ${available ? 'bg-[#ff6b57] hover:bg-[#ff5a43] text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
               disabled={!available}
             >
               ADD TO CART
@@ -757,27 +764,27 @@ const ShopByPlantAlternative = () => {
         </div>
 
         {/* Content - Match exact padding and height structure of product cards */}
-        <div className="p-3 sm:p-6 flex flex-col h-full relative">
+        <div className="p-2 xs:p-3 sm:p-6 flex flex-col h-full relative">
           {/* Match product image height */}
-          <div className="h-32 sm:h-48 mb-2 sm:mb-4 flex items-center justify-center">
-            <h3 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg text-center">
+          <div className="h-24 xs:h-32 sm:h-48 mb-1 xs:mb-2 sm:mb-4 flex items-center justify-center">
+            <h3 className="text-lg xs:text-2xl sm:text-3xl font-bold text-white drop-shadow-lg text-center">
               {category.split(' ')[0]}
             </h3>
           </div>
 
           {/* Match ratings height */}
-          <div className="h-6 mb-1 sm:mb-3" />
+          <div className="h-4 xs:h-6 mb-1 xs:mb-1 sm:mb-3" />
 
           {/* Match product name height */}
-          <div className="h-20" />
+          <div className="h-16 xs:h-20" />
 
           {/* Match variant selector height */}
-          <div className="mb-2 sm:mb-4 h-10" />
+          <div className="mb-1 xs:mb-2 sm:mb-4 h-8 xs:h-10" />
 
           {/* Button - match exact structure of product card button */}
           <div className="mt-auto">
             <button 
-              className="w-full bg-[#FF6B6B] hover:bg-[#ff5a43] text-white font-medium py-2 sm:py-3 rounded-full transition-colors text-xs sm:text-base uppercase"
+              className="w-full bg-[#FF6B6B] hover:bg-[#ff5a43] text-white font-medium py-1.5 xs:py-2 sm:py-3 rounded-full transition-colors text-[10px] xs:text-xs sm:text-base uppercase"
             >
               See All
             </button>
@@ -789,7 +796,7 @@ const ShopByPlantAlternative = () => {
 
   return (
     <div className="bg-[#fff9f2] py-2 sm:py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-2 xs:px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8 px-1">
           <h1 className="text-5xl sm:text-6xl font-bold text-[#ff6b6b] mb-2 hidden sm:block">Shop by Plant</h1>
@@ -797,15 +804,15 @@ const ShopByPlantAlternative = () => {
         </div>
 
         {/* Mobile Plant Categories Header */}
-        <div className="block sm:hidden px-4 mb-2">
-          <h1 className="text-4xl font-bold text-[#ff6b6b]">Plant Categories</h1>
+        <div className="block sm:hidden px-2 xs:px-4 mb-2">
+          <h1 className="text-3xl xs:text-4xl font-bold text-[#ff6b6b]">Plant Categories</h1>
         </div>
 
         {/* Category Navigation - Mobile List / Desktop Tiles */}
         <div className="relative mb-2 sm:mb-12">
           {/* Mobile List Layout */}
           <div className="block sm:hidden">
-            <div className="px-4">
+            <div className="px-2 xs:px-4">
               <div className="space-y-0.5 pb-1">
                 {categories.map((cat, index) => (
                   <div key={cat.category} className="block">
@@ -817,10 +824,10 @@ const ShopByPlantAlternative = () => {
                     >
                       <div className={`inline-block ${
                         selectedCategory === cat.category
-                          ? 'border-2 border-[#ff6b6b] rounded-full px-3 py-1 bg-white'
-                          : 'px-3 py-1'
+                          ? 'border-2 border-[#ff6b6b] rounded-full px-2 xs:px-3 py-1 bg-white'
+                          : 'px-2 xs:px-3 py-1'
                       }`}>
-                        <span className="text-base font-medium text-black">
+                        <span className="text-sm xs:text-base font-medium text-black">
                           {cat.name.replace('\n', ' ')}
                         </span>
                       </div>
@@ -889,7 +896,7 @@ const ShopByPlantAlternative = () => {
           </div>
         ) : filteredProducts.length > 0 ? (
           <div className="relative -mx-0 sm:mx-0">
-            <div className="glide ml-4 sm:ml-0" ref={glideRef}>
+            <div className="glide ml-2 xs:ml-4 sm:ml-0" ref={glideRef}>
               <div className="glide__track" data-glide-el="track">
                 <div className="glide__slides">
                   {filteredProducts.slice(0, 5).map((product) => (

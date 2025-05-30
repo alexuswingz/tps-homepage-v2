@@ -19,49 +19,56 @@ import TestReCharge from './components/TestReCharge';
 import SubscriptionManager from './components/SubscriptionManager';
 import DebugVariants from './components/DebugVariants';
 import SellingPlanDebug from './components/SellingPlanDebug';
+import ScrollToTop from './components/ScrollToTop';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './components/CartContext';
+import { NavProvider } from './components/NavContext';
 import CartDrawer from './components/CartDrawer';
 
 function App() {
   return (
-    <CartProvider>
-      <Router>
-        {/* Cart Drawer - Positioned outside main content to cover full viewport */}
-        <CartDrawer />
-        
-        <div className="min-h-screen bg-[#fffbef] relative">
-          <NavBar />
-          <Routes>
-            <Route path="/" element={
-              <>
-                <HeroSection />
-                <LeafDivider />
-                <BuildBundleSection />
-                <LeafDivider />
-                <ShopByPlantAlternative />
-                <LeafDivider />
-                <MonsteraProductSection />
-                <LeafDivider />
-                <CustomerReviews />
-                <AnimatedLeafDivider />
-                <ComparisonChart />
-                <MobileNewsletter />
-              </>
-            } />
-            <Route path="/build-bundle" element={<BuildABundlePage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/category/:categoryId" element={<CategoryPage />} />
-            <Route path="/product/:productId" element={<ProductPage />} />
-            <Route path="/test-recharge" element={<TestReCharge />} />
-            <Route path="/subscriptions" element={<SubscriptionManager />} />
-            <Route path="/debug-variants" element={<DebugVariants />} />
-            <Route path="/selling-plan-debug" element={<SellingPlanDebug />} />
-          </Routes>
-          <Footer />
-        </div>
-      </Router>
-    </CartProvider>
+    <NavProvider>
+      <CartProvider>
+        <Router>
+          {/* Scroll to top component - handles automatic scrolling on route changes */}
+          <ScrollToTop />
+          
+          {/* Cart Drawer - Positioned outside main content to cover full viewport */}
+          <CartDrawer />
+          
+          <div className="min-h-screen bg-[#fffbef] relative">
+            <NavBar />
+            <Routes>
+              <Route path="/" element={
+                <>
+                  <HeroSection />
+                  <LeafDivider />
+                  <BuildBundleSection />
+                  <LeafDivider />
+                  <ShopByPlantAlternative />
+                  <LeafDivider />
+                  <MonsteraProductSection />
+                  <LeafDivider />
+                  <CustomerReviews />
+                  <AnimatedLeafDivider />
+                  <ComparisonChart />
+                  <MobileNewsletter />
+                </>
+              } />
+              <Route path="/build-bundle" element={<BuildABundlePage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/category/:categoryId" element={<CategoryPage />} />
+              <Route path="/product/:productId" element={<ProductPage />} />
+              <Route path="/test-recharge" element={<TestReCharge />} />
+              <Route path="/subscriptions" element={<SubscriptionManager />} />
+              <Route path="/debug-variants" element={<DebugVariants />} />
+              <Route path="/selling-plan-debug" element={<SellingPlanDebug />} />
+            </Routes>
+            <Footer />
+          </div>
+        </Router>
+      </CartProvider>
+    </NavProvider>
   );
 }
 

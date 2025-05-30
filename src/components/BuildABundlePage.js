@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from './CartContext';
+import { useNav } from './NavContext';
 
 const BuildABundlePage = () => {
   const { addToCart, setDiscount } = useCart();
+  const { mobileMenuOpen } = useNav();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -10,8 +12,13 @@ const BuildABundlePage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [bundleCount, setBundleCount] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
+  // Add mobile category states
+  const [showMobileCategorySticky, setShowMobileCategorySticky] = useState(false);
+  const [mobileCategoryExpanded, setMobileCategoryExpanded] = useState(false);
+  const [currentVisibleCategory, setCurrentVisibleCategory] = useState("");
   const pageTopRef = useRef(null);
   const bundleSectionRef = useRef(null);
+  const mobileCategoryStickyRef = useRef(null);
   
   // Background gradient styles for each product card
   const cardBackgrounds = [
@@ -131,6 +138,19 @@ const BuildABundlePage = () => {
     fetchAllProducts();
   }, []);
 
+  // Separate effect to handle mobile menu state changes immediately
+  useEffect(() => {
+    // Immediately hide sticky when mobile menu opens
+    if (mobileMenuOpen && window.innerWidth < 768) {
+      setShowMobileCategorySticky(false);
+    } else if (!mobileMenuOpen && window.innerWidth < 768) {
+      // Re-evaluate if sticky should be shown when menu closes
+      const scrollPosition = window.scrollY;
+      const shouldShowMobileSticky = scrollPosition > 200;
+      setShowMobileCategorySticky(shouldShowMobileSticky);
+    }
+  }, [mobileMenuOpen]);
+
   // Use IntersectionObserver to detect when bundle section is out of view
   useEffect(() => {
     // Wait a bit after component mount to allow correct positioning
@@ -167,6 +187,17 @@ const BuildABundlePage = () => {
         // Force hide when at the top of the page
         if (scrollPosition < 180) {
           setIsScrolled(false);
+        }
+        
+        // Mobile sticky category logic
+        if (window.innerWidth < 768) { // Mobile breakpoint
+          // Show sticky when scrolled past the mobile category list (around 200px)
+          // but hide when mobile menu is open
+          const shouldShowMobileSticky = scrollPosition > 200 && !mobileMenuOpen;
+          setShowMobileCategorySticky(shouldShowMobileSticky);
+        } else {
+          // Hide mobile sticky on desktop
+          setShowMobileCategorySticky(false);
         }
       };
       
@@ -206,7 +237,24 @@ const BuildABundlePage = () => {
     }, 300); // Wait 300ms after mount
     
     return () => clearTimeout(initialTimeout);
-  }, [isScrolled]);
+  }, [isScrolled, mobileMenuOpen]);
+
+  // Handle clicks outside mobile category dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (mobileCategoryStickyRef.current && !mobileCategoryStickyRef.current.contains(event.target)) {
+        setMobileCategoryExpanded(false);
+      }
+    };
+
+    if (mobileCategoryExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mobileCategoryExpanded]);
 
   // Function to make API calls to Shopify Storefront API
   const fetchFromStorefrontAPI = async (query) => {
@@ -745,6 +793,7 @@ const BuildABundlePage = () => {
   // Handler for category selection
   const handleCategoryClick = (category) => {
     setSelectedCategory(category);
+    setMobileCategoryExpanded(false); // Close mobile dropdown when category is selected
   };
 
   // Handler for search input
@@ -1143,33 +1192,68 @@ const BuildABundlePage = () => {
 
           {/* Products Section - Will be second on mobile and left on desktop */}
           <div className="w-full lg:w-[70%] pt-6 pr-0 lg:pr-6 order-last lg:order-first">
-            {/* Choose Collection */}
-            <h2 className="text-gray-500 font-medium mb-4">CHOOSE A COLLECTION</h2>
+            {/* Choose Collection - Desktop Only */}
+            <h2 className="text-gray-500 font-medium mb-4 hidden sm:block">CHOOSE A COLLECTION</h2>
             
-            <div className="bg-[#ebe6d4] -mx-4 sm:mx-0 sm:rounded-lg mb-8 mt-2">
-              <div className="py-6 sm:py-8 px-2 sm:px-4 max-w-7xl mx-auto">
-                {/* Categories */}
-                <div className="flex overflow-x-auto hide-scrollbar gap-4 lg:flex-wrap lg:justify-between lg:overflow-visible">
-                  {categories.map(category => (
-                    <div 
-                      key={category.id} 
-                      className="flex-shrink-0 text-center w-[85px] lg:w-[calc(16.666%-1rem)] cursor-pointer"
-                      onClick={() => handleCategoryClick(category.category)}
-                    >
-                      <div className={`overflow-hidden rounded-lg mb-2 mx-auto w-16 h-16 sm:w-20 sm:h-20 lg:w-full lg:h-24 ${
-                        (selectedCategory === '' && category.category === '') || selectedCategory === category.category
-                          ? 'ring-2 ring-[#ff6b57]' 
-                          : ''
-                      }`}>
-                        <img src={category.image} alt={category.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
+            {/* Mobile Bundle Categories Header */}
+            <div className="block sm:hidden px-4 mb-2">
+              <h1 className="text-4xl font-bold text-[#ff6b6b]">Bundle Categories</h1>
+            </div>
+
+            {/* Category Selection */}
+            <div className="relative mb-2 sm:mb-8">
+              {/* Mobile List Layout */}
+              <div className="block sm:hidden">
+                <div className="px-4">
+                  <div className="space-y-0.5 pb-1 mb-8">
+                    {categories.map((cat, index) => (
+                      <div key={cat.id} className="block">
+                        <button
+                          onClick={() => handleCategoryClick(cat.category)}
+                          className="text-left transition-all duration-200"
+                        >
+                          <div className={`inline-block ${
+                            (selectedCategory === '' && cat.category === '') || selectedCategory === cat.category
+                              ? 'border-2 border-[#ff6b6b] rounded-full px-3 py-1 bg-white'
+                              : 'px-3 py-1'
+                          }`}>
+                            <span className="text-base font-medium text-black">
+                              {cat.name.replace('\n', ' ')}
+                            </span>
+                          </div>
+                        </button>
                       </div>
-                      <p className={`text-xs leading-tight whitespace-pre-line lg:text-sm ${
-                        (selectedCategory === '' && category.category === '') || selectedCategory === category.category
-                          ? 'font-bold text-[#ff6b57]' 
-                          : ''
-                      }`}>{category.name}</p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop Tile Layout */}
+              <div className="hidden sm:block bg-[#ebe6d4] -mx-4 sm:mx-0 sm:rounded-lg mt-2">
+                <div className="py-6 sm:py-8 px-2 sm:px-4 max-w-7xl mx-auto">
+                  {/* Categories */}
+                  <div className="flex overflow-x-auto hide-scrollbar gap-4 lg:flex-wrap lg:justify-between lg:overflow-visible">
+                    {categories.map(category => (
+                      <div 
+                        key={category.id} 
+                        className="flex-shrink-0 text-center w-[85px] lg:w-[calc(16.666%-1rem)] cursor-pointer"
+                        onClick={() => handleCategoryClick(category.category)}
+                      >
+                        <div className={`overflow-hidden rounded-lg mb-2 mx-auto w-16 h-16 sm:w-20 sm:h-20 lg:w-full lg:h-24 ${
+                          (selectedCategory === '' && category.category === '') || selectedCategory === category.category
+                            ? 'ring-2 ring-[#ff6b57]' 
+                            : ''
+                        }`}>
+                          <img src={category.image} alt={category.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
+                        </div>
+                        <p className={`text-xs leading-tight whitespace-pre-line lg:text-sm ${
+                          (selectedCategory === '' && category.category === '') || selectedCategory === category.category
+                            ? 'font-bold text-[#ff6b57]' 
+                            : ''
+                        }`}>{category.name}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1221,91 +1305,142 @@ const BuildABundlePage = () => {
         </div>
       </div>
 
-      {/* Floating mobile bundle summary - shows when scrolling on mobile, positioned below navbar */}
-      {(
-        <div className={`fixed top-[110px] left-0 right-0 z-30 px-4 transition-all duration-500 ease-in-out lg:hidden ${isScrolled ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'}`}>
-          <div className="bg-[#fffbef] rounded-b-2xl shadow-md p-3 mx-auto max-w-md border border-gray-200">
-            <div className="flex flex-col items-center">
-              <div className="flex justify-center space-x-4 mb-3 w-full">
-                {(() => {
-                  // Create an array to represent the 3 bundle slots for mobile
-                  const mobileBundleSlots = [];
-                  let currentSlot = 0;
-                  
-                  // Fill slots based on selected items and their quantities
-                  selectedItems.forEach(item => {
-                    for (let i = 0; i < item.quantity; i++) {
-                      if (currentSlot < 3) {
-                        mobileBundleSlots[currentSlot] = {
-                          ...item,
-                          slotIndex: currentSlot,
-                          isFirstOfProduct: i === 0 // Only show controls on first instance
-                        };
-                        currentSlot++;
-                      }
-                    }
-                  });
-                  
-                  // Fill remaining slots with empty placeholders
-                  while (mobileBundleSlots.length < 3) {
-                    mobileBundleSlots.push(null);
-                  }
-                  
-                  return mobileBundleSlots.map((slot, index) => (
-                    <div 
-                      key={`floating-slot-${index}`} 
-                      className="relative w-[70px] h-[70px] flex items-center justify-center bg-[#f5f0e6] border-2 border-dashed border-gray-400 rounded-lg"
-                    >
-                      {slot ? (
-                        <>
-                          <img src={slot.product.image} alt={slot.product.name} className="h-[80%] w-[80%] object-contain" />
-                          {slot.isFirstOfProduct && (
-                            <div className="absolute -bottom-3 left-0 right-0 flex justify-center">
-                              <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200">
-                                <button 
-                                  onClick={() => removeFromBundle(slot.product.id, slot.variant.id)}
-                                  className="w-6 h-6 rounded-full flex items-center justify-center text-gray-700 font-medium"
-                                >
-                                  -
-                                </button>
-                                <span className="text-xs font-bold mx-1">{slot.quantity}</span>
-                                <button 
-                                  onClick={() => addToBundle(slot.product, slot.variant)}
-                                  className={`w-6 h-6 rounded-full flex items-center justify-center font-medium ${bundleCount < 3 ? 'text-gray-700' : 'text-gray-400'}`}
-                                  disabled={bundleCount >= 3}
-                                >
-                                  +
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="h-[70%] w-[20px] bg-gray-300 rounded-sm opacity-50"></div>
-                      )}
-                    </div>
-                  ));
-                })()}
+      {/* Combined Mobile Sticky Component - Category + Bundle */}
+      <div 
+        ref={mobileCategoryStickyRef}
+        className={`fixed left-0 right-0 z-50 bg-[#fffbef] shadow-lg transition-all duration-300 transform md:hidden ${
+          showMobileCategorySticky ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+        }`}
+        style={{ top: '107px' }} // Position below navbar (42px announcement + 65px navbar)
+      >
+        <div className="px-4 py-3">
+          {/* Category Selector Section */}
+          <div className="relative mb-3">
+            {/* Bundle Categories Header with Caret */}
+            <button
+              onClick={() => setMobileCategoryExpanded(!mobileCategoryExpanded)}
+              className="w-full flex items-center justify-between bg-white border-2 border-[#ff6b6b] rounded-full px-4 py-2 text-left"
+            >
+              <span className="text-base font-medium text-black">
+                {selectedCategory ? categories.find(cat => cat.category === selectedCategory)?.name.replace('\n', ' ') : 'Bundle Categories'}
+              </span>
+              <svg 
+                className={`w-5 h-5 text-[#ff6b6b] transition-transform duration-200 ${
+                  mobileCategoryExpanded ? 'rotate-180' : ''
+                }`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {/* Collapsible Category List */}
+            {mobileCategoryExpanded && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-[#fffbef] shadow-lg max-h-60 overflow-y-auto z-10 rounded-lg border border-gray-200">
+                {categories.map((cat, index) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategoryClick(cat.category)}
+                    className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors duration-150 ${
+                      ((selectedCategory === '' && cat.category === '') || selectedCategory === cat.category) ? 'bg-[#ff6b6b] text-white' : 'text-black'
+                    } ${index === 0 ? 'rounded-t-lg' : ''} ${index === categories.length - 1 ? 'rounded-b-lg' : ''}`}
+                  >
+                    <span className="text-base font-medium">
+                      {cat.name.replace('\n', ' ')}
+                    </span>
+                  </button>
+                ))}
               </div>
-              
-              <div className="flex flex-col w-full space-y-2">
-                <div className="border border-gray-300 rounded-full py-2 px-8 bg-[#fffbef] text-center">
-                  <p className="font-medium text-gray-800 text-sm">{bundleCount}/3 SELECTED</p>
+            )}
+          </div>
+
+          {/* Bundle Summary Section - Show when bundle has items or when scrolled past bundle section */}
+          {(bundleCount > 0 || isScrolled) && (
+            <div className="bg-[#fffbef] rounded-lg p-3 border border-gray-300">
+              <div className="flex flex-col items-center">
+                <div className="flex justify-center space-x-3 mb-3 w-full">
+                  {(() => {
+                    // Create an array to represent the 3 bundle slots for mobile
+                    const mobileBundleSlots = [];
+                    let currentSlot = 0;
+                    
+                    // Fill slots based on selected items and their quantities
+                    selectedItems.forEach(item => {
+                      for (let i = 0; i < item.quantity; i++) {
+                        if (currentSlot < 3) {
+                          mobileBundleSlots[currentSlot] = {
+                            ...item,
+                            slotIndex: currentSlot,
+                            isFirstOfProduct: i === 0 // Only show controls on first instance
+                          };
+                          currentSlot++;
+                        }
+                      }
+                    });
+                    
+                    // Fill remaining slots with empty placeholders
+                    while (mobileBundleSlots.length < 3) {
+                      mobileBundleSlots.push(null);
+                    }
+                    
+                    return mobileBundleSlots.map((slot, index) => (
+                      <div 
+                        key={`sticky-slot-${index}`} 
+                        className="relative w-[60px] h-[60px] flex items-center justify-center bg-[#f5f0e6] border-2 border-dashed border-gray-400 rounded-lg"
+                      >
+                        {slot ? (
+                          <>
+                            <img src={slot.product.image} alt={slot.product.name} className="h-[80%] w-[80%] object-contain" />
+                            {slot.isFirstOfProduct && (
+                              <div className="absolute -bottom-2 left-0 right-0 flex justify-center">
+                                <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 text-xs">
+                                  <button 
+                                    onClick={() => removeFromBundle(slot.product.id, slot.variant.id)}
+                                    className="w-5 h-5 rounded-full flex items-center justify-center text-gray-700 font-medium"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="text-xs font-bold mx-1">{slot.quantity}</span>
+                                  <button 
+                                    onClick={() => addToBundle(slot.product, slot.variant)}
+                                    className={`w-5 h-5 rounded-full flex items-center justify-center font-medium ${bundleCount < 3 ? 'text-gray-700' : 'text-gray-400'}`}
+                                    disabled={bundleCount >= 3}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="h-[70%] w-[20px] bg-gray-300 rounded-sm opacity-50"></div>
+                        )}
+                      </div>
+                    ));
+                  })()}
                 </div>
                 
-                {bundleCount === 3 && (
-                  <button 
-                    onClick={handleCheckoutBundle}
-                    className="w-full bg-[#ff6b57] hover:bg-[#ff5a5a] text-white font-bold py-2 px-4 rounded-full transition-colors text-sm"
-                  >
-                    CHECKOUT BUNDLE
-                  </button>
-                )}
+                <div className="flex flex-col w-full space-y-2">
+                  <div className="border border-gray-300 rounded-full py-2 px-6 bg-white text-center">
+                    <p className="font-medium text-gray-800 text-sm">{bundleCount}/3 SELECTED</p>
+                  </div>
+                  
+                  {bundleCount === 3 && (
+                    <button 
+                      onClick={handleCheckoutBundle}
+                      className="w-full bg-[#ff6b57] hover:bg-[#ff5a5a] text-white font-bold py-2 px-4 rounded-full transition-colors text-sm"
+                    >
+                      CHECKOUT BUNDLE
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Bottom Right Overlay */}
       <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end">
@@ -1324,4 +1459,17 @@ const BuildABundlePage = () => {
   );
 };
 
-export default BuildABundlePage; 
+// Add a CSS rule for hiding scrollbars to the component export
+const style = document.createElement('style');
+style.textContent = `
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+`;
+document.head.appendChild(style);
+
+export default BuildABundlePage;

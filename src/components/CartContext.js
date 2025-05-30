@@ -4,6 +4,9 @@ const CartContext = createContext();
 
 export const useCart = () => useContext(CartContext);
 
+// Global debounce for addToCartSilent to prevent rapid successive calls
+const addToCartSilentDebounce = new Map();
+
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -130,6 +133,112 @@ export const CartProvider = ({ children }) => {
     
     // Open the cart when item is added
     setIsCartOpen(true);
+  };
+
+  // Silent version that doesn't auto-open the cart
+  const addToCartSilent = (product, variant, quantity = 1, subscriptionProps = null) => {
+    console.log('addToCartSilent called with:', {
+      productName: product.name,
+      productId: product.id,
+      variantId: variant.id,
+      quantity,
+      subscriptionProps
+    });
+    
+    // Create a unique key for this product/variant combination
+    const debounceKey = `${product.id}-${variant.id}`;
+    const now = Date.now();
+    
+    // Check if we've recently processed this exact same product/variant combination
+    if (addToCartSilentDebounce.has(debounceKey)) {
+      const lastCallTime = addToCartSilentDebounce.get(debounceKey);
+      if (now - lastCallTime < 2000) { // 2 second debounce
+        console.log('Blocked duplicate addToCartSilent call for:', debounceKey, 'Time since last:', now - lastCallTime, 'ms');
+        return;
+      }
+    }
+    
+    // Set the debounce timestamp
+    addToCartSilentDebounce.set(debounceKey, now);
+    
+    // Clean up old debounce entries after 5 seconds
+    setTimeout(() => {
+      addToCartSilentDebounce.delete(debounceKey);
+    }, 5000);
+    
+    // Ensure quantity is at least 1
+    const qty = Math.max(1, parseInt(quantity) || 1);
+    console.log('Processed quantity:', qty);
+    
+    // Check variant has available quantity
+    const maxAvailable = variant.quantity || 999; // Fallback to large number if not specified
+    const safeQty = Math.min(qty, maxAvailable);
+    console.log('Safe quantity after max check:', safeQty);
+    
+    setCartItems(prevItems => {
+      console.log('Current cart items before update:', prevItems);
+      
+      // Check if this item is already in the cart with the same subscription settings
+      const existingItemIndex = prevItems.findIndex(
+        item => item.id === product.id && 
+               item.variantId === variant.id && 
+               ((!item.subscription && !subscriptionProps) || 
+                (item.subscription && subscriptionProps && 
+                 item.subscription.interval === subscriptionProps.interval))
+      );
+
+      console.log('Existing item index:', existingItemIndex);
+
+      if (existingItemIndex > -1) {
+        // Item exists, increase quantity by specified amount
+        const updatedItems = [...prevItems];
+        
+        // Make sure we don't exceed available quantity
+        const currentQty = updatedItems[existingItemIndex].quantity;
+        console.log('Current quantity in cart:', currentQty);
+        
+        const newQty = Math.min(currentQty + safeQty, maxAvailable);
+        console.log('New quantity will be:', newQty);
+        
+        updatedItems[existingItemIndex].quantity = newQty;
+        
+        // Show notification
+        if (safeQty === 1) {
+          showNotification(`Added another ${product.name} to your cart`, product);
+        } else {
+          showNotification(`Added ${safeQty} ${product.name} to your cart`, product);
+        }
+        
+        console.log('Updated cart items:', updatedItems);
+        return updatedItems;
+      } else {
+        // New item, add to cart with specified quantity
+        const subscriptionType = subscriptionProps ? 
+          (subscriptionProps.isSubscription ? 'Subscribe & Save' : 'One-time purchase') : 
+          'One-time purchase';
+          
+        showNotification(`${product.name} (${subscriptionType}) added to your cart!`, product);
+        
+        const newItem = {
+          id: product.id,
+          name: product.name,
+          image: product.image,
+          price: variant.price,
+          variantId: variant.id,
+          variantTitle: variant.title,
+          quantity: safeQty,
+          maxQuantity: maxAvailable, // Store max available for later reference
+          subscription: subscriptionProps // Store subscription details if applicable
+        };
+        
+        console.log('Adding new item to cart:', newItem);
+        const newCartItems = [...prevItems, newItem];
+        console.log('New cart items array:', newCartItems);
+        return newCartItems;
+      }
+    });
+    
+    // Don't auto-open the cart
   };
 
   const showNotification = (message, product) => {
@@ -492,6 +601,7 @@ export const CartProvider = ({ children }) => {
         cartTotal, 
         isCartOpen, 
         addToCart, 
+        addToCartSilent,
         removeFromCart, 
         updateQuantity, 
         clearCart,
