@@ -71,15 +71,15 @@ function ComparisonChart() {
               </div>
               
               <div className="h-32 flex items-center justify-center">
-                <span className="text-white text-5xl">✓</span>
+                <span className="text-white text-5xl font-bold" style={{filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))'}}>✓</span>
               </div>
               
               <div className="h-32 flex items-center justify-center">
-                <span className="text-white text-5xl">✓</span>
+                <span className="text-white text-5xl font-bold" style={{filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))'}}>✓</span>
               </div>
               
               <div className="h-32 flex items-center justify-center">
-                <span className="text-white text-5xl">✓</span>
+                <span className="text-white text-5xl font-bold" style={{filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))'}}>✓</span>
               </div>
             </div>
             <div className="h-12 bg-green-900/60 rounded-b-lg shadow-lg"></div>
@@ -111,11 +111,11 @@ function ComparisonChart() {
             </div>
             
             <div className="h-32 bg-[#febbbb] flex items-center justify-center">
-              <span className="text-white text-5xl">✗</span>
+              <span className="text-white text-5xl">✓</span>
             </div>
             
             <div className="h-32 bg-[#febbbb] flex items-center justify-center">
-              <span className="text-white text-5xl">✓</span>
+              <span className="text-white text-5xl">✗</span>
             </div>
             
             <div className="h-32 bg-[#febbbb] flex items-center justify-center">
@@ -179,15 +179,15 @@ function ComparisonChart() {
                 </div>
                 
                 <div className="h-[72px] flex items-center justify-center">
-                  <span className="text-white text-3xl">✓</span>
+                  <span className="text-white text-3xl font-bold" style={{filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))'}}>✓</span>
                 </div>
                 
                 <div className="h-[72px] flex items-center justify-center">
-                  <span className="text-white text-3xl">✓</span>
+                  <span className="text-white text-3xl font-bold" style={{filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))'}}>✓</span>
                 </div>
                 
                 <div className="h-[72px] flex items-center justify-center">
-                  <span className="text-white text-3xl">✓</span>
+                  <span className="text-white text-3xl font-bold" style={{filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))'}}>✓</span>
                 </div>
               </div>
               <div className="h-8 bg-green-900/60 rounded-b-lg shadow-lg"></div>
@@ -224,11 +224,11 @@ function ComparisonChart() {
                   </div>
                   
                   <div className="h-[72px] bg-[#febbbb] flex items-center justify-center rounded-tr-lg">
-                    <span className="text-white text-3xl">✗</span>
+                    <span className="text-white text-3xl">✓</span>
                   </div>
                   
                   <div className="h-[72px] bg-[#febbbb] flex items-center justify-center">
-                    <span className="text-white text-3xl">✓</span>
+                    <span className="text-white text-3xl">✗</span>
                   </div>
                   
                   <div className="h-[72px] bg-[#febbbb] flex items-center justify-center">

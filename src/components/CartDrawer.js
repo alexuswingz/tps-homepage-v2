@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { XMarkIcon, PlusIcon, MinusIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
 import { useCart } from './CartContext';
+import { useNavigate } from 'react-router-dom';
 
 const CartDrawer = () => {
+  const navigate = useNavigate();
   const { 
     isCartOpen, 
     toggleCart, 
@@ -16,9 +18,10 @@ const CartDrawer = () => {
     forceCleanCart
   } = useCart();
   
-  const [suggestedProducts, setSuggestedProducts] = useState([]);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [selectedVariants, setSelectedVariants] = useState({});
+  // Comment out Popular Add-Ons state variables for now
+  // const [suggestedProducts, setSuggestedProducts] = useState([]);
+  // const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  // const [selectedVariants, setSelectedVariants] = useState({});
 
   // Prevent body scrolling when cart is open
   useEffect(() => {
@@ -28,9 +31,10 @@ const CartDrawer = () => {
       const vh = window.innerHeight * 0.01;
       document.documentElement.style.setProperty('--vh', `${vh}px`);
       
-      if (suggestedProducts.length === 0) {
-        fetchSuggestedProducts();
-      }
+      // Comment out fetching suggested products for now
+      // if (suggestedProducts.length === 0) {
+      //   fetchSuggestedProducts();
+      // }
     } else {
       document.body.style.overflow = '';
     }
@@ -171,9 +175,10 @@ const CartDrawer = () => {
     };
   };
 
-  // Function to fetch suggested products
+  // Function to fetch suggested products - commented out for now
+  /*
   const fetchSuggestedProducts = async () => {
-    setLoadingSuggestions(true);
+    // setLoadingSuggestions(true);
     
     const query = `
       {
@@ -217,86 +222,91 @@ const CartDrawer = () => {
         // Get random products for suggestions
         const shuffled = [...allProducts].sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, 4);
-        setSuggestedProducts(selected);
+        // setSuggestedProducts(selected);
       }
     } catch (error) {
       console.error('Error fetching suggested products:', error);
       // Fallback data
-      setSuggestedProducts([
-        {
-          id: 'gid://shopify/Product/123456789',
-          name: 'SILICA FOR PLANTS',
-          description: 'Strengthen cell walls for stronger stems and leaves.',
-          price: 14.99,
-          image: 'https://via.placeholder.com/300x300?text=SILICA',
-          variants: [
-            {
-              id: 'gid://shopify/ProductVariant/123456789',
-              title: '8 Ounces',
-              price: 14.99,
-              available: true,
-              inventory: 10
-            },
-            {
-              id: 'gid://shopify/ProductVariant/123456790',
-              title: '16 Ounces',
-              price: 24.99,
-              available: true,
-              inventory: 5
-            }
-          ],
-          selectedVariant: {
-            id: 'gid://shopify/ProductVariant/123456789',
-            title: '8 Ounces',
-            price: 14.99,
-            available: true,
-            inventory: 10
-          }
-        },
-        {
-          id: 'gid://shopify/Product/987654321',
-          name: 'SEAWEED FERTILIZER',
-          description: 'Boost growth and resilience with natural plant hormones and micronutrients.',
-          price: 14.99,
-          image: 'https://via.placeholder.com/300x300?text=SEAWEED',
-          variants: [
-            {
-              id: 'gid://shopify/ProductVariant/987654321',
-              title: '8 Ounces',
-              price: 14.99,
-              available: true,
-              inventory: 8
-            }
-          ],
-          selectedVariant: {
-            id: 'gid://shopify/ProductVariant/987654321',
-            title: '8 Ounces',
-            price: 14.99,
-            available: true,
-            inventory: 8
-          }
-        }
-      ]);
+      // setSuggestedProducts([
+      //   {
+      //     id: 'gid://shopify/Product/123456789',
+      //     name: 'SILICA FOR PLANTS',
+      //     description: 'Strengthen cell walls for stronger stems and leaves.',
+      //     price: 14.99,
+      //     image: 'https://via.placeholder.com/300x300?text=SILICA',
+      //     variants: [
+      //       {
+      //         id: 'gid://shopify/ProductVariant/123456789',
+      //         title: '8 Ounces',
+      //         price: 14.99,
+      //         available: true,
+      //         inventory: 10
+      //       },
+      //       {
+      //         id: 'gid://shopify/ProductVariant/123456790',
+      //         title: '16 Ounces',
+      //         price: 24.99,
+      //         available: true,
+      //         inventory: 5
+      //       }
+      //     ],
+      //     selectedVariant: {
+      //       id: 'gid://shopify/ProductVariant/123456789',
+      //       title: '8 Ounces',
+      //       price: 14.99,
+      //       available: true,
+      //       inventory: 10
+      //     }
+      //   },
+      //   {
+      //     id: 'gid://shopify/Product/987654321',
+      //     name: 'SEAWEED FERTILIZER',
+      //     description: 'Boost growth and resilience with natural plant hormones and micronutrients.',
+      //     price: 14.99,
+      //     image: 'https://via.placeholder.com/300x300?text=SEAWEED',
+      //     variants: [
+      //       {
+      //         id: 'gid://shopify/ProductVariant/987654321',
+      //         title: '8 Ounces',
+      //         price: 14.99,
+      //         available: true,
+      //         inventory: 8
+      //       }
+      //     ],
+      //     selectedVariant: {
+      //       id: 'gid://shopify/ProductVariant/987654321',
+      //       title: '8 Ounces',
+      //       price: 14.99,
+      //       available: true,
+      //       inventory: 8
+      //     }
+      //   }
+      // ]);
     }
     
-    setLoadingSuggestions(false);
+    // setLoadingSuggestions(false);
   };
+  */
 
-  // Handle variant selection for suggested products
+  // Handle variant selection for suggested products - commented out for now
+  /*
   const handleVariantSelect = (productId, variant) => {
-    setSuggestedProducts(prev => 
-      prev.map(product => 
-        product.id === productId 
-          ? { ...product, selectedVariant: variant }
-          : product
-      )
-    );
+    // setSuggestedProducts(prev => 
+    //   prev.map(product => 
+    //     product.id === productId 
+    //       ? { ...product, selectedVariant: variant }
+    //       : product
+    //   )
+    // );
   };
+  */
 
-  // Handle add to cart for suggested product
+  // Handle add to cart for suggested product - commented out for now
+  /*
   const handleAddSuggestion = (product) => {
-    addToCart(product, product.selectedVariant);
+    // addToCart(product, product.selectedVariant);
   };
+  */
 
   const { message, progressWidth } = getProgressInfo();
   const shippingCost = getShippingCost();
@@ -323,8 +333,8 @@ const CartDrawer = () => {
         {/* Cart Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-white">
           <div className="flex items-center">
-            <ShoppingBagIcon className="h-5 w-5 text-gray-700 mr-3" />
-            <h2 className="text-lg font-medium">Your Bag <span className="text-gray-500">({cartCount})</span></h2>
+            <ShoppingBagIcon className="h-5 w-5 min-[390px]:h-6 min-[390px]:w-6 text-gray-700 mr-3" />
+            <h2 className="text-lg min-[390px]:text-xl font-medium">Cart <span className="text-gray-500">({cartCount})</span></h2>
           </div>
           <div className="flex items-center gap-2">
             {/* Clear Cart Button - only show when cart has items */}
@@ -335,7 +345,7 @@ const CartDrawer = () => {
                     forceCleanCart();
                   }
                 }}
-                className="text-xs text-gray-400 hover:text-red-500 transition-colors duration-200 px-2 py-1 rounded"
+                className="text-xs min-[390px]:text-sm text-gray-400 hover:text-red-500 transition-colors duration-200 px-2 py-1 rounded"
                 title="Clear Cart"
               >
                 Clear
@@ -345,18 +355,18 @@ const CartDrawer = () => {
               onClick={toggleCart}
               className="text-gray-500 hover:text-gray-700 focus:outline-none transition-colors duration-200"
             >
-              <XMarkIcon className="h-6 w-6" />
+              <XMarkIcon className="h-6 w-6 min-[390px]:h-7 min-[390px]:w-7" />
             </button>
           </div>
         </div>
 
         {/* Progress Indicator */}
         {cartItems.length > 0 && (
-          <div className="px-5 py-3 bg-[#fffbef] border-b border-gray-200">
+          <div className="px-5 py-3 min-[390px]:py-4 bg-[#fffbef] border-b border-gray-200">
             <div className="mb-2 flex items-center">
-              <span className="text-sm text-gray-800 font-medium">{message}</span>
+              <span className="text-sm min-[390px]:text-base text-gray-800 font-medium">{message}</span>
             </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-2 min-[390px]:h-3 bg-gray-100 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-[#ff6b57] to-[#ffaa57] rounded-full transition-all duration-500 ease-in-out" 
                 style={{ width: progressWidth }}
@@ -368,20 +378,20 @@ const CartDrawer = () => {
         {/* Cart Content */}
         <div className="flex flex-col flex-grow overflow-auto">
           {/* Cart Items - Scrollable */}
-          <div className="flex-grow overflow-y-auto p-5">
+          <div className="flex-grow overflow-y-auto p-5 min-[390px]:p-6">
             {cartItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-6">
-                  <ShoppingBagIcon className="h-12 w-12 text-gray-300" />
+                <div className="w-24 h-24 min-[390px]:w-28 min-[390px]:h-28 rounded-full bg-gray-100 flex items-center justify-center mb-6">
+                  <ShoppingBagIcon className="h-12 w-12 min-[390px]:h-14 min-[390px]:w-14 text-gray-300" />
                 </div>
-                <p className="text-gray-600 mb-4 text-lg">Your cart is empty</p>
-                <p className="text-gray-500 mb-6 text-sm max-w-xs">Looks like you haven't added any products to your cart yet.</p>
+                <p className="text-gray-600 mb-4 text-lg min-[390px]:text-xl">Your cart is empty</p>
+                <p className="text-gray-500 mb-6 text-sm min-[390px]:text-base max-w-xs">Looks like you haven't added any products to your cart yet.</p>
                 <button 
                   onClick={toggleCart} 
                   className="inline-flex items-center text-[#ff6b57] hover:text-[#ff5a43] font-medium transition-colors duration-200"
                 >
-                  <span className="mr-2">Continue Shopping</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <span className="mr-2 text-sm min-[390px]:text-base">Continue Shopping</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 min-[390px]:h-5 min-[390px]:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </button>
@@ -390,10 +400,10 @@ const CartDrawer = () => {
               <div>
                 <ul className="divide-y divide-gray-100">
                   {cartItems.map((item) => (
-                    <li key={`${item.id}-${item.variantId}`} className="py-5">
-                      <div className="flex gap-4">
+                    <li key={`${item.id}-${item.variantId}`} className="py-5 min-[390px]:py-6">
+                      <div className="flex gap-4 min-[390px]:gap-5">
                         {/* Product Image */}
-                        <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-[#e0f5ed] p-1">
+                        <div className="h-20 w-20 min-[390px]:h-24 min-[390px]:w-24 flex-shrink-0 overflow-hidden rounded-md bg-[#e0f5ed] p-1">
                           <img
                             src={item.image}
                             alt={item.name}
@@ -403,22 +413,22 @@ const CartDrawer = () => {
                         
                         {/* Product Details */}
                         <div className="flex flex-col flex-1 min-w-0">
-                          <h3 className="text-sm font-semibold text-gray-900 truncate">{item.name}</h3>
-                          <p className="text-sm text-gray-500 mb-1">{item.variantTitle}</p>
+                          <h3 className="text-sm min-[390px]:text-base font-semibold text-gray-900 truncate">{item.name}</h3>
+                          <p className="text-sm min-[390px]:text-base text-gray-500 mb-1">{item.variantTitle}</p>
                           
                           {/* Show subscription details if it's a subscription item */}
                           {item.subscription && (
                             <div className="mb-1 bg-[#FFF2E6] rounded-md p-1 px-2 inline-flex items-center">
-                              <svg className="w-3 h-3 text-[#FF6B57] mr-1" viewBox="0 0 24 24" fill="currentColor">
+                              <svg className="w-3 h-3 min-[390px]:w-4 min-[390px]:h-4 text-[#FF6B57] mr-1" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>
                               </svg>
-                              <span className="text-xs font-medium text-[#FF6B57]">
+                              <span className="text-xs min-[390px]:text-sm font-medium text-[#FF6B57]">
                                 SUBSCRIBE • SAVE {item.subscription.discount}% • Every {item.subscription.interval} {item.subscription.intervalUnit}{item.subscription.interval > 1 ? 's' : ''}
                               </span>
                             </div>
                           )}
                           
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm min-[390px]:text-base font-medium text-gray-900">
                             {item.subscription 
                               ? <span className="flex items-center">
                                   <span className="line-through text-gray-400 mr-2">${item.price.toFixed(2)}</span>
@@ -433,24 +443,24 @@ const CartDrawer = () => {
                             <div className="flex items-center border rounded-full bg-white overflow-hidden">
                               <button 
                                 onClick={() => updateQuantity(item.id, item.variantId, item.quantity - 1, item.subscription)} 
-                                className="p-1 w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-700 focus:outline-none disabled:opacity-50 transition-colors"
+                                className="p-1 w-7 h-7 min-[390px]:w-8 min-[390px]:h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 focus:outline-none disabled:opacity-50 transition-colors"
                                 disabled={item.quantity <= 1}
                               >
-                                <MinusIcon className="h-3 w-3" />
+                                <MinusIcon className="h-3 w-3 min-[390px]:h-4 min-[390px]:w-4" />
                               </button>
-                              <span className="px-2 text-sm font-medium min-w-[24px] text-center">{item.quantity}</span>
+                              <span className="px-2 min-[390px]:px-3 text-sm min-[390px]:text-base font-medium min-w-[24px] text-center">{item.quantity}</span>
                               <button 
                                 onClick={() => updateQuantity(item.id, item.variantId, item.quantity + 1, item.subscription)} 
-                                className="p-1 w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-700 focus:outline-none transition-colors"
+                                className="p-1 w-7 h-7 min-[390px]:w-8 min-[390px]:h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 focus:outline-none transition-colors"
                               >
-                                <PlusIcon className="h-3 w-3" />
+                                <PlusIcon className="h-3 w-3 min-[390px]:h-4 min-[390px]:w-4" />
                               </button>
                             </div>
                             
                             {/* Remove Button */}
                             <button 
                               onClick={() => removeFromCart(item.id, item.variantId, item.subscription)} 
-                              className="text-sm text-gray-400 hover:text-[#ff6b57] transition-colors"
+                              className="text-sm min-[390px]:text-base text-gray-400 hover:text-[#ff6b57] transition-colors"
                             >
                               Remove
                             </button>
@@ -461,7 +471,7 @@ const CartDrawer = () => {
                           className="self-start text-gray-400 hover:text-gray-600"
                           aria-label="Remove item"
                         >
-                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="min-[390px]:w-6 min-[390px]:h-6">
                             <path fillRule="evenodd" clipRule="evenodd" d="M10 12.3033L6.46447 15.8388L4.34315 13.7175L7.87868 10.182L4.34315 6.64649L6.46447 4.52517L10 8.06069L13.5355 4.52517L15.6569 6.64649L12.1213 10.182L15.6569 13.7175L13.5355 15.8388L10 12.3033Z" fill="currentColor"/>
                           </svg>
                         </button>
@@ -470,8 +480,21 @@ const CartDrawer = () => {
                   ))}
                 </ul>
                 
-                {/* Essential Add-Ons Section - Now inside scrollable cart items area */}
-                {(suggestedProducts.length > 0 || loadingSuggestions) && (
+                {/* Add Additional Products Text */}
+                <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+                  <button 
+                    onClick={() => {
+                      navigate('/products');
+                      toggleCart();
+                    }}
+                    className="text-[#ff6b57] text-sm min-[390px]:text-base font-medium hover:text-[#ff5a43] transition-colors cursor-pointer"
+                  >
+                    Add Additional Products
+                  </button>
+                </div>
+                
+                {/* Popular Add-Ons Section - Completely commented out for now, might need it later
+                {false && (suggestedProducts.length > 0 || loadingSuggestions) && (
                   <div className="mt-6 sm:mt-8 bg-gradient-to-br from-[#f8f5e4] to-[#f1ede0] rounded-lg sm:rounded-xl px-3 sm:px-5 py-4 sm:py-6 border border-[#e8e3d3] shadow-sm">
                     <div className="flex items-center justify-center mb-3 sm:mb-4">
                       <div className="flex-grow h-px bg-gradient-to-r from-transparent via-[#d4c4a8] to-transparent"></div>
@@ -505,7 +528,6 @@ const CartDrawer = () => {
                               className="bg-white rounded-lg border border-[#e8e3d3] p-3 sm:p-4 hover:shadow-md transition-all duration-200 hover:border-[#ff6b57]/20 group"
                             >
                               <div className="flex gap-3">
-                                {/* Product Image */}
                                 <div className="h-14 w-14 sm:h-16 sm:w-16 flex-shrink-0 overflow-hidden bg-gradient-to-br from-[#e0f5ed] to-[#d1f0e4] rounded-lg p-2 group-hover:shadow-sm transition-shadow flex items-center justify-center">
                                   <img 
                                     src={product.image} 
@@ -514,7 +536,6 @@ const CartDrawer = () => {
                                   />
                                 </div>
                                 
-                                {/* Product Details */}
                                 <div className="flex-1 min-w-0">
                                   <div className="mb-2">
                                     <h4 className="font-bold text-xs sm:text-sm text-[#2d3748] mb-1 leading-tight">
@@ -527,11 +548,8 @@ const CartDrawer = () => {
                                     </p>
                                   </div>
                                   
-                                  {/* Variant Selection and Price */}
                                   <div className="space-y-2">
-                                    {/* Variant Selector and Add Button - Same Line */}
                                     <div className="flex items-center gap-2">
-                                      {/* Variant Selector */}
                                       {variants.length > 1 ? (
                                         <div className="relative flex-1">
                                           <select
@@ -571,7 +589,6 @@ const CartDrawer = () => {
                                         </div>
                                       )}
                                       
-                                      {/* Add Button */}
                                       <button 
                                         onClick={() => handleAddSuggestion({...product, selectedVariant})}
                                         disabled={!selectedVariant.available || selectedVariant.inventory === 0}
@@ -603,7 +620,6 @@ const CartDrawer = () => {
                       </div>
                     )}
                     
-                    {/* Bottom CTA */}
                     {!loadingSuggestions && suggestedProducts.length > 0 && (
                       <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#e8e3d3]/50">
                         <p className="text-center text-xs text-[#6b5b37] font-medium">
@@ -613,20 +629,21 @@ const CartDrawer = () => {
                     )}
                   </div>
                 )}
+                */}
               </div>
             )}
           </div>
           
           {/* Cart Footer */}
           {cartItems.length > 0 && (
-            <div className="border-t border-gray-200 p-3 bg-white">
-              <div className="space-y-1 mb-3">
-                <div className="flex justify-between text-xs text-gray-500">
+            <div className="border-t border-gray-200 p-3 min-[390px]:p-4 bg-white">
+              <div className="space-y-1 min-[390px]:space-y-2 mb-3">
+                <div className="flex justify-between text-xs min-[390px]:text-sm text-gray-500">
                   <span>Subtotal</span>
                   <span>${cartTotal.toFixed(2)}</span>
                 </div>
                 
-                <div className="flex justify-between text-xs text-gray-500">
+                <div className="flex justify-between text-xs min-[390px]:text-sm text-gray-500">
                   <span>Shipping</span>
                   {shippingCost === 0 ? (
                     <span className="text-green-600">FREE</span>
@@ -636,30 +653,30 @@ const CartDrawer = () => {
                 </div>
                 
                 {bundleDiscount > 0 && (
-                  <div className="flex justify-between text-xs text-green-600">
+                  <div className="flex justify-between text-xs min-[390px]:text-sm text-green-600">
                     <span>{cartCount >= BUNDLE_6_THRESHOLD ? 'Bundle of 6 Discount' : 'Bundle of 3 Discount'}</span>
                     <span>-${bundleDiscount.toFixed(2)}</span>
                   </div>
                 )}
                 
                 <div className="flex justify-between pt-1 border-t border-gray-100">
-                  <span className="text-sm font-semibold">Total</span>
-                  <span className="text-sm font-semibold">${finalTotal}</span>
+                  <span className="text-sm min-[390px]:text-base font-semibold">Total</span>
+                  <span className="text-sm min-[390px]:text-base font-semibold">${finalTotal}</span>
                 </div>
               </div>
               
-              <div className="mt-3">
+              <div className="mt-3 min-[390px]:mt-4">
                 <button 
                   onClick={checkout}
-                  className="w-full bg-[#ff6b57] hover:bg-[#ff5a43] text-white py-2.5 px-4 rounded-full transition-colors font-medium shadow-sm flex items-center justify-center uppercase text-sm"
+                  className="w-full bg-[#ff6b57] hover:bg-[#ff5a43] text-white py-2.5 min-[390px]:py-3.5 px-4 min-[390px]:px-6 rounded-full transition-colors font-medium shadow-sm flex items-center justify-center uppercase text-sm min-[390px]:text-base"
                 >
                   <span>CHECKOUT</span>
                 </button>
                 
-                <div className="mt-3 text-center">
-                  <p className="text-xs text-gray-500">Taxes Calculated at checkout</p>
+                <div className="mt-3 min-[390px]:mt-4 text-center">
+                  <p className="text-xs min-[390px]:text-sm text-gray-500">Taxes Calculated at checkout</p>
                   {cartItems.some(item => item.subscription) && (
-                    <p className="text-xs font-medium text-[#FF6B57] mt-0.5">
+                    <p className="text-xs min-[390px]:text-sm font-medium text-[#FF6B57] mt-0.5">
                       Your cart contains subscription items
                     </p>
                   )}

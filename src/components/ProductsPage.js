@@ -35,14 +35,38 @@ const categories = [
 
 // Background gradient styles for each product card
 const cardBackgrounds = [
-  'bg-gradient-to-br from-[#e6f4fa] to-[#d9eef8]', // Light blue gradient
-  'bg-gradient-to-br from-[#f2f9e7] to-[#e8f4d9]', // Light green gradient
-  'bg-gradient-to-br from-[#fef5e7] to-[#fbecd3]', // Light yellow/cream gradient
-  'bg-gradient-to-br from-[#f8effc] to-[#f1e3fa]'  // Light lavender gradient
+  'bg-[#def0f9]', // Default light blue color
+  'bg-[#def0f9]', // Default light blue color
+  'bg-[#def0f9]', // Default light blue color
+  'bg-[#def0f9]'  // Default light blue color
 ];
 
 // Global debounce mechanism to prevent multiple rapid calls
 const addToCartDebounce = new Map();
+
+// Shop All Card Component
+const ShopAllCard = ({ category, index }) => {
+  const navigate = useNavigate();
+  
+  const handleShopAllClick = () => {
+    navigate(`/category/${encodeURIComponent(category.category)}`);
+  };
+  
+  return (
+    <div className="flex items-center justify-center h-full">
+      {/* Shop All button - centered in the grid space */}
+      <button 
+        onClick={handleShopAllClick}
+        className="w-3/4 font-bold text-sm sm:text-base py-2 sm:py-3 px-2 sm:px-4 rounded-full transition-all duration-200 flex items-center justify-center bg-[#ff6b57] hover:bg-[#ff5a43] hover:shadow-md active:scale-[0.98] text-white shadow-sm"
+      >
+        SHOP ALL
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  );
+};
 
 // Product Card Component
 const ProductCard = ({ product, index }) => {
@@ -196,26 +220,56 @@ const ProductCard = ({ product, index }) => {
   const formatProductName = (name) => {
     const upperName = name.toUpperCase();
     
-    if (upperName.length > 20) {
+    // Check if we're on mobile (you can also use a hook or context for this)
+    const isMobile = window.innerWidth < 768;
+    
+    if (isMobile) {
+      // On mobile, always split into two lines
       const words = upperName.split(' ');
-      const half = Math.ceil(words.length / 2);
-      const firstHalf = words.slice(0, half).join(' ');
-      const secondHalf = words.slice(half).join(' ');
+      if (words.length === 1) {
+        // If single word, show it on first line with empty second line
+        return (
+          <div className="product-name-container h-16 sm:h-20 flex flex-col justify-start">
+            <p className="text-base sm:text-xl font-bold text-gray-800">{upperName}</p>
+            <div className="h-4 sm:h-6"></div>
+          </div>
+        );
+      } else {
+        // Split words into two lines
+        const half = Math.ceil(words.length / 2);
+        const firstHalf = words.slice(0, half).join(' ');
+        const secondHalf = words.slice(half).join(' ');
+        
+        return (
+          <div className="product-name-container h-16 sm:h-20 flex flex-col justify-start">
+            <p className="text-base sm:text-xl font-bold text-gray-800">{firstHalf}</p>
+            <p className="text-base sm:text-xl font-bold text-gray-800">{secondHalf}</p>
+          </div>
+        );
+      }
+    } else {
+      // Desktop behavior - original logic
+      if (upperName.length > 20) {
+        const words = upperName.split(' ');
+        const half = Math.ceil(words.length / 2);
+        const firstHalf = words.slice(0, half).join(' ');
+        const secondHalf = words.slice(half).join(' ');
+        
+        return (
+          <div className="product-name-container h-16 sm:h-20 flex flex-col justify-start">
+            <p className="text-base sm:text-xl font-bold text-gray-800">{firstHalf}</p>
+            <p className="text-base sm:text-xl font-bold text-gray-800">{secondHalf}</p>
+          </div>
+        );
+      }
       
       return (
         <div className="product-name-container h-16 sm:h-20 flex flex-col justify-start">
-          <p className="text-base sm:text-xl font-bold text-gray-800">{firstHalf}</p>
-          <p className="text-base sm:text-xl font-bold text-gray-800">{secondHalf}</p>
+          <p className="text-base sm:text-xl font-bold text-gray-800 truncate overflow-hidden">{upperName}</p>
+          <div className="h-4 sm:h-6"></div>
         </div>
       );
     }
-    
-    return (
-      <div className="product-name-container h-16 sm:h-20 flex flex-col justify-start">
-        <p className="text-base sm:text-xl font-bold text-gray-800 truncate overflow-hidden">{upperName}</p>
-        <div className="h-4 sm:h-6"></div>
-      </div>
-    );
   };
   
   // Only show dropdown if there are multiple variants
@@ -242,7 +296,7 @@ const ProductCard = ({ product, index }) => {
         <img 
           src={product.image} 
           alt={product.name} 
-          className="h-32 sm:h-48 mx-auto mb-2 sm:mb-4 object-contain mix-blend-multiply"
+          className="h-32 sm:h-48 mx-auto mb-2 sm:mb-4 object-contain"
         />
         
         <div className="flex items-center justify-between mb-1 sm:mb-2">
@@ -342,10 +396,12 @@ const ProductsPage = () => {
   const [activeCategory, setActiveCategory] = useState("");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCategoryOverlay, setShowCategoryOverlay] = useState(false);
   const [currentVisibleCategory, setCurrentVisibleCategory] = useState("");
+  const [showCategoryOverlay, setShowCategoryOverlay] = useState(false);
   const [showMobileCategorySticky, setShowMobileCategorySticky] = useState(false);
   const [mobileCategoryExpanded, setMobileCategoryExpanded] = useState(false);
+  const [isProgrammaticScroll, setIsProgrammaticScroll] = useState(false);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(false);
   const categoryRefs = useRef({});
   const observerRef = useRef(null);
   const overlayScrollRef = useRef(null);
@@ -360,10 +416,19 @@ const ProductsPage = () => {
     } else if (!mobileMenuOpen && window.innerWidth < 768) {
       // Re-evaluate if sticky should be shown when menu closes
       const scrollPosition = window.scrollY;
-      const shouldShowMobileSticky = scrollPosition > 200 && activeCategory;
+      // Show sticky if scrolled past category list AND there's either an active category OR a visible category
+      const shouldShowMobileSticky = scrollPosition > 200 && (activeCategory || currentVisibleCategory) && !mobileMenuOpen;
+      console.log('Mobile sticky logic:', { 
+        scrollPosition, 
+        activeCategory, 
+        currentVisibleCategory, 
+        mobileMenuOpen, 
+        shouldShowMobileSticky,
+        currentShowState: showMobileCategorySticky
+      });
       setShowMobileCategorySticky(shouldShowMobileSticky);
     }
-  }, [mobileMenuOpen, activeCategory]);
+  }, [mobileMenuOpen, activeCategory, currentVisibleCategory]);
 
   // Track scroll position to show/hide the category overlay
   useEffect(() => {
@@ -373,9 +438,18 @@ const ProductsPage = () => {
       
       // Mobile sticky category logic
       if (window.innerWidth < 768) { // Mobile breakpoint
-        // Show sticky when scrolled past the mobile category list (around 200px) and a category is active
+        // Show sticky when scrolled past the mobile category list (around 200px) and there's either 
+        // an active category (user clicked) OR a currently visible category (from intersection observer)
         // but hide when mobile menu is open
-        const shouldShowMobileSticky = scrollPosition > 200 && activeCategory && !mobileMenuOpen;
+        const shouldShowMobileSticky = scrollPosition > 200 && (activeCategory || currentVisibleCategory) && !mobileMenuOpen;
+        console.log('Mobile sticky logic:', { 
+          scrollPosition, 
+          activeCategory, 
+          currentVisibleCategory, 
+          mobileMenuOpen, 
+          shouldShowMobileSticky,
+          currentShowState: showMobileCategorySticky
+        });
         setShowMobileCategorySticky(shouldShowMobileSticky);
         
         // Note: Removed auto-close on scroll to allow users to interact with dropdown
@@ -392,7 +466,7 @@ const ProductsPage = () => {
     
     // Cleanup
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [activeCategory, mobileMenuOpen]);
+  }, [activeCategory, currentVisibleCategory, mobileMenuOpen]);
   
   // Set up intersection observer to detect which category is currently visible
   useEffect(() => {
@@ -403,28 +477,44 @@ const ProductsPage = () => {
       observerRef.current.disconnect();
     }
     
+    // Adjust rootMargin based on device type
+    const isMobile = window.innerWidth < 768;
     const options = {
       root: null, // use viewport
-      rootMargin: '-100px 0px -300px 0px', // top, right, bottom, left
+      rootMargin: isMobile ? '-120px 0px -150px 0px' : '-100px 0px -300px 0px', // More appropriate for mobile
       threshold: 0.1
     };
     
     // Create observer
     observerRef.current = new IntersectionObserver((entries) => {
+      // Don't update category if we're in the middle of programmatic scrolling
+      if (isProgrammaticScroll) {
+        console.log('Skipping intersection update - programmatic scroll in progress');
+        return;
+      }
+      
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const categoryId = entry.target.id;
+          console.log('Intersection detected for:', categoryId);
+          
           // Extract category name from element ID (format: category-xxx-xxx)
           if (categoryId && categoryId.startsWith('category-')) {
-            const categoryName = categoryId.replace('category-', '').replace(/-/g, ' ');
-            // Find the matching category from our categories array
-            const matchedCategory = categories.find(cat => 
-              cat.category.toLowerCase().replace(/\s+/g, '-') === categoryName
-            );
+            const categorySlug = categoryId.replace('category-', '');
+            console.log('Category slug:', categorySlug);
+            
+            // Find the matching category from our categories array by converting category name to slug format
+            const matchedCategory = categories.find(cat => {
+              const categorySlugFromName = cat.category.toLowerCase().replace(/\s+/g, '-');
+              console.log('Comparing:', categorySlugFromName, 'with', categorySlug);
+              return categorySlugFromName === categorySlug;
+            });
             
             if (matchedCategory) {
+              console.log('Setting currentVisibleCategory to:', matchedCategory.category);
               setCurrentVisibleCategory(matchedCategory.category);
-              console.log('Currently visible category:', matchedCategory.category);
+            } else {
+              console.warn('No matching category found for slug:', categorySlug);
             }
           }
         }
@@ -432,8 +522,12 @@ const ProductsPage = () => {
     }, options);
     
     // Observe each category section
-    Object.values(categoryRefs.current).forEach(ref => {
+    const refsToObserve = Object.values(categoryRefs.current).filter(ref => ref !== null);
+    console.log('Setting up intersection observer for', refsToObserve.length, 'category sections');
+    
+    refsToObserve.forEach(ref => {
       if (ref) {
+        console.log('Observing element with ID:', ref.id);
         observerRef.current.observe(ref);
       }
     });
@@ -443,7 +537,7 @@ const ProductsPage = () => {
         observerRef.current.disconnect();
       }
     };
-  }, [products, categories]);
+  }, [products, categories, isProgrammaticScroll]);
 
   // Function to make API calls to Shopify Storefront API using CORS proxy
   const fetchFromStorefrontAPI = async (query) => {
@@ -592,9 +686,18 @@ const ProductsPage = () => {
   // Function to fetch products by names from the provided list
   const fetchHouseplantProducts = async () => {
     try {
-      // Exact houseplant product names from the first image
-      const houseplantProducts = [
-        "Money Tree Fertilizer", "Jade Fertilizer", "Christmas Cactus Fertilizer",
+      // Top 5 houseplant product names in priority order
+      const topHouseplantProducts = [
+        "Monstera Plant Food",
+        "Indoor Plant Food", 
+        "Fiddle Leaf Fig Plant Food",
+        "Christmas Cactus Fertilizer",
+        "Bird of Paradise Fertilizer"
+      ];
+      
+      // Additional houseplant products to fetch
+      const additionalHouseplantProducts = [
+        "Money Tree Fertilizer", "Jade Fertilizer",
         "Cactus Fertilizer", "Succulent Plant Food", "Bonsai Fertilizer",
         "Air Plant Fertilizer", "Snake Plant Fertilizer", "House Plant Food",
         "Mycorrhizal Fungi for Houseplants", "Granular Houseplant Food", 
@@ -602,22 +705,24 @@ const ProductsPage = () => {
         "Granular Indoor Plant Food", "Granular Fig Tree Fertilizer", 
         "Granular Bonsai Fertilizer", "Monstera Root Supplement",
         "Houseplant Root Supplement", "Succulent Root Supplement",
-        "Ficus Root Supplement", "Orchid Root Supplement", "Indoor Plant Food",
+        "Ficus Root Supplement", "Orchid Root Supplement",
         "Instant Plant Food", "Ficus Fertilizer", "Banana Tree Fertilizer", 
         "Philodendron Fertilizer", "Dracaena Fertilizer",
-        "Bird of Paradise Fertilizer", "Aloe Vera Fertilizer", "ZZ Plant Fertilizer",
+        "Aloe Vera Fertilizer", "ZZ Plant Fertilizer",
         "Tropical Plant Fertilizer", "Pothos Fertilizer", "Bromeliad Fertilizer",
-        "Fiddle Leaf Fig Plant Food", "Monstera Plant Food", "African Violet Fertilizer",
-        "Alocasia Fertilizer", "Anthurium Fertilizer", "Bamboo Fertilizer",
-        "Brazilian Wood Plant Food", "Carnivorous Plant Food", "Curry Leaf Plant Fertilizer",
-        "Elephant Ear Fertilizer", "Hoya Fertilizer", "Lucky Bamboo Fertilizer",
-        "Orchid Plant Food", "Peace Lily Fertilizer", "Pitcher Plant Food"
+        "African Violet Fertilizer", "Alocasia Fertilizer", "Anthurium Fertilizer", 
+        "Bamboo Fertilizer", "Brazilian Wood Plant Food", "Carnivorous Plant Food", 
+        "Curry Leaf Plant Fertilizer", "Elephant Ear Fertilizer", "Hoya Fertilizer", 
+        "Lucky Bamboo Fertilizer", "Orchid Plant Food", "Peace Lily Fertilizer", "Pitcher Plant Food"
       ];
+      
+      // Combine lists with top products first
+      const allHouseplantProducts = [...topHouseplantProducts, ...additionalHouseplantProducts];
 
       console.log("Fetching houseplant products by exact names...");
       
       // Create query conditions for each product name
-      const titleQueries = houseplantProducts.map(name => `title:'${name}'`).join(' OR ');
+      const titleQueries = allHouseplantProducts.map(name => `title:'${name}'`).join(' OR ');
       
       const query = `
         {
@@ -707,7 +812,29 @@ const ProductsPage = () => {
           product.category = "Houseplant Products";
         });
         
-        return fetchedProducts;
+        // Sort products by the priority order of top products
+        const sortedProducts = fetchedProducts.sort((a, b) => {
+          const aIndex = topHouseplantProducts.findIndex(name => 
+            a.name.toLowerCase().includes(name.toLowerCase()) || 
+            name.toLowerCase().includes(a.name.toLowerCase())
+          );
+          const bIndex = topHouseplantProducts.findIndex(name => 
+            b.name.toLowerCase().includes(name.toLowerCase()) || 
+            name.toLowerCase().includes(b.name.toLowerCase())
+          );
+          
+          // If both products are in top 5, sort by their index
+          if (aIndex !== -1 && bIndex !== -1) {
+            return aIndex - bIndex;
+          }
+          // If only one is in top 5, prioritize it
+          if (aIndex !== -1) return -1;
+          if (bIndex !== -1) return 1;
+          // If neither is in top 5, maintain original order
+          return 0;
+        });
+        
+        return sortedProducts;
       } else {
         console.log("No houseplant products found using exact names, trying alternative approach");
         return await fetchHouseplantProductsAlternative();
@@ -788,33 +915,135 @@ const ProductsPage = () => {
           }
         }
       `;
-      
+
       const result = await fetchFromStorefrontAPI(query);
       
       if (!result || !result.data) {
-        console.error("Alternative API query returned no data");
-        return [];
+        console.error("Alternative API returned no data");
+        return getFallbackHouseplantProducts();
       }
       
       if (result.data.products && result.data.products.edges.length > 0) {
-        // Map products to our format
-        const mappedProducts = result.data.products.edges.map(mapProductFromShopify);
+        console.log("Found alternative houseplant products:", result.data.products.edges.length);
         
-        // Filter to only include products that should go into the Houseplant category
-        const houseplantProducts = mappedProducts.filter(product => 
-          determineProductCategory(product.name, []) === "Houseplant Products"
-        );
+        // Filter for houseplant-related products
+        const houseplantProducts = result.data.products.edges
+          .map(mapProductFromShopify)
+          .filter(product => {
+            const titleLower = product.name.toLowerCase();
+            return titleLower.includes('indoor') || 
+                   titleLower.includes('houseplant') || 
+                   titleLower.includes('monstera') ||
+                   titleLower.includes('fiddle') ||
+                   titleLower.includes('cactus') ||
+                   titleLower.includes('bird of paradise') ||
+                   product.category === "Houseplant Products";
+          });
         
-        console.log("Found alternative houseplant products:", houseplantProducts.length);
-        return houseplantProducts;
+        // Set category for all filtered products
+        houseplantProducts.forEach(product => {
+          product.category = "Houseplant Products";
+        });
+        
+        return houseplantProducts.length > 0 ? houseplantProducts : getFallbackHouseplantProducts();
       } else {
-        console.log("No houseplant products found with alternative approach");
-        return [];
+        console.log("No alternative houseplant products found, using fallback");
+        return getFallbackHouseplantProducts();
       }
     } catch (error) {
-      console.error("Error in alternative houseplant products approach:", error);
-      return [];
+      console.error("Error in alternative houseplant fetch:", error);
+      return getFallbackHouseplantProducts();
     }
+  };
+
+  // Function to get fallback houseplant products when API fails
+  const getFallbackHouseplantProducts = () => {
+    console.log("Using fallback houseplant products");
+    
+    return [
+      {
+        id: 'monstera-plant-food',
+        name: 'MONSTERA PLANT FOOD',
+        description: 'PLANT FOOD',
+        image: '/assets/products/TPS_8oz_Wrap_PNG/TPS_Monstera_8oz_Wrap.png',
+        price: 14.99,
+        reviews: 1458,
+        rating: 4.9,
+        bestSeller: true,
+        category: 'Houseplant Products',
+        backgroundColorLight: '#e0f5ed',
+        variants: [
+          { id: 'monstera-8oz', title: '8 Ounces', price: 14.99, available: true },
+          { id: 'monstera-16oz', title: '16 Ounces', price: 24.99, available: true },
+          { id: 'monstera-32oz', title: '32 Ounces', price: 39.99, available: true }
+        ]
+      },
+      {
+        id: 'indoor-plant-food',
+        name: 'INDOOR PLANT FOOD',
+        description: 'PLANT FOOD',
+        image: '/assets/products/TPS_8oz_Wrap_PNG/TPS_Indoor_8oz_Wrap.png',
+        price: 14.99,
+        reviews: 1203,
+        rating: 4.8,
+        bestSeller: true,
+        category: 'Houseplant Products',
+        backgroundColorLight: '#e0f5ed',
+        variants: [
+          { id: 'indoor-8oz', title: '8 Ounces', price: 14.99, available: true },
+          { id: 'indoor-16oz', title: '16 Ounces', price: 24.99, available: true },
+          { id: 'indoor-32oz', title: '32 Ounces', price: 39.99, available: true }
+        ]
+      },
+      {
+        id: 'fiddle-leaf-fig-plant-food',
+        name: 'FIDDLE LEAF FIG PLANT FOOD',
+        description: 'PLANT FOOD',
+        image: '/assets/products/TPS_8oz_Wrap_PNG/TPS_Fiddle Leaf Fig_8oz_Wrap.png',
+        price: 14.99,
+        reviews: 987,
+        rating: 4.8,
+        bestSeller: false,
+        category: 'Houseplant Products',
+        backgroundColorLight: '#e0f5ed',
+        variants: [
+          { id: 'fiddle-8oz', title: '8 Ounces', price: 14.99, available: true },
+          { id: 'fiddle-16oz', title: '16 Ounces', price: 24.99, available: true }
+        ]
+      },
+      {
+        id: 'christmas-cactus-fertilizer',
+        name: 'CHRISTMAS CACTUS FERTILIZER',
+        description: 'PLANT FOOD',
+        image: '/assets/products/TPS_8oz_Wrap_PNG/TPS_Christmas Cactus_8oz_Wrap.png',
+        price: 14.99,
+        reviews: 742,
+        rating: 4.7,
+        bestSeller: false,
+        category: 'Houseplant Products',
+        backgroundColorLight: '#e0f5ed',
+        variants: [
+          { id: 'christmas-cactus-8oz', title: '8 Ounces', price: 14.99, available: true },
+          { id: 'christmas-cactus-16oz', title: '16 Ounces', price: 24.99, available: true }
+        ]
+      },
+      {
+        id: 'bird-of-paradise-fertilizer',
+        name: 'BIRD OF PARADISE FERTILIZER',
+        description: 'PLANT FOOD',
+        image: '/assets/products/TPS_8oz_Wrap_PNG/TPS_Bird of Paradise_8oz_Wrap.png',
+        price: 14.99,
+        reviews: 623,
+        rating: 4.6,
+        bestSeller: false,
+        category: 'Houseplant Products',
+        backgroundColorLight: '#e0f5ed',
+        variants: [
+          { id: 'bird-paradise-8oz', title: '8 Ounces', price: 14.99, available: true },
+          { id: 'bird-paradise-16oz', title: '16 Ounces', price: 24.99, available: true }
+        ]
+      }
+    ];
   };
 
   // Function to fetch garden products
@@ -1658,45 +1887,43 @@ const ProductsPage = () => {
       
       console.log("Waiting for products to load before scrolling to:", mappedCategory);
       
-      // Create an interval to check for products and attempt scrolling
-      const scrollInterval = setInterval(() => {
+      // Function to attempt scrolling
+      const attemptScroll = () => {
         if (!loading && products.length > 0 && categoryRefs.current[mappedCategory]) {
-          console.log("Products loaded, scrolling to category:", mappedCategory);
+          console.log("Products loaded, enabling auto-scroll to category:", mappedCategory);
           
-          // Calculate offset based on device type
-          const isMobile = window.innerWidth < 768;
-          let yOffset;
+          // Enable auto-scroll instead of direct scrolling
+          setShouldAutoScroll(true);
           
-          if (isMobile) {
-            // Mobile: Account for navbar (107px) + sticky selector (approx 70px) + some padding
-            // Reduce offset when sticky is visible to bring content closer
-            yOffset = showMobileCategorySticky ? -120 : -110;
-          } else {
-            // Desktop: Account for navbar height + some padding
-            yOffset = -130;
-          }
-          
-          const element = categoryRefs.current[mappedCategory];
-          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-          
-          window.scrollTo({ top: y, behavior: 'smooth' });
-          
-          // Clear the interval once we've scrolled
-          clearInterval(scrollInterval);
-        } else {
-          console.log("Waiting for products to load...");
+          return true; // Scroll enabled successfully
         }
-      }, 100); // Check every 100ms
-      
-      // Cleanup the interval if component unmounts
-      return () => clearInterval(scrollInterval);
+        return false; // Scroll not successful yet
+      };
+
+      // Try to scroll immediately if possible
+      if (!attemptScroll() && scrollAttempts.current < 50) { // Limit to 5 seconds of attempts
+        const scrollInterval = setInterval(() => {
+          if (attemptScroll() || scrollAttempts.current >= 50) {
+            clearInterval(scrollInterval);
+          }
+          scrollAttempts.current++;
+        }, 100);
+
+        return () => {
+          clearInterval(scrollInterval);
+          scrollAttempts.current = 0;
+        };
+      }
     }
-  }, [location, loading, products]);
+  }, [location.search, loading, products]);
 
   // Scroll to category section when category is selected
   useEffect(() => {
-    if (activeCategory && categoryRefs.current[activeCategory]) {
+    if (shouldAutoScroll && activeCategory && categoryRefs.current[activeCategory]) {
       console.log("Scrolling to active category:", activeCategory);
+      
+      // Set programmatic scroll flag
+      setIsProgrammaticScroll(true);
       
       // Calculate offset based on device type
       const isMobile = window.innerWidth < 768;
@@ -1715,10 +1942,17 @@ const ProductsPage = () => {
       const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
       
       window.scrollTo({ top: y, behavior: 'smooth' });
-    } else if (activeCategory) {
+      
+      // Reset both flags after scrolling completes
+      setTimeout(() => {
+        setIsProgrammaticScroll(false);
+        setShouldAutoScroll(false);
+      }, 1000);
+    } else if (shouldAutoScroll && activeCategory) {
       console.warn("Category ref not found for:", activeCategory);
+      setShouldAutoScroll(false); // Reset flag if category not found
     }
-  }, [activeCategory, showMobileCategorySticky]);
+  }, [activeCategory, showMobileCategorySticky, shouldAutoScroll]);
 
   // Function to scroll the active category into view in the horizontal scrollbar
   const scrollActiveCategoryIntoView = (categoryName) => {
@@ -1758,28 +1992,8 @@ const ProductsPage = () => {
     // Also set as current visible for the overlay highlighting
     setCurrentVisibleCategory(category);
     
-    // Scroll directly to the category section
-    setTimeout(() => {
-      const categoryElement = categoryRefs.current[category];
-      if (categoryElement) {
-        // Calculate offset based on device type
-        const isMobile = window.innerWidth < 768;
-        let yOffset;
-        
-        if (isMobile) {
-          // Mobile: Account for navbar (107px) + sticky selector (approx 70px) + some padding
-          // Reduce offset when sticky is visible to bring content closer
-          yOffset = showMobileCategorySticky ? -190 : -180;
-        } else {
-          // Desktop: Account for navbar height + some padding
-          yOffset = -130;
-        }
-        
-        const y = categoryElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
-        
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      }
-    }, 100);
+    // Enable auto-scroll for this category change
+    setShouldAutoScroll(true);
   };
 
   // Scroll active category into view when current visible category changes
@@ -2716,25 +2930,12 @@ const ProductsPage = () => {
       // Function to attempt scrolling
       const attemptScroll = () => {
         if (!loading && products.length > 0 && categoryRefs.current[categoryFromURL]) {
-          console.log("Products loaded, scrolling to category:", categoryFromURL);
+          console.log("Products loaded, enabling auto-scroll to category:", categoryFromURL);
           
-          // Calculate offset based on device type
-          const isMobile = window.innerWidth < 768;
-          let yOffset;
+          // Enable auto-scroll instead of direct scrolling
+          setShouldAutoScroll(true);
           
-          if (isMobile) {
-            // Mobile: Account for navbar (107px) + sticky selector (approx 70px) + some padding
-            yOffset = showMobileCategorySticky ? -190 : -180;
-          } else {
-            // Desktop: Account for navbar height + some padding
-            yOffset = -130;
-          }
-          
-          const element = categoryRefs.current[categoryFromURL];
-          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-          
-          window.scrollTo({ top: y, behavior: 'smooth' });
-          return true; // Scroll successful
+          return true; // Scroll enabled successfully
         }
         return false; // Scroll not successful yet
       };
@@ -2755,6 +2956,15 @@ const ProductsPage = () => {
       }
     }
   }, [location.search, loading, products]);
+
+  // Sync activeCategory with currentVisibleCategory during manual scrolling on mobile
+  useEffect(() => {
+    // Only sync when not doing programmatic scrolling and currentVisibleCategory exists and is different
+    if (!isProgrammaticScroll && currentVisibleCategory && currentVisibleCategory !== activeCategory) {
+      console.log('Syncing activeCategory with currentVisibleCategory:', currentVisibleCategory);
+      setActiveCategory(currentVisibleCategory);
+    }
+  }, [currentVisibleCategory, isProgrammaticScroll, activeCategory]);
 
   return (
     <section className="bg-[#fffbef]">
@@ -2894,7 +3104,13 @@ const ProductsPage = () => {
               className="w-full flex items-center justify-between bg-white border-2 border-[#ff6b6b] rounded-full px-4 py-2 text-left"
             >
               <span className="text-base font-medium text-black">
-                {(currentVisibleCategory || activeCategory) ? categories.find(cat => cat.category === (currentVisibleCategory || activeCategory))?.name.replace('\n', ' ') : 'Plant Categories'}
+                {currentVisibleCategory ? 
+                  categories.find(cat => cat.category === currentVisibleCategory)?.name.replace('\n', ' ') :
+                  (activeCategory ? 
+                    categories.find(cat => cat.category === activeCategory)?.name.replace('\n', ' ') : 
+                    'Plant Categories'
+                  )
+                }
               </span>
               <svg 
                 className={`w-5 h-5 text-[#ff6b6b] transition-transform duration-200 ${
@@ -2916,7 +3132,7 @@ const ProductsPage = () => {
                     key={cat.category}
                     onClick={() => handleCategoryClick(cat.category)}
                     className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors duration-150 ${
-                      (currentVisibleCategory || activeCategory) === cat.category ? 'bg-[#ff6b6b] text-white' : 'text-black'
+                      (currentVisibleCategory ? currentVisibleCategory === cat.category : activeCategory === cat.category) ? 'bg-[#ff6b6b] text-white' : 'text-black'
                     }`}
                   >
                     <span className="text-base font-medium">
@@ -2988,9 +3204,11 @@ const ProductsPage = () => {
 
                       {/* Mobile Products Grid */}
                       <div className="grid grid-cols-2 gap-4 md:hidden">
-                        {categoryProducts.slice(0, 6).map((product, index) => (
+                        {categoryProducts.slice(0, 5).map((product, index) => (
                           <ProductCard key={product.id} product={product} index={index} />
                         ))}
+                        {/* Shop All Card as the last item */}
+                        <ShopAllCard category={category} index={5} />
                       </div>
                       
                       {/* Desktop view: Modern "See All" Header + Products */}
@@ -3029,9 +3247,11 @@ const ProductsPage = () => {
 
                         {/* Desktop Products Grid */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                          {categoryProducts.slice(0, 8).map((product, index) => (
+                          {categoryProducts.slice(0, 7).map((product, index) => (
                             <ProductCard key={product.id} product={product} index={index} />
                           ))}
+                          {/* Shop All Card as the last item */}
+                          <ShopAllCard category={category} index={7} />
                         </div>
                       </div>
                     </>

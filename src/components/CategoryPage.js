@@ -31,6 +31,18 @@ const categories = [
   }
 ];
 
+// Top 8 houseplant products in priority order
+const TOP_HOUSEPLANT_PRODUCTS = [
+  { name: "Monstera Plant Food", upc: "857611006538", priority: 1 },
+  { name: "Indoor Plant Food", upc: "857611006521", priority: 2 },
+  { name: "Fiddle Leaf Fig Plant Food", upc: "857611006583", priority: 3 },
+  { name: "Christmas Cactus Fertilizer", upc: "810151950099", priority: 4 },
+  { name: "Bird of Paradise Fertilizer", upc: "810151950365", priority: 5 },
+  { name: "Fern Fertilizer", upc: "810151950334", priority: 6 },
+  { name: "Orchid Fertilizer", upc: "857611006590", priority: 7 },
+  { name: "Banana Tree Fertilizer", upc: "810151950006", priority: 8 }
+];
+
 // Background gradient styles for each product card
 const cardBackgrounds = [
   'bg-gradient-to-br from-[#e6f4fa] to-[#d9eef8]', // Light blue gradient
@@ -286,8 +298,70 @@ const CategoryPage = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categoryInfo, setCategoryInfo] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Function to determine product priority for houseplant products
+  const getProductPriority = (product) => {
+    if (!product || !product.name) return 999; // Default priority for non-houseplant products
+
+    const productName = product.name.toLowerCase();
+    const productSku = product.sku?.toLowerCase() || '';
+    
+    // Check if this product matches any of the top 8 priority products
+    const topProduct = TOP_HOUSEPLANT_PRODUCTS.find(topProd => {
+      const nameMatch = productName.includes(topProd.name.toLowerCase()) || 
+                       topProd.name.toLowerCase().includes(productName);
+      const upcMatch = productSku.includes(topProd.upc) || 
+                      product.variants?.some(variant => 
+                        variant.sku?.includes(topProd.upc) || 
+                        variant.upc?.includes(topProd.upc)
+                      );
+      return nameMatch || upcMatch;
+    });
+
+    return topProduct ? topProduct.priority : 999; // Return priority number or 999 for non-priority items
+  };
+
+  // Function to sort houseplant products with custom priority
+  const sortHouseplantProducts = (products) => {
+    return products.sort((a, b) => {
+      const aPriority = getProductPriority(a);
+      const bPriority = getProductPriority(b);
+      
+      // If both products have the same priority (both in top 8 or both not in top 8)
+      if (aPriority === bPriority) {
+        // If both are in top 8, maintain their priority order
+        if (aPriority <= 8 && bPriority <= 8) {
+          return aPriority - bPriority;
+        }
+        // If both are not in top 8, sort alphabetically
+        return a.name.localeCompare(b.name);
+      }
+      
+      // If one is priority and one is not, prioritize the one with lower priority number
+      return aPriority - bPriority;
+    });
+  };
+
+  // Filter products based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredProducts(products);
+    } else {
+      const filtered = products.filter(product => {
+        const nameMatch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const upcMatch = product.variants?.some(variant => 
+          variant.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          variant.upc?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        return nameMatch || upcMatch;
+      });
+      setFilteredProducts(filtered);
+    }
+  }, [products, searchTerm]);
 
   // Function to determine product category based on title and tags (reused from ProductsPage.js)
   const determineProductCategory = (title, tags) => {
@@ -446,6 +520,7 @@ const CategoryPage = () => {
       available: edge.node.availableForSale,
       quantity: edge.node.quantityAvailable || 0,
       sku: edge.node.sku || "",
+      upc: edge.node.sku || "", // Assuming SKU contains UPC for now
       options: edge.node.selectedOptions || [],
       image: edge.node.image ? edge.node.image.transformedSrc : null
     }));
@@ -486,7 +561,8 @@ const CategoryPage = () => {
       bestSeller: bestSeller,
       category: category,
       backgroundColorLight: background.light,
-      variants: variants
+      variants: variants,
+      sku: defaultVariant?.sku || ""
     };
   };
 
@@ -606,9 +682,14 @@ const CategoryPage = () => {
         const allProducts = result.data.products.edges.map(mapProductFromShopify);
         
         // Filter products by the specified category
-        const categoryProducts = allProducts.filter(product => 
+        let categoryProducts = allProducts.filter(product => 
           product.category === categoryName
         );
+        
+        // Apply custom sorting for houseplant products
+        if (categoryName === "Houseplant Products") {
+          categoryProducts = sortHouseplantProducts(categoryProducts);
+        }
         
         console.log(`Found ${categoryProducts.length} products for category ${categoryName}`);
         setProducts(categoryProducts);
@@ -688,24 +769,67 @@ const CategoryPage = () => {
         </button>
       </div>
 
+      {/* Search/Filter Bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+        <div className="relative max-w-md mx-auto">
+          <input
+            type="text"
+            placeholder="Search by product name or UPC..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-2 pl-10 pr-4 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#ff6b57] focus:border-transparent"
+          />
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            >
+              <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {searchTerm && (
+          <p className="text-center text-sm text-gray-600 mt-2">
+            Showing {filteredProducts.length} results for "{searchTerm}"
+          </p>
+        )}
+      </div>
+
       {/* Products Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-lg text-gray-600">Loading products...</p>
           </div>
-        ) : products.length > 0 ? (
+        ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map((product, index) => (
+            {filteredProducts.map((product, index) => (
               <ProductCard key={product.id} product={product} index={index} />
             ))}
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-lg text-gray-600">No products available in this category</p>
+            <p className="text-lg text-gray-600">
+              {searchTerm ? `No products found for "${searchTerm}"` : "No products available in this category"}
+            </p>
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="mt-4 text-[#ff6b57] hover:text-[#ff5a43] font-medium"
+              >
+                Clear search
+              </button>
+            )}
             <button 
               onClick={() => navigate('/products')} 
-              className="mt-4 bg-[#ff6b57] text-white px-4 py-2 rounded-full font-medium shadow-md hover:bg-[#ff5a43] transition-colors duration-200"
+              className="mt-4 ml-4 bg-[#ff6b57] text-white px-4 py-2 rounded-full font-medium shadow-md hover:bg-[#ff5a43] transition-colors duration-200"
             >
               Browse Other Categories
             </button>

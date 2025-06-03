@@ -270,6 +270,7 @@ const MobileImageGallery = ({ isOpen, onClose, images, initialImage, productName
 // Mobile Product Carousel Component
 const MobileProductCarousel = ({ images, onImageClick }) => {
   const glideRef = useRef(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     if (glideRef.current) {
@@ -278,6 +279,11 @@ const MobileProductCarousel = ({ images, onImageClick }) => {
         perView: 1,
         gap: 0,
         animationDuration: 600,
+      });
+
+      // Listen for slide changes to update current slide
+      glide.on('run', () => {
+        setCurrentSlide(glide.index);
       });
 
       glide.mount();
@@ -289,14 +295,14 @@ const MobileProductCarousel = ({ images, onImageClick }) => {
   }, [images]);
 
   return (
-    <div className="relative w-[90%] mx-auto mb-6">
+    <div className="relative w-[90%] mx-auto mb-4">
       <div ref={glideRef} className="glide">
         <div className="glide__track" data-glide-el="track">
           <ul className="glide__slides">
             {images.map((image, index) => (
               <li key={index} className="glide__slide">
                 <div 
-                  className="relative aspect-[3/4] bg-white rounded-2xl overflow-hidden shadow-sm"
+                  className="relative aspect-square bg-white rounded-2xl overflow-hidden shadow-sm"
                   onClick={() => onImageClick(index + 1)}
                 >
                   {/* Background video - only show for slides that have hasVideo true */}
@@ -327,6 +333,22 @@ const MobileProductCarousel = ({ images, onImageClick }) => {
           </ul>
         </div>
       </div>
+      
+      {/* Dots indicator - only show if there's more than one image */}
+      {images.length > 1 && (
+        <div className="flex justify-center gap-1 mt-2">
+          {images.map((_, index) => (
+            <div
+              key={index}
+              className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                currentSlide === index
+                  ? 'bg-[#FF6B6B]'
+                  : 'bg-gray-300'
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -361,9 +383,10 @@ const ProductPage = () => {
   // Monitor scroll position to show/hide sticky bar
   useEffect(() => {
     const handleScroll = () => {
-      if (productHeroRef.current) {
-        const heroBottom = productHeroRef.current.getBoundingClientRect().bottom;
-        setShowStickyBar(heroBottom < 0);
+      const buyNowButton = document.getElementById('main-buy-now-button');
+      if (buyNowButton) {
+        const buttonBottom = buyNowButton.getBoundingClientRect().bottom;
+        setShowStickyBar(buttonBottom < 0);
       }
     };
 
@@ -845,6 +868,50 @@ const ProductPage = () => {
         { id: 'variant1', title: '8 Ounces', price: 14.99, available: true },
         { id: 'variant2', title: '16 Ounces', price: 24.99, available: true }
       ]
+    },
+    {
+      id: "5",
+      name: "CHRISTMAS CACTUS",
+      description: "FERTILIZER",
+      fullDescription: "Our specialized Christmas Cactus Fertilizer is formulated specifically for Christmas cacti and other holiday cacti. This gentle yet effective fertilizer promotes beautiful blooms during the holiday season and maintains healthy growth year-round.",
+      image: "/assets/products/TPS_8oz_Wrap_PNG/TPS_Christmas Cactus_8oz_Wrap.png",
+      price: 14.99,
+      reviews: 542,
+      rating: 4.7,
+      bestSeller: false,
+      features: [
+        "Specially formulated for Christmas cacti and holiday cacti",
+        "Promotes vibrant, long-lasting blooms",
+        "Gentle formula won't burn sensitive roots",
+        "Supports healthy growth during dormant periods"
+      ],
+      directions: "Mix 1/4 teaspoon with 2 cups of water and apply once every 3-4 weeks during growing season. Reduce to monthly during winter dormancy.",
+      variants: [
+        { id: 'variant1', title: '8 Ounces', price: 14.99, available: true },
+        { id: 'variant2', title: '16 Ounces', price: 24.99, available: true }
+      ]
+    },
+    {
+      id: "6",
+      name: "BIRD OF PARADISE",
+      description: "FERTILIZER",
+      fullDescription: "Our Bird of Paradise Fertilizer is specially designed for these magnificent tropical plants. This premium formula supports the growth of large, dramatic leaves and helps your Bird of Paradise reach its full potential, whether grown indoors or outdoors.",
+      image: "/assets/products/TPS_8oz_Wrap_PNG/TPS_Bird of Paradise_8oz_Wrap.png",
+      price: 14.99,
+      reviews: 381,
+      rating: 4.6,
+      bestSeller: false,
+      features: [
+        "Formulated specifically for Bird of Paradise plants",
+        "Promotes large, dramatic leaf development",
+        "Supports flowering in mature plants",
+        "Ideal for both indoor and outdoor plants"
+      ],
+      directions: "Mix 1/4 teaspoon with 2 cups of water and apply every 2-3 weeks during growing season. Reduce frequency in winter.",
+      variants: [
+        { id: 'variant1', title: '8 Ounces', price: 14.99, available: true },
+        { id: 'variant2', title: '16 Ounces', price: 24.99, available: true }
+      ]
     }
   ];
 
@@ -1047,7 +1114,7 @@ const ProductPage = () => {
         </div>
 
         {/* Main Section */}
-        <main className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 py-6 px-4">
+        <main className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 py-6 px-4">
           {/* Product Image & Best Seller */}
           <section aria-labelledby="product-images-heading">
             <h2 id="product-images-heading" className="sr-only">Product Images</h2>
@@ -1066,8 +1133,7 @@ const ProductPage = () => {
               {/* Desktop Image View */}
               <div className="hidden md:block">
                 <div 
-                  className="relative mb-6 rounded-2xl overflow-hidden bg-white shadow-sm cursor-pointer"
-                  style={{ aspectRatio: '3/4' }}
+                  className="relative rounded-2xl overflow-hidden bg-white shadow-sm cursor-pointer aspect-square"
                   onClick={() => setImageModalOpen(true)}
                 >
                   {/* Background video - only show for slides that have hasVideo true */}
@@ -1194,7 +1260,7 @@ const ProductPage = () => {
             <h2 id="product-details-heading" className="sr-only">Product Details</h2>
 
             {/* Title */}
-            <h1 className="text-2xl font-bold mb-1">
+            <h1 className="text-2xl font-bold mb-1 md:mb-1">
               {(() => {
                 // Comprehensive list of product type keywords to check
                 const productTypeKeywords = [
@@ -1329,13 +1395,13 @@ const ProductPage = () => {
                 <>
                   <button 
                     onClick={() => setSelectedBundle('single')}
-                    className={`relative overflow-hidden group border rounded-xl p-4 flex flex-col items-center transition-all duration-300 ${
+                    className={`relative overflow-hidden group border rounded-xl p-4 flex flex-col items-center transition-all duration-200 ${
                       selectedBundle === 'single'
-                        ? 'border-2 border-[#E94F37] bg-[#FFF9F9] scale-[1.02]'
+                        ? 'border-4 border-[#E94F37] bg-[#FFF9F9] scale-[1.02]'
                         : 'border-gray-200 bg-white opacity-60'
                     }`}
                   >
-                    <div className="h-24 w-full mb-2 relative z-10 bg-white rounded-lg flex items-center justify-center">
+                    <div className="h-40 md:h-24 w-full mb-2 relative z-10 bg-white rounded-lg flex items-center justify-center">
                       <img 
                         src={
                           variantImages[selectedVariant.id] || 
@@ -1352,16 +1418,16 @@ const ProductPage = () => {
                   </button>
                   <button 
                     onClick={() => setSelectedBundle('bundle')}
-                    className={`relative overflow-visible group rounded-xl p-4 flex flex-col items-center transition-all duration-300 border-2 ${
+                    className={`relative overflow-visible group rounded-xl p-4 flex flex-col items-center transition-all duration-200 border-2 ${
                       selectedBundle === 'bundle'
-                        ? 'border-[#E94F37] bg-[#FFF3E6] scale-[1.02]'
+                        ? 'border-4 border-[#E94F37] bg-[#FFF3E6] scale-[1.02]'
                         : 'border-gray-200 bg-white opacity-60'
                     }`}
                   >
                     <span className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs px-3 py-1 bg-[#E94F37] text-white rounded-full font-semibold whitespace-nowrap z-[100]">
                       BETTER TOGETHER
                     </span>
-                    <div className="flex justify-center items-center gap-2 h-24 mb-2 relative z-10">
+                    <div className="flex justify-center items-center gap-2 h-32 md:h-24 mb-2 relative z-10">
                       <div className="h-full w-1/2 bg-white rounded-lg flex items-center justify-center">
                         <img 
                           src={
@@ -1403,8 +1469,9 @@ const ProductPage = () => {
 
             {/* Buy Now Button */}
             <button 
+              id="main-buy-now-button"
               onClick={handleAddToCart}
-              className={`w-full bg-[#FFC600] hover:bg-[#FFD700] text-black font-bold py-3 rounded-lg text-lg mb-3 ${
+              className={`w-full bg-[#FFC600] hover:bg-[#FFD700] text-black font-bold py-3 rounded-lg text-lg mb-1 md:mb-3 ${
                 !selectedVariant ? 'opacity-50 cursor-not-allowed' : ''
               }`}
               disabled={!selectedVariant}
@@ -1413,7 +1480,7 @@ const ProductPage = () => {
             </button>
 
             {/* Purchase Options */}
-            <div className="mt-5 mb-4">
+            <div className="mt-2 md:mt-5 mb-4">
               {/* One-time purchase option */}
               <div 
                 className={`rca-subscription border rounded-xl p-5 cursor-pointer transition-all duration-200 mb-3 hover:shadow-sm ${
@@ -1482,7 +1549,7 @@ const ProductPage = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <label htmlFor="subscribe" className="font-bold text-gray-900 tracking-wide">SUBSCRIBE</label>
-                      <span className="text-xs font-bold bg-gray-100 text-gray-700 px-3 py-1 rounded-full">SAVE 15%</span>
+                      <span className="text-xs font-bold bg-gray-100 text-gray-700 px-3 py-1 rounded-full">SAVE 10%</span>
                     </div>
                     <div className="flex items-center gap-1 mb-1">
                       <span className="text-sm text-gray-600">Delivery every</span>
@@ -1535,27 +1602,26 @@ const ProductPage = () => {
           {/* Made in USA Badge */}
           <div className="flex flex-col items-center">
             <img src="/assets/Icons/PDP-BadgesMade-in-US-Icon.png" alt="Made in USA" className="w-16 h-16 md:w-24 md:h-24 mb-1 md:mb-2" />
-            <h3 className="text-sm md:text-xl font-bold text-gray-900">MADE IN THE USA</h3>
+            <h3 className="text-sm md:text-xl font-bold text-gray-900">MADE IN <br></br>THE USA</h3>
           </div>
           
           {/* Free Shipping Badge */}
           <div className="flex flex-col items-center">
             <img src="/assets/Icons/PDP-BadgesFree-Shipping-Icon.png" alt="Free Shipping" className="w-16 h-16 md:w-24 md:h-24 mb-1 md:mb-2" />
-            <h3 className="text-sm md:text-xl font-bold text-gray-900">FREE SHIPPING</h3>
+            <h3 className="text-sm md:text-xl font-bold text-gray-900">FREE SHIPPING OVER $15</h3>
           </div>
         </div>
       </div>
       
+      {/* <IngredientsSlider /> */}
+      
+      {/* <LeafDivider /> */}
       <LeafDivider />
-      <IngredientsSlider />
+      <AnimatedLeafDivider />
+      <LeafDivider />
+      <ComparisonChart />
       <LeafDivider />
       <BuildBundleSection />
-      <LeafDivider />
-      <ShopByPlantAlternative />
-      <LeafDivider />
-      <CustomerReviews />
-      <AnimatedLeafDivider />
-      <ComparisonChart />
       <MobileNewsletter />
 
       {/* Sticky Product Bar */}
@@ -1567,60 +1633,67 @@ const ProductPage = () => {
         <div className="w-full mx-auto px-3 py-3">
           {/* Mobile view */}
           <div className="md:hidden">
-            <div className="flex items-center justify-between">
-              {/* Product minimal info */}
-              <div className="flex items-center space-x-2">
-                <div className="w-10 h-10 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0">
-                  <img 
-                    src={productImages[0]?.src || product?.image} 
-                    alt={product?.name} 
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-gray-900 line-clamp-1">{product?.name}</h3>
-                  <span className="text-xs font-bold text-[#E94F37]">
-                    ${isSubscription 
-                      ? calculatePrice(selectedVariant ? selectedVariant.price : product?.price, true)
-                      : (selectedVariant ? selectedVariant.price.toFixed(2) : product?.price.toFixed(2))
-                    }
-                  </span>
+            <div className="flex items-center gap-2">
+              {/* Product image */}
+              <div className="w-10 h-10 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0">
+                <img 
+                  src={productImages[0]?.src || product?.image} 
+                  alt={product?.name} 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              
+              {/* Product name */}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xs font-bold text-gray-900 leading-tight overflow-hidden"
+                    style={{ 
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical'
+                    }}>
+                  {product?.name}
+                </h3>
+              </div>
+              
+              {/* Size selector */}
+              <div className="flex-shrink-0 relative" style={{ minWidth: '120px' }}>
+                <select 
+                  value={selectedVariant?.id || ""}
+                  onChange={(e) => {
+                    const variant = product?.variants.find(v => v.id === e.target.value);
+                    if (variant) setSelectedVariant(variant);
+                  }}
+                  className="form-select appearance-none block w-full py-2 pl-2 pr-7 text-xs font-medium 
+                    border border-gray-200 focus:border-[#E94F37] hover:border-gray-300
+                    rounded-lg bg-white shadow-sm focus:outline-none focus:ring-0
+                    transition-colors duration-200"
+                >
+                  <option value="" disabled>Select Size</option>
+                  {product?.variants.map(variant => (
+                    <option 
+                      key={variant.id} 
+                      value={variant.id}
+                      disabled={!variant.available}
+                    >
+                      {variant.title} - ${variant.price.toFixed(2)}
+                    </option>
+                  ))}
+                </select>
+                {/* Dropdown arrow indicator */}
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg className="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
                 </div>
               </div>
               
-              {/* Buy button - simplified for mobile */}
+              {/* Buy button */}
               <button 
                 onClick={handleAddToCart}
-                className="bg-[#FFC600] hover:bg-[#FFD700] text-black font-bold py-2 px-4 rounded-lg text-xs whitespace-nowrap"
+                className="bg-[#FFC600] hover:bg-[#FFD700] text-black font-bold py-2 px-3 rounded-lg text-xs whitespace-nowrap flex-shrink-0"
               >
                 {isSubscription ? "Subscribe" : "Buy Now"}
               </button>
-            </div>
-            
-            {/* Size selector - full width on mobile */}
-            <div className="mt-2 relative">
-              <select 
-                value={selectedVariant?.id || ""}
-                onChange={(e) => {
-                  const variant = product?.variants.find(v => v.id === e.target.value);
-                  if (variant) setSelectedVariant(variant);
-                }}
-                className="form-select appearance-none block w-full py-2 px-3 text-xs font-medium 
-                  border border-gray-200 focus:border-[#E94F37] hover:border-gray-300
-                  rounded-lg bg-white shadow-sm focus:outline-none focus:ring-0
-                  transition-colors duration-200"
-              >
-                <option value="" disabled>Select Size</option>
-                {product?.variants.map(variant => (
-                  <option 
-                    key={variant.id} 
-                    value={variant.id}
-                    disabled={!variant.available}
-                  >
-                    {variant.title} - ${variant.price.toFixed(2)}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
           
