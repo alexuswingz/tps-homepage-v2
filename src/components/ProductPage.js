@@ -1581,13 +1581,11 @@ const ProductPage = () => {
                         : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)) : 24.99),
                         true)}
                     </div>
-                    {isSubscription && (
-                      <div className="text-sm text-gray-500 line-through">
-                        ${calculatePrice(selectedBundle === 'single'
-                          ? (selectedVariant ? selectedVariant.price : 14.99)
-                          : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)) : 24.99))}
-                      </div>
-                    )}
+                    <div className="text-sm text-gray-500 line-through">
+                      ${calculatePrice(selectedBundle === 'single'
+                        ? (selectedVariant ? selectedVariant.price : 14.99)
+                        : (selectedVariant ? (selectedVariant.price + (silicaProduct ? silicaProduct.price : 10)) : 24.99))}
+                    </div>
                   </div>
                 </div>
               </div>
