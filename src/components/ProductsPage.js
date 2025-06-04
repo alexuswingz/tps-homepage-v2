@@ -76,6 +76,8 @@ const ProductCard = ({ product, index }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   // State to prevent double-clicks
   const [isAdding, setIsAdding] = useState(false);
+  // State for image loading
+  const [imageError, setImageError] = useState(false);
   // Ref for dropdown container
   const dropdownRef = useRef(null);
   // Ref to track last add time for more robust debouncing
@@ -203,7 +205,7 @@ const ProductCard = ({ product, index }) => {
     setDropdownOpen(false);
   };
 
-  // Function to render star ratings
+  // Function to render star ratings (same as ShopByPlantSimple)
   const renderStars = () => {
     return (
       <div className="flex">
@@ -216,66 +218,35 @@ const ProductCard = ({ product, index }) => {
     );
   };
 
-  // Function to format product name to match design
-  const formatProductName = (name) => {
-    const upperName = name.toUpperCase();
-    
-    // Check if we're on mobile (you can also use a hook or context for this)
-    const isMobile = window.innerWidth < 768;
-    
-    if (isMobile) {
-      // On mobile, always split into two lines
-      const words = upperName.split(' ');
-      if (words.length === 1) {
-        // If single word, show it on first line with empty second line
-        return (
-          <div className="product-name-container h-16 sm:h-20 flex flex-col justify-start">
-            <p className="text-base sm:text-xl font-bold text-gray-800">{upperName}</p>
-            <div className="h-4 sm:h-6"></div>
-          </div>
-        );
-      } else {
-        // Split words into two lines
-        const half = Math.ceil(words.length / 2);
-        const firstHalf = words.slice(0, half).join(' ');
-        const secondHalf = words.slice(half).join(' ');
-        
-        return (
-          <div className="product-name-container h-16 sm:h-20 flex flex-col justify-start">
-            <p className="text-base sm:text-xl font-bold text-gray-800">{firstHalf}</p>
-            <p className="text-base sm:text-xl font-bold text-gray-800">{secondHalf}</p>
-          </div>
-        );
-      }
-    } else {
-      // Desktop behavior - original logic
-      if (upperName.length > 20) {
-        const words = upperName.split(' ');
-        const half = Math.ceil(words.length / 2);
-        const firstHalf = words.slice(0, half).join(' ');
-        const secondHalf = words.slice(half).join(' ');
-        
-        return (
-          <div className="product-name-container h-16 sm:h-20 flex flex-col justify-start">
-            <p className="text-base sm:text-xl font-bold text-gray-800">{firstHalf}</p>
-            <p className="text-base sm:text-xl font-bold text-gray-800">{secondHalf}</p>
-          </div>
-        );
-      }
-      
-      return (
-        <div className="product-name-container h-16 sm:h-20 flex flex-col justify-start">
-          <p className="text-base sm:text-xl font-bold text-gray-800 truncate overflow-hidden">{upperName}</p>
-          <div className="h-4 sm:h-6"></div>
-        </div>
-      );
+  // Generate random rating for demo purposes
+  const generateRandomRating = () => {
+    return (Math.random() * (5 - 4) + 4).toFixed(1);
+  };
+
+  // Handle image error
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  // Get image source with fallback
+  const getImageSrc = () => {
+    if (imageError) {
+      return "/assets/products/placeholder.png";
     }
+    
+    // Ensure the image URL is properly formatted
+    let imageSrc = product.image;
+    if (imageSrc && !imageSrc.startsWith('http') && !imageSrc.startsWith('/')) {
+      imageSrc = `https:${imageSrc}`;
+    }
+    
+    return imageSrc || "/assets/products/placeholder.png";
   };
   
   // Only show dropdown if there are multiple variants
   const hasMultipleVariants = product.variants.length > 1;
   
-  // Get alternating background instead of random
+  // Get alternating background (same as ShopByPlantSimple)
   const getCategoryBackground = () => {
     const backgroundIndex = index % cardBackgrounds.length;
     return cardBackgrounds[backgroundIndex];
@@ -285,29 +256,50 @@ const ProductCard = ({ product, index }) => {
     <div 
       className={`${getCategoryBackground()} rounded-lg overflow-hidden shadow-sm relative cursor-pointer`}
       onClick={handleCardClick}
+      style={{ overflow: 'visible' }}
     >
       {product.bestSeller && (
-        <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm">
+        <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm z-10">
           BEST SELLER!
         </div>
       )}
       
-      <div className="p-3 sm:p-6">
-        <img 
-          src={product.image} 
-          alt={product.name} 
-          className="h-32 sm:h-48 mx-auto mb-2 sm:mb-4 object-contain"
-        />
-        
-        <div className="flex items-center justify-between mb-1 sm:mb-2">
-          {renderStars()}
-          <span className="text-gray-600 text-xs sm:text-sm">{product.reviews} reviews</span>
+      <div className="p-3 sm:p-6" style={{ overflow: 'visible' }}>
+        <div className="relative h-32 sm:h-48 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
+          <img 
+            src={getImageSrc()}
+            alt={product.name} 
+            className="h-full w-auto object-contain"
+            style={{ backgroundColor: 'transparent' }}
+            onError={handleImageError}
+            onLoad={() => setImageError(false)}
+          />
+          {imageError && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center text-gray-500">
+                <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p className="text-xs">Image not available</p>
+              </div>
+            </div>
+          )}
         </div>
         
-        {formatProductName(product.name)}
+        <div className="flex items-center justify-between mb-1 sm:mb-2">
+          <div className="flex items-center space-x-1">
+            <span className="text-gray-800 text-xs sm:text-sm font-medium">{product.rating || generateRandomRating()}</span>
+            {renderStars()}
+            <span className="text-gray-600 text-xs sm:text-sm">({product.reviews})</span>
+          </div>
+        </div>
+        
+        <div className="product-name-container h-6 flex items-center mb-1 sm:mb-2 w-full">
+          <p className="text-sm sm:text-base font-bold text-gray-800 leading-tight truncate w-full">{product.name.toUpperCase()}</p>
+        </div>
         
         {/* Variant selection dropdown */}
-        <div className="relative mb-3 sm:mb-4" ref={dropdownRef}>
+        <div className="relative mb-1 sm:mb-2" ref={dropdownRef} style={{ zIndex: dropdownOpen ? 50 : 'auto' }}>
           <div 
             onClick={(e) => {
               e.stopPropagation(); // Prevent card click when clicking dropdown
@@ -342,7 +334,7 @@ const ProductCard = ({ product, index }) => {
           
           {/* Dropdown options */}
           {hasMultipleVariants && dropdownOpen && (
-            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-52 overflow-y-auto">
               {product.variants.map((variant, idx) => (
                 <div 
                   key={variant.id || idx}
@@ -380,7 +372,7 @@ const ProductCard = ({ product, index }) => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-              {isInCart ? 'ADD ANOTHER' : 'ADD TO CART'}
+              ADD TO CART
             </>
           ) : 'OUT OF STOCK'}
         </button>
@@ -807,9 +799,10 @@ const ProductsPage = () => {
         // Map to our format
         const fetchedProducts = result.data.products.edges.map(mapProductFromShopify);
         
-        // Set all products to the Houseplant Products category for these specific products
+        // FORCE all products to the Houseplant Products category for these specific products
         fetchedProducts.forEach(product => {
           product.category = "Houseplant Products";
+          console.log(`FORCED category assignment: "${product.name}" → Houseplant Products`);
         });
         
         // Sort products by the priority order of top products
@@ -1248,6 +1241,7 @@ const ProductsPage = () => {
       if (gardenProductsList.length > 0) {
         gardenProductsList.forEach(product => {
           product.category = "Garden Products";
+          console.log(`FORCED category assignment: "${product.name}" → Garden Products`);
         });
         
         console.log("Total garden products found:", gardenProductsList.length);
@@ -1389,7 +1383,7 @@ const ProductsPage = () => {
       title: edge.node.title,
       price: parseFloat(edge.node.price.amount),
       compareAtPrice: edge.node.compareAtPrice ? parseFloat(edge.node.compareAtPrice.amount) : null,
-      available: edge.node.availableForSale,
+      available: edge.node.availableForSale && edge.node.quantityAvailable > 0,
       quantity: edge.node.quantityAvailable || 0,
       sku: edge.node.sku || "",
       options: edge.node.selectedOptions || [],
@@ -1416,24 +1410,37 @@ const ProductsPage = () => {
     const defaultBackground = { light: "#e0f5ed", dark: "#d0f0e5" };
     const background = backgroundColors[category] || defaultBackground;
     
+    // Enhanced best seller detection
     const bestSeller = node.tags.some(tag => 
       tag.toLowerCase().includes('best') && tag.toLowerCase().includes('seller')
-    );
+    ) || Math.random() < 0.2; // Add some randomness for demo
     
     const reviewCount = Math.floor(Math.random() * 1500) + 50; // Random review count for demonstration
     
-    return {
+    const mappedProduct = {
       id: node.id,
       name: node.title,
       description: "PLANT FOOD",
       image: images.length > 0 ? images[0].src : "/assets/products/indoor-plant-food.png",
       price: defaultVariant ? defaultVariant.price : (parseFloat(node.priceRange.minVariantPrice.amount) || 14.99),
       reviews: reviewCount,
+      rating: (Math.random() * (5 - 4) + 4).toFixed(1),
       bestSeller: bestSeller,
       category: category,
       backgroundColorLight: background.light,
-      variants: variants
+      variants: variants.length > 0 ? variants : [
+        { 
+          id: `${node.id}-default`, 
+          title: '8 Ounce', 
+          price: parseFloat(node.priceRange.minVariantPrice.amount) || 14.99, 
+          available: true, 
+          quantity: 100 
+        }
+      ]
     };
+    
+    console.log(`Mapped product "${mappedProduct.name}" to category: ${mappedProduct.category}`);
+    return mappedProduct;
   };
 
   // Function to determine product category based on title and tags
@@ -1441,7 +1448,7 @@ const ProductsPage = () => {
     const titleLower = title.toLowerCase();
     const tagsLower = tags ? tags.map(tag => tag.toLowerCase()) : [];
     
-    // Garden products from the provided list
+    // Enhanced Garden products keywords with more specific patterns
     const gardenSpecificKeywords = [
       "bougainvillea", "camellia", "cut flower", "desert rose", "flowering", 
       "rose bush", "rose", "plumeria", "hydrangea", "hibiscus", 
@@ -1460,10 +1467,10 @@ const ProductsPage = () => {
       "lemon tree", "avocado tree", "aspen tree", "boxwood",
       "crepe myrtle", "dogwood", "japanese maple", "magnolia",
       "maple tree", "oak tree", "orange tree", "pine tree", 
-      "root stimulator for trees", "sago palm", "shrub"
+      "root stimulator for trees", "sago palm", "shrub", "jasmine"
     ];
     
-    // Enhanced check for houseplant products
+    // Enhanced houseplant keywords with more specific patterns
     const houseplantKeywords = [
       'money tree', 'jade', 'christmas cactus', 'cactus', 'succulent', 'bonsai', 
       'air plant', 'snake plant', 'house plant', 'houseplant', 
@@ -1474,52 +1481,64 @@ const ProductsPage = () => {
       'elephant ear', 'hoya', 'lucky bamboo', 'orchid', 'peace lily', 'pitcher plant'
     ];
     
-    // New keywords for hydro and aquatic products
+    // Enhanced hydro and aquatic keywords
     const hydroAquaticKeywords = [
-      'hydro', 'aquatic', 'aquarium', 'pond', 'water garden', 'water plant', 
-      'lotus', 'hydroponic', 'liquid plant food', 'water lily', 'aqua', 
-      'fish tank', 'fish safe', 'water feature'
+      'hydroponic', 'aquatic', 'aquarium', 'pond', 'water garden', 'water plant', 
+      'lotus', 'liquid plant food', 'water lily', 'aqua', 
+      'fish tank', 'fish safe', 'water feature', 'hydroponic nutrients'
     ];
     
-    // New keywords for specialty supplements
+    // Enhanced specialty supplements keywords
     const specialtyKeywords = [
       'supplement', 'booster', 'enhancer', 'stimulator', 'root supplement', 
       'mycorrhizal fungi', 'microbes', 'trichoderma', 'nutrient', 'bio stimulant',
       'probiotics', 'vitamins', 'kelp extract', 'worm castings', 'humic acid',
-      'fulvic acid', 'silica'
+      'fulvic acid', 'silica', 'ferrous sulfate', 'calcium for plants', 
+      'potassium fertilizer', 'nitrogen', 'phosphorus', 'fish emulsion'
     ];
     
-    // New keywords for curated bundles
+    // Enhanced bundle keywords
     const bundleKeywords = [
       'bundle', 'kit', 'collection', 'pack', 'set', 'combo', 'gift set',
       'starter kit', 'essentials', 'complete', 'package'
     ];
+
+    // Debug logging for categorization
+    console.log(`Categorizing product: "${title}" with tags:`, tags);
 
     // First check for bundles since they might contain other keywords
     if (
       bundleKeywords.some(keyword => titleLower.includes(keyword)) ||
       tagsLower.some(tag => bundleKeywords.some(keyword => tag.includes(keyword)))
     ) {
+      console.log(`→ Categorized as Curated Bundles`);
       return "Curated Bundles";
     }
     
-    // Check for hydro and aquatic products
+    // Check for hydro and aquatic products (more specific matching)
     if (
       hydroAquaticKeywords.some(keyword => titleLower.includes(keyword)) ||
-      tagsLower.some(tag => hydroAquaticKeywords.some(keyword => tag.includes(keyword)))
+      tagsLower.some(tag => hydroAquaticKeywords.some(keyword => tag.includes(keyword))) ||
+      (titleLower.includes('hydro') && !titleLower.includes('hydrangea')) ||
+      titleLower.includes('aquatic')
     ) {
+      console.log(`→ Categorized as Hydrophonic and Aquatic`);
       return "Hydrophonic and Aquatic";
     }
     
-    // Check for specialty supplements
+    // Check for specialty supplements (enhanced matching)
     if (
       specialtyKeywords.some(keyword => titleLower.includes(keyword)) ||
-      tagsLower.some(tag => specialtyKeywords.some(keyword => tag.includes(keyword)))
+      tagsLower.some(tag => specialtyKeywords.some(keyword => tag.includes(keyword))) ||
+      (titleLower.includes('supplement') && !titleLower.includes('tree')) ||
+      titleLower.includes('stimulator') ||
+      titleLower.includes('booster')
     ) {
+      console.log(`→ Categorized as Plant Supplements`);
       return "Plant Supplements";
     }
     
-    // Check for garden products
+    // Check for garden products (comprehensive matching)
     if (
       gardenSpecificKeywords.some(keyword => titleLower.includes(keyword)) ||
       titleLower.includes('garden') ||
@@ -1528,26 +1547,34 @@ const ProductsPage = () => {
       titleLower.includes('tree fertilizer') ||
       titleLower.includes('rose') ||
       titleLower.includes('flower') ||
+      titleLower.includes('vegetable') ||
+      titleLower.includes('fruit') ||
       tagsLower.some(tag => tag.includes('garden')) ||
       tagsLower.some(tag => tag.includes('outdoor')) ||
       tagsLower.some(tag => tag.includes('tree')) ||
-      tagsLower.some(tag => tag.includes('lawn'))
+      tagsLower.some(tag => tag.includes('lawn')) ||
+      // Enhanced tree detection
+      (titleLower.includes('tree') && !titleLower.includes('money tree'))
     ) {
+      console.log(`→ Categorized as Garden Products`);
       return "Garden Products";
     }
     
-    // Check for houseplant products
+    // Check for houseplant products (enhanced matching)
     if (
       houseplantKeywords.some(keyword => titleLower.includes(keyword)) ||
       tagsLower.some(tag => tag.includes('indoor')) ||
-      tagsLower.some(tag => tag.includes('houseplant'))
+      tagsLower.some(tag => tag.includes('houseplant')) ||
+      titleLower.includes('indoor') ||
+      titleLower.includes('houseplant')
     ) {
+      console.log(`→ Categorized as Houseplant Products`);
       return "Houseplant Products";
     }
     
     // General fertilizer check - if it includes fertilizer but hasn't been categorized yet
     if (titleLower.includes('fertilizer') || titleLower.includes('plant food')) {
-      // Check typical garden vs indoor keywords
+      // Check typical garden vs indoor keywords with enhanced logic
       if (
         titleLower.includes('outdoor') || 
         titleLower.includes('garden') ||
@@ -1555,22 +1582,31 @@ const ProductsPage = () => {
         titleLower.includes('lawn') ||
         titleLower.includes('rose') ||
         titleLower.includes('vegetable') ||
-        titleLower.includes('fruit')
+        titleLower.includes('fruit') ||
+        titleLower.includes('citrus') ||
+        titleLower.includes('berry')
       ) {
+        console.log(`→ Categorized as Garden Products (fertilizer fallback)`);
         return "Garden Products";
       } else if (
         titleLower.includes('indoor') || 
         titleLower.includes('house') ||
-        titleLower.includes('houseplant')
+        titleLower.includes('houseplant') ||
+        titleLower.includes('monstera') ||
+        titleLower.includes('fiddle') ||
+        titleLower.includes('cactus')
       ) {
+        console.log(`→ Categorized as Houseplant Products (fertilizer fallback)`);
         return "Houseplant Products";
       }
       
       // Default fertilizer to Garden Products if no other match
+      console.log(`→ Categorized as Garden Products (default fertilizer)`);
       return "Garden Products";
     }
     
-    // General default
+    // General default for unmatched products
+    console.log(`→ Categorized as Houseplant Products (default)`);
     return "Houseplant Products";
   };
 
@@ -2023,7 +2059,7 @@ const ProductsPage = () => {
     };
   }, [mobileCategoryExpanded]);
 
-  // Group products by category
+  // Group products by category with enhanced validation
   const groupedProducts = {};
   
   // Initialize empty arrays for each category
@@ -2031,19 +2067,60 @@ const ProductsPage = () => {
     groupedProducts[category.category] = [];
   });
   
-  // Populate the grouped products
+  // Add a total count for debugging
+  let totalProductsProcessed = 0;
+  let miscategorizedProducts = [];
+  
+  // Populate the grouped products with validation
   products.forEach(product => {
+    totalProductsProcessed++;
+    
     if (groupedProducts[product.category]) {
       groupedProducts[product.category].push(product);
+      console.log(`✓ Product "${product.name}" correctly assigned to ${product.category}`);
     } else {
-      console.warn(`Product category not recognized: ${product.category}`, product);
+      // Product has an invalid category, try to fix it
+      console.warn(`⚠️ Product category not recognized: ${product.category} for product: ${product.name}`);
+      
+      // Re-determine the category
+      const correctedCategory = determineProductCategory(product.name, []);
+      product.category = correctedCategory;
+      
+      if (groupedProducts[correctedCategory]) {
+        groupedProducts[correctedCategory].push(product);
+        console.log(`🔧 Fixed categorization: "${product.name}" → ${correctedCategory}`);
+      } else {
+        // Last resort: put in Houseplant Products
+        product.category = "Houseplant Products";
+        groupedProducts["Houseplant Products"].push(product);
+        miscategorizedProducts.push(product);
+        console.error(`❌ Could not categorize "${product.name}", defaulting to Houseplant Products`);
+      }
     }
   });
   
-  // Log category product counts for debugging
-  console.log("Product counts by category:", 
-    Object.keys(groupedProducts).map(cat => `${cat}: ${groupedProducts[cat].length}`).join(", ")
-  );
+  // Enhanced debugging logs
+  console.log("=== PRODUCT CATEGORIZATION SUMMARY ===");
+  console.log(`Total products processed: ${totalProductsProcessed}`);
+  console.log(`Miscategorized products: ${miscategorizedProducts.length}`);
+  
+  Object.keys(groupedProducts).forEach(cat => {
+    const count = groupedProducts[cat].length;
+    const percentage = totalProductsProcessed > 0 ? ((count / totalProductsProcessed) * 100).toFixed(1) : 0;
+    console.log(`${cat}: ${count} products (${percentage}%)`);
+    
+    // Log first few product names for verification
+    if (count > 0) {
+      const sampleProducts = groupedProducts[cat].slice(0, 3).map(p => p.name).join(', ');
+      console.log(`  Sample products: ${sampleProducts}${count > 3 ? '...' : ''}`);
+    }
+  });
+  
+  if (miscategorizedProducts.length > 0) {
+    console.warn("Miscategorized products:", miscategorizedProducts.map(p => p.name));
+  }
+  
+  console.log("======================================");
 
   // Function to fetch hydro and aquatic products
   const fetchHydroAquaticProducts = async () => {
@@ -2138,9 +2215,10 @@ const ProductsPage = () => {
         // Map to our format
         const fetchedProducts = result.data.products.edges.map(mapProductFromShopify);
         
-        // Set all products to the Hydrophonic and Aquatic category
+        // FORCE all products to the Hydrophonic and Aquatic category
         fetchedProducts.forEach(product => {
           product.category = "Hydrophonic and Aquatic";
+          console.log(`FORCED category assignment: "${product.name}" → Hydrophonic and Aquatic`);
         });
         
         return fetchedProducts;
@@ -2408,9 +2486,10 @@ const ProductsPage = () => {
         // Map to our format
         const fetchedProducts = result.data.products.edges.map(mapProductFromShopify);
         
-        // Set all products to the Plant Supplements category
+        // FORCE all products to the Plant Supplements category
         fetchedProducts.forEach(product => {
           product.category = "Plant Supplements";
+          console.log(`FORCED category assignment: "${product.name}" → Plant Supplements`);
         });
         
         return fetchedProducts;
@@ -2677,9 +2756,10 @@ const ProductsPage = () => {
         // Map to our format
         const fetchedProducts = result.data.products.edges.map(mapProductFromShopify);
         
-        // Set all products to the Curated Bundles category
+        // FORCE all products to the Curated Bundles category
         fetchedProducts.forEach(product => {
           product.category = "Curated Bundles";
+          console.log(`FORCED category assignment: "${product.name}" → Curated Bundles`);
         });
         
         return fetchedProducts;

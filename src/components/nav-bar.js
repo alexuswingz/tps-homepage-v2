@@ -111,7 +111,7 @@ const MobileSearchResults = ({ closeMenus }) => (
             className="w-full h-full object-cover"
           />
         </div>
-        <span className="text-lg font-medium text-gray-700">BUILD A BUNDLE & SAVE $10</span>
+        <span className="text-lg font-medium text-gray-700">BUILD A BUNDLE & SAVE $5</span>
       </Link>
     </div>
     
@@ -407,7 +407,7 @@ const NavBar = () => {
                       className="w-full h-full object-cover rounded"
                     />
                   </div>
-                  <span className="font-medium text-gray-700">BUILD A BUNDLE & SAVE $10</span>
+                  <span className="font-medium text-gray-700">BUILD A BUNDLE & SAVE $5</span>
                 </Link>
                 
                 {/* Divider */}
@@ -560,7 +560,7 @@ const NavBar = () => {
                     className="w-full h-full object-cover rounded"
                   />
                 </div>
-                <span className="font-medium text-gray-700 text-base">BUILD A BUNDLE & SAVE $10</span>
+                <span className="font-medium text-gray-700 text-base">BUILD A BUNDLE & SAVE $5</span>
               </Link>
               
               {/* First Divider */}
@@ -727,7 +727,7 @@ const NavBar = () => {
                       className="w-full h-full object-cover rounded"
                     />
                   </div>
-                  <span className="font-medium text-gray-700 text-base">BUILD A BUNDLE & SAVE $10</span>
+                  <span className="font-medium text-gray-700 text-base">BUILD A BUNDLE & SAVE $5</span>
                 </Link>
               </div>
             </>

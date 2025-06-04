@@ -738,12 +738,12 @@ const BuildABundlePage = () => {
       addToCart(item.product, item.variant, item.quantity);
     });
     
-    // Apply the BUY3SAVE10 discount code
-    localStorage.setItem('bundleDiscount', 'BUY3SAVE10');
-    setDiscount('BUY3SAVE10');
+    // Apply the BUY3SAVE5 discount code
+    localStorage.setItem('bundleDiscount', 'BUY3SAVE5');
+    setDiscount('BUY3SAVE5');
     
     // Show notification that discount is applied
-    window.alert('Bundle added to cart! Your BUY3SAVE10 discount ($10 off) will be automatically applied at checkout.');
+    window.alert('Bundle added to cart! Your BUY3SAVE5 discount ($5 off) will be automatically applied at checkout.');
   };
   
   // Filter products based on selected category
@@ -1073,13 +1073,13 @@ const BuildABundlePage = () => {
                 <p className="font-medium text-gray-700">{bundleCount}/3 SELECTED</p>
               </div>
               
-              <p className="text-center text-gray-600">Add 3 bottles to save $10!</p>
+              <p className="text-center text-gray-600">Add 3 bottles to save $5!</p>
               
               {bundleCount === 3 && (
                 <>
                   <div className="bg-[#f8f0ff] border border-[#e0c6ff] rounded-lg p-3 mt-4 mb-4">
                     <p className="text-center text-sm font-medium text-[#7b2cbf]">
-                      BUY3SAVE10 discount will be applied at checkout!
+                      BUY3SAVE5 discount will be applied at checkout!
                     </p>
                   </div>
                   <button className="w-full bg-[#ff6b57] hover:bg-[#ff5a5a] text-white font-bold py-3 px-4 rounded-full transition-colors" onClick={handleCheckoutBundle}>
@@ -1173,13 +1173,13 @@ const BuildABundlePage = () => {
                 <p className="font-medium text-gray-700">{bundleCount}/3 SELECTED</p>
               </div>
               
-              <p className="text-center text-gray-600">Add 3 bottles to save $10!</p>
+              <p className="text-center text-gray-600">Add 3 bottles to save $5!</p>
               
               {bundleCount === 3 && (
                 <>
                   <div className="bg-[#f8f0ff] border border-[#e0c6ff] rounded-lg p-3 mt-4 mb-4">
                     <p className="text-center text-sm font-medium text-[#7b2cbf]">
-                      BUY3SAVE10 discount will be applied at checkout!
+                      BUY3SAVE5 discount will be applied at checkout!
                     </p>
                   </div>
                   <button className="w-full bg-[#ff6b57] hover:bg-[#ff5a5a] text-white font-bold py-3 px-4 rounded-full transition-colors" onClick={handleCheckoutBundle}>

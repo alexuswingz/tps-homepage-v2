@@ -1,17 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const BuildBundleSection = () => {
   const scrollRef = useRef(null);
   const [productImages, setProductImages] = useState([]);
-  const [isUserInteracting, setIsUserInteracting] = useState(false);
-  const scrollIntervalRef = useRef(null);
-  const interactionTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
-  const lastTimeRef = useRef(0);
-  const velocityRef = useRef(0);
-  const lastMouseXRef = useRef(0);
-  const isScrollingRef = useRef(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
     // Include all product images from the folder
@@ -132,39 +126,10 @@ const BuildBundleSection = () => {
     setProductImages(uniqueImages);
   }, []);
 
-  // Smooth scroll animation with easing
-  const smoothScroll = (targetScroll, duration = 500) => {
-    const scrollContainer = scrollRef.current;
-    if (!scrollContainer) return;
-
-    const startScroll = scrollContainer.scrollLeft;
-    const startTime = performance.now();
-    const distance = targetScroll - startScroll;
-
-    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
-
-    const animate = (currentTime) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      const easing = easeOutCubic(progress);
-      scrollContainer.scrollLeft = startScroll + (distance * easing);
-
-      if (progress < 1) {
-        animationFrameRef.current = requestAnimationFrame(animate);
-      }
-    };
-
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    animationFrameRef.current = requestAnimationFrame(animate);
-  };
-
-  // Setup auto-scrolling with smooth animation
+  // Auto-scrolling animation
   const startAutoScroll = () => {
     const scrollContainer = scrollRef.current;
-    if (!scrollContainer || productImages.length === 0 || isUserInteracting) return;
+    if (!scrollContainer || productImages.length === 0) return;
 
     let lastTimestamp = 0;
     const autoScrollSpeed = 1; // Pixels per frame
@@ -173,7 +138,7 @@ const BuildBundleSection = () => {
       if (!lastTimestamp) lastTimestamp = timestamp;
       const deltaTime = timestamp - lastTimestamp;
       
-      if (!isUserInteracting && scrollContainer) {
+      if (scrollContainer) {
         scrollContainer.scrollLeft += autoScrollSpeed * (deltaTime / 16);
 
         // Reset scroll position for infinite loop
@@ -190,135 +155,18 @@ const BuildBundleSection = () => {
   };
 
   useEffect(() => {
-    const cleanup = startAutoScroll();
+    startAutoScroll();
     return () => {
-      if (cleanup) cleanup();
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [productImages, isUserInteracting]);
+  }, [productImages]);
 
-  // Enhanced scroll handling with momentum
-  useEffect(() => {
-    const scrollContainer = scrollRef.current;
-    if (!scrollContainer) return;
-
-    let isDragging = false;
-    let startX = 0;
-    let currentX = 0;
-    let lastX = 0;
-    let scrollLeft = 0;
-    let momentumID = null;
-    let lastMoveTime = 0;
-
-    const applyMomentum = () => {
-      if (!isDragging && Math.abs(velocityRef.current) > 0.1) {
-        velocityRef.current *= 0.95; // Decay factor
-        scrollContainer.scrollLeft += velocityRef.current;
-        momentumID = requestAnimationFrame(applyMomentum);
-      } else {
-        velocityRef.current = 0;
-        cancelAnimationFrame(momentumID);
-      }
-    };
-
-    const handleInteractionStart = (e) => {
-      setIsUserInteracting(true);
-      isDragging = true;
-      startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
-      currentX = startX;
-      lastX = startX;
-      scrollLeft = scrollContainer.scrollLeft;
-      lastMoveTime = performance.now();
-      
-      if (momentumID) {
-        cancelAnimationFrame(momentumID);
-      }
-      velocityRef.current = 0;
-    };
-
-    const handleInteractionMove = (e) => {
-      if (!isDragging) return;
-      e.preventDefault();
-
-      const currentTime = performance.now();
-      const x = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
-      const deltaX = x - currentX;
-      currentX = x;
-
-      // Calculate velocity
-      const timeDelta = currentTime - lastMoveTime;
-      if (timeDelta > 0) {
-        velocityRef.current = (deltaX) / timeDelta * 16; // Scale to roughly pixels per frame
-      }
-
-      scrollContainer.scrollLeft = scrollLeft - (currentX - startX);
-      lastMoveTime = currentTime;
-    };
-
-    const handleInteractionEnd = () => {
-      isDragging = false;
-      
-      // Apply momentum scrolling
-      if (Math.abs(velocityRef.current) > 0.1) {
-        momentumID = requestAnimationFrame(applyMomentum);
-      }
-
-      // Resume auto-scroll after delay
-      clearTimeout(interactionTimeoutRef.current);
-      interactionTimeoutRef.current = setTimeout(() => {
-        setIsUserInteracting(false);
-      }, 1500);
-    };
-
-    const handleWheel = (e) => {
-      // Only prevent default for horizontal scrolling or when holding shift
-      if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        e.preventDefault();
-        setIsUserInteracting(true);
-        
-        // Use deltaX for natural horizontal scrolling, fallback to deltaY if shift is held
-        const scrollAmount = e.shiftKey ? e.deltaY * 2 : e.deltaX * 2;
-        smoothScroll(scrollContainer.scrollLeft + scrollAmount, 300);
-
-        clearTimeout(interactionTimeoutRef.current);
-        interactionTimeoutRef.current = setTimeout(() => {
-          setIsUserInteracting(false);
-        }, 1500);
-      }
-      // Don't prevent default for vertical scrolling
-    };
-
-    // Event listeners
-    scrollContainer.addEventListener('mousedown', handleInteractionStart);
-    scrollContainer.addEventListener('touchstart', handleInteractionStart);
-    scrollContainer.addEventListener('mousemove', handleInteractionMove);
-    scrollContainer.addEventListener('touchmove', handleInteractionMove);
-    scrollContainer.addEventListener('mouseup', handleInteractionEnd);
-    scrollContainer.addEventListener('mouseleave', handleInteractionEnd);
-    scrollContainer.addEventListener('touchend', handleInteractionEnd);
-    scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      scrollContainer.removeEventListener('mousedown', handleInteractionStart);
-      scrollContainer.removeEventListener('touchstart', handleInteractionStart);
-      scrollContainer.removeEventListener('mousemove', handleInteractionMove);
-      scrollContainer.removeEventListener('touchmove', handleInteractionMove);
-      scrollContainer.removeEventListener('mouseup', handleInteractionEnd);
-      scrollContainer.removeEventListener('mouseleave', handleInteractionEnd);
-      scrollContainer.removeEventListener('touchend', handleInteractionEnd);
-      scrollContainer.removeEventListener('wheel', handleWheel);
-
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (momentumID) {
-        cancelAnimationFrame(momentumID);
-      }
-      clearTimeout(interactionTimeoutRef.current);
-    };
-  }, []);
+  // Handle product image click
+  const handleProductClick = () => {
+    navigate('/build-bundle');
+  };
 
   // Error handling for images
   const handleImageError = (e) => {
@@ -347,11 +195,9 @@ const BuildBundleSection = () => {
           <div className="relative overflow-hidden -mx-4 md:-mx-8 lg:-mx-12">
             <div 
               ref={scrollRef}
-              className="flex overflow-x-auto overflow-y-hidden scrollbar-hide gap-0 py-4 cursor-grab active:cursor-grabbing"
+              className="flex overflow-x-hidden overflow-y-hidden scrollbar-hide gap-0 py-4"
               style={{ 
                 scrollBehavior: 'auto',
-                WebkitOverflowScrolling: 'touch',
-                touchAction: 'pan-x',
                 willChange: 'transform, scroll-position',
                 position: 'relative',
                 msOverflowStyle: 'none',
@@ -360,6 +206,7 @@ const BuildBundleSection = () => {
                 paddingRight: '1rem',
                 marginLeft: '-1rem',
                 marginRight: '-1rem',
+                pointerEvents: 'none', // Disable all pointer events on the container
               }}
             >
               <div className="flex-shrink-0 w-[1rem]" aria-hidden="true" />
@@ -367,10 +214,12 @@ const BuildBundleSection = () => {
               {[...productImages, ...productImages, ...productImages].map((image, index) => (
                 <div 
                   key={index} 
-                  className="flex-shrink-0 w-[145px] md:w-[125px] lg:w-[140px] xl:w-[155px] mr-5 md:mr-4 lg:mr-6"
+                  className="flex-shrink-0 w-[145px] md:w-[125px] lg:w-[140px] xl:w-[155px] mr-5 md:mr-4 lg:mr-6 cursor-pointer hover:transform hover:scale-105 transition-transform duration-200"
                   style={{
                     transform: 'translate3d(0,0,0)',
+                    pointerEvents: 'auto', // Re-enable pointer events on individual products
                   }}
+                  onClick={handleProductClick}
                 >
                   <div className="relative flex justify-center items-center">
                     <img 

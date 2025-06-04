@@ -5,6 +5,7 @@ import HeroSection from './components/hero-section';
 import BuildBundleSection from './components/build-bundle-section';
 import BuildABundlePage from './components/BuildABundlePage';
 import ShopByPlantAlternative from './components/ShopByPlantAlternative';
+import ShopByPlantSimple from './components/ShopByPlantSimple';
 import MonsteraProductSection from './components/monstera-product-section';
 import CustomerReviews from './components/customer-reviews';
 import ComparisonChart from './components/comparison-chart';
@@ -14,6 +15,7 @@ import AnimatedLeafDivider from './components/AnimatedLeafDivider';
 import ProductsPage from './components/ProductsPage';
 import CategoryPage from './components/CategoryPage';
 import ProductPage from './components/ProductPage';
+import AllProductsPage from './components/AllProductsPage';
 import MobileNewsletter from './components/MobileNewsletter';
 import TestReCharge from './components/TestReCharge';
 import SubscriptionManager from './components/SubscriptionManager';
@@ -45,7 +47,7 @@ function App() {
                   <LeafDivider />
                   <BuildBundleSection />
                   <LeafDivider />
-                  <ShopByPlantAlternative />
+                  <ShopByPlantSimple />
                   <LeafDivider />
                   <MonsteraProductSection />
                   <LeafDivider />
@@ -57,6 +59,7 @@ function App() {
               } />
               <Route path="/build-bundle" element={<BuildABundlePage />} />
               <Route path="/products" element={<ProductsPage />} />
+              <Route path="/all-products" element={<AllProductsPage />} />
               <Route path="/category/:categoryId" element={<CategoryPage />} />
               <Route path="/product/:productId" element={<ProductPage />} />
               <Route path="/test-recharge" element={<TestReCharge />} />

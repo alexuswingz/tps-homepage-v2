@@ -2,7 +2,7 @@ import React, { useRef, useLayoutEffect, useState, useEffect } from 'react';
 
 const messages = [
   'Free Shipping Over $15',
-  { text: 'Buy 3 Save $10', link: '/build-bundle' },
+  { text: 'Buy 3 Save $5', link: '/build-bundle' },
 ];
 
 const AnnouncementBar = () => {

@@ -56,7 +56,7 @@ const CartDrawer = () => {
   // Constants for thresholds
   const FREE_SHIPPING_THRESHOLD = 15;
   const BUNDLE_3_THRESHOLD = 3;
-  const BUNDLE_3_DISCOUNT = 10;
+  const BUNDLE_3_DISCOUNT = 5;
   const BUNDLE_6_THRESHOLD = 6;
   const BUNDLE_6_DISCOUNT = 15;
   
@@ -99,7 +99,7 @@ const CartDrawer = () => {
       progressWidth = `${(cartTotal / FREE_SHIPPING_THRESHOLD) * 100}%`;
     } else if (cartCount < BUNDLE_3_THRESHOLD) {
       // Stage 2: Free shipping achieved, working towards 3-item bundle
-      message = `Add ${itemsToBundle3} more product${itemsToBundle3 !== 1 ? 's' : ''} to receive $10 off!`;
+      message = `Add ${itemsToBundle3} more product${itemsToBundle3 !== 1 ? 's' : ''} to receive $5 off!`;
       progressWidth = `${33 + ((cartCount / BUNDLE_3_THRESHOLD) * 33)}%`;
     } else if (cartCount < BUNDLE_6_THRESHOLD) {
       // Stage 3: 3-item bundle achieved, working towards 6-item bundle
