@@ -58,6 +58,8 @@ const ShopByPlantSimple = () => {
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [glideDisabled, setGlideDisabled] = useState(false);
+  const [preloadedProducts, setPreloadedProducts] = useState({});
+  const [preloadingComplete, setPreloadingComplete] = useState(false);
   const glideRef = useRef(null);
 
   // Hook to detect mobile screen size
@@ -354,8 +356,8 @@ const ShopByPlantSimple = () => {
           </div>
         )}
         
-        <div className="p-2 sm:p-4" style={{ overflow: 'visible' }}>
-          <div className="product-image-container relative h-32 sm:h-48 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
+        <div className="p-1 sm:p-2" style={{ overflow: 'visible' }}>
+          <div className="product-image-container relative h-32 sm:h-48 mx-auto mb-2 sm:mb-3 flex items-center justify-center">
             <img 
               src={getImageSrc()}
               alt={product.name} 
@@ -375,7 +377,7 @@ const ShopByPlantSimple = () => {
             )}
           </div>
           
-          <div className="flex items-center justify-between mb-1 sm:mb-2 w-full reviews-mobile">
+          <div className="flex items-center justify-between mb-1 sm:mb-1 w-full reviews-mobile">
             <div className="flex items-center space-x-1">
               <span className="text-gray-800 text-xs sm:text-sm font-medium">{product.rating || generateRandomRating()}</span>
               {renderStars()}
@@ -387,7 +389,7 @@ const ShopByPlantSimple = () => {
 
           {/* Variant Selector */}
           {product.variants && product.variants.length > 1 && (
-            <div className="mb-2 sm:mb-3 w-full variant-selector-mobile" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-1 sm:mb-2 w-full variant-selector-mobile" onClick={(e) => e.stopPropagation()}>
               <div className="relative">
                 <select
                   value={selectedVariant?.id || ''}
@@ -403,7 +405,7 @@ const ShopByPlantSimple = () => {
                 </select>
                 
                 {/* Custom Dropdown Display */}
-                <div className="flex items-center justify-between p-2 sm:p-3 border border-gray-200 rounded-lg sm:rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 pointer-events-none custom-dropdown">
+                <div className="flex items-center justify-between p-1.5 sm:p-2 border border-gray-200 rounded-lg sm:rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 pointer-events-none custom-dropdown">
                   <span className="text-xs sm:text-sm font-medium text-gray-700 flex-1 truncate">
                     {abbreviateVariantTitle(selectedVariant?.title || product.variants[0]?.title, isMobile)}
                   </span>
@@ -606,8 +608,140 @@ const ShopByPlantSimple = () => {
     return uniqueResults.slice(0, 5);
   };
 
+  // Preload products for all categories
+  const preloadAllProducts = async () => {
+    setLoading(true);
+    const allProducts = {};
+    
+    // Categories that we want to preload
+    const categoriesToPreload = [
+      "Houseplant Products",
+      "Garden Products", 
+      "Hydrophonic and Aquatic",
+      "Plant Supplements"
+    ];
+    
+    try {
+      // Fetch products for all categories in parallel
+      const promises = categoriesToPreload.map(async (category) => {
+        try {
+          console.log(`Preloading products for category: ${category}`);
+          
+          let productData = [];
+          
+          // Get top 5 product names for the category
+          const top5Names = getTop5ProductNamesByCategory(category);
+          
+          if (top5Names.length > 0) {
+            // Import the fetchProductsByNames function and fetch these specific products
+            const { fetchProductsByNames } = await import('../utils/shopifyApi');
+            productData = await fetchProductsByNames(top5Names);
+            
+            console.log(`Found ${productData.length} products from Shopify API for ${category}`);
+            
+            // Filter products to ensure they match the category
+            productData = filterProductsByCategory(productData, category, top5Names);
+            console.log(`After filtering: ${productData.length} products match category ${category}`);
+            
+            // If we didn't get all 5 products, try to get more from the full data file
+            if (productData.length < 5) {
+              console.log(`Only found ${productData.length} products, trying to get more from full data file...`);
+              
+              try {
+                let allCategoryProducts = [];
+                switch (category) {
+                  case "Houseplant Products":
+                    const { fetchAllHouseplantProducts } = await import('../data/houseplantProducts');
+                    allCategoryProducts = await fetchAllHouseplantProducts();
+                    break;
+                  case "Garden Products":
+                    const { fetchAllGardenProducts } = await import('../data/gardenProducts');
+                    allCategoryProducts = await fetchAllGardenProducts();
+                    break;
+                  case "Hydrophonic and Aquatic":
+                    const { fetchAllHydroponicAquaticProducts } = await import('../data/hydroponicAquaticProducts');
+                    allCategoryProducts = await fetchAllHydroponicAquaticProducts();
+                    break;
+                  case "Plant Supplements":
+                    const { fetchAllSpecialtySupplements } = await import('../data/specialtySupplements');
+                    allCategoryProducts = await fetchAllSpecialtySupplements();
+                    break;
+                }
+                
+                // Filter these products too
+                allCategoryProducts = filterProductsByCategory(allCategoryProducts, category);
+                
+                // Merge with existing products, avoiding duplicates
+                const existingIds = new Set(productData.map(p => p.id));
+                const newProducts = allCategoryProducts.filter(p => !existingIds.has(p.id)).slice(0, 5 - productData.length);
+                productData = [...productData, ...newProducts];
+                
+                console.log(`After fallback: ${productData.length} total products`);
+              } catch (fallbackError) {
+                console.error('Error with fallback data fetch:', fallbackError);
+              }
+            }
+          }
+          
+          // If still no products, use category-specific search
+          if (productData.length === 0) {
+            console.log('No products found with exact names, using category-specific search');
+            productData = await searchProductsForCategory(category);
+          }
+          
+          // Ensure all products have the correct category assigned and proper formatting
+          const enrichedProducts = productData.slice(0, 5).map((product, index) => ({
+            ...product,
+            category: category, // Ensure category is set correctly
+            rating: product.rating || generateRandomRating(),
+            reviews: product.reviews || Math.floor(Math.random() * 800) + 200,
+            // Mark top product as best seller
+            bestSeller: product.bestSeller || index === 0
+          }));
+          
+          console.log(`Successfully preloaded ${enrichedProducts.length} products for ${category}`);
+          
+          return { category, products: enrichedProducts };
+        } catch (error) {
+          console.error(`Error preloading products for ${category}:`, error);
+          return { category, products: [] };
+        }
+      });
+      
+      // Wait for all categories to be loaded
+      const results = await Promise.all(promises);
+      
+      // Store results in the preloaded products state
+      results.forEach(({ category, products }) => {
+        allProducts[category] = products;
+      });
+      
+      setPreloadedProducts(allProducts);
+      setPreloadingComplete(true);
+      
+      // Set initial products for the default category
+      setProducts(allProducts[selectedCategory] || []);
+      
+      console.log('All products preloaded successfully');
+      
+    } catch (error) {
+      console.error('Error preloading products:', error);
+      setPreloadedProducts({});
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch products from Shopify API using the ranked data files
   const fetchProductsByCategory = async (category) => {
+    // If products are already preloaded, use them immediately
+    if (preloadedProducts[category]) {
+      setProducts(preloadedProducts[category]);
+      return;
+    }
+    
+    // Fallback to individual fetch if not preloaded
     setLoading(true);
     
     try {
@@ -703,13 +837,19 @@ const ShopByPlantSimple = () => {
 
   const handleCategoryClick = (category) => {
     setSelectedCategory(category);
-    // Fetch products for the selected category
-    fetchProductsByCategory(category);
+    
+    // If products are preloaded, switch immediately
+    if (preloadedProducts[category]) {
+      setProducts(preloadedProducts[category]);
+    } else {
+      // Fallback to fetching if not preloaded
+      fetchProductsByCategory(category);
+    }
   };
 
-  // Fetch initial products
+  // Preload all products on mount
   useEffect(() => {
-    fetchProductsByCategory(selectedCategory);
+    preloadAllProducts();
   }, []);
 
   return (
@@ -739,7 +879,7 @@ const ShopByPlantSimple = () => {
           .product-card {
             background: linear-gradient(145deg, #e8f4f2 0%, #f3e6e0 100%);
             border-radius: 20px;
-            padding: 20px;
+            padding: 12px;
             height: 100%;
             display: flex;
             flex-direction: column;
@@ -910,7 +1050,7 @@ const ShopByPlantSimple = () => {
             }
 
             .product-card {
-              padding: 12px;
+              padding: 8px;
               min-height: 320px;
               max-height: 320px;
               max-width: none;
@@ -956,15 +1096,15 @@ const ShopByPlantSimple = () => {
 
             /* Variant selector mobile optimization */
             .variant-selector-mobile {
-              margin-bottom: 0.5rem;
+              margin-bottom: 0.25rem;
               flex-shrink: 0;
             }
 
             .variant-selector-mobile select,
             .variant-selector-mobile .custom-dropdown {
               font-size: 0.65rem;
-              padding: 6px;
-              height: 32px;
+              padding: 4px;
+              height: 28px;
             }
 
             .variant-selector-mobile .custom-dropdown .h-4 {
@@ -1002,7 +1142,7 @@ const ShopByPlantSimple = () => {
 
           @media (max-width: 480px) {
             .product-card {
-              padding: 10px;
+              padding: 6px;
               min-height: 300px;
               max-height: 300px;
             }
@@ -1043,7 +1183,7 @@ const ShopByPlantSimple = () => {
             }
 
             .product-card {
-              padding: 8px;
+              padding: 6px;
               min-height: 280px;
               max-height: 280px;
             }
@@ -1071,7 +1211,7 @@ const ShopByPlantSimple = () => {
             }
 
             .product-card {
-              padding: 6px;
+              padding: 4px;
               min-height: 260px;
               max-height: 260px;
             }
