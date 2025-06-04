@@ -5,6 +5,160 @@ import { fetchProductsByCategory as fetchProductsByCategoryAPI } from '../utils/
 import Glide from '@glidejs/glide';
 import '@glidejs/glide/dist/css/glide.core.min.css';
 import '@glidejs/glide/dist/css/glide.theme.min.css';
+// Import data files
+import { houseplantProductNames, fetchAllHouseplantProducts } from '../data/houseplantProducts';
+import { gardenProductNames, fetchAllGardenProducts } from '../data/gardenProducts';
+import { hydroponicAquaticProductNames, fetchAllHydroponicAquaticProducts } from '../data/hydroponicAquaticProducts';
+import { specialtySupplementNames, fetchAllSpecialtySupplements } from '../data/specialtySupplements';
+
+// Utility functions for products page auto-scrolling (can be imported)
+export const useAutoScrollToCategory = (location) => {
+  useEffect(() => {
+    if (location?.state?.scrollToCategory && location?.state?.targetCategory) {
+      const targetCategory = location.state.targetCategory;
+      
+      console.log(`Auto-scrolling to category: ${targetCategory}`);
+      
+      // Wait a bit for the page to render, then start intelligent scrolling
+      setTimeout(() => {
+        waitForProductsAndScroll(targetCategory);
+      }, 300);
+    }
+  }, [location]);
+};
+
+// Enhanced auto-scroll function that can be used by products page
+export const waitForProductsAndScroll = (sectionId, maxWaitTime = 15000) => {
+  const startTime = Date.now();
+  const checkInterval = 300; // Check every 300ms for better responsiveness
+  
+  const checkAndScroll = () => {
+    const currentTime = Date.now();
+    const elapsedTime = currentTime - startTime;
+    
+    // Stop trying after maxWaitTime
+    if (elapsedTime > maxWaitTime) {
+      console.log('Stopped waiting for products to load, attempting final scroll');
+      scrollToSection(sectionId);
+      return;
+    }
+    
+    // Check if products have loaded (look for product elements)
+    const productElements = document.querySelectorAll(
+      '[class*="product"], [class*="card"], .product-card, .glide__slide, [data-product], .product-item'
+    );
+    const loadingElements = document.querySelectorAll(
+      '[class*="loading"], [class*="spinner"], .animate-spin, [class*="skeleton"]'
+    );
+    
+    // Also check if the target section exists
+    const targetExists = document.getElementById(sectionId) || 
+                        document.querySelector(`[data-category="${sectionId}"]`) ||
+                        document.querySelector(`section[id*="${sectionId}"]`);
+    
+    // If we have target section and products loaded, or if enough time has passed, try scrolling
+    if ((targetExists && productElements.length > 0 && loadingElements.length === 0) || elapsedTime > 3000) {
+      const scrolled = scrollToSection(sectionId);
+      if (scrolled) {
+        return; // Successfully scrolled, stop trying
+      }
+    }
+    
+    // Continue checking
+    setTimeout(checkAndScroll, checkInterval);
+  };
+  
+  // Start checking
+  checkAndScroll();
+};
+
+// Improved scroll function with better element detection
+export const scrollToSection = (sectionId) => {
+  try {
+    // Multiple strategies to find the target element
+    let targetElement = null;
+    
+    // Strategy 1: Direct ID match
+    targetElement = document.getElementById(sectionId);
+    
+    // Strategy 2: Data attribute match
+    if (!targetElement) {
+      targetElement = document.querySelector(`[data-category="${sectionId}"]`);
+    }
+    
+    // Strategy 3: Partial ID match
+    if (!targetElement) {
+      targetElement = document.querySelector(`[id*="${sectionId}"]`);
+    }
+    
+    // Strategy 4: Class name match
+    if (!targetElement) {
+      targetElement = document.querySelector(`[class*="${sectionId}"]`);
+    }
+    
+    // Strategy 5: Section with matching content
+    if (!targetElement) {
+      const sections = document.querySelectorAll('section, div[id], .category-section, .product-category');
+      targetElement = Array.from(sections).find(el => {
+        const text = el.textContent?.toLowerCase() || '';
+        const className = el.className?.toLowerCase() || '';
+        const id = el.id?.toLowerCase() || '';
+        
+        return text.includes(sectionId.toLowerCase()) ||
+               className.includes(sectionId.toLowerCase()) ||
+               id.includes(sectionId.toLowerCase());
+      });
+    }
+    
+    // Strategy 6: Find by heading text
+    if (!targetElement) {
+      const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+      const matchingHeading = Array.from(headings).find(heading => 
+        heading.textContent?.toLowerCase().includes(sectionId.toLowerCase())
+      );
+      if (matchingHeading) {
+        targetElement = matchingHeading.closest('section, div[id], .category-section');
+      }
+    }
+    
+    if (targetElement) {
+      // Calculate offset for fixed headers
+      const headerOffset = 120; // Adjust based on your header height
+      const elementPosition = targetElement.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+      
+      // Smooth scroll to the element
+      window.scrollTo({
+        top: Math.max(0, offsetPosition), // Ensure we don't scroll to negative position
+        behavior: 'smooth'
+      });
+      
+      // Add visual highlight to the target section (optional)
+      targetElement.style.outline = '2px solid #ff6b6b';
+      setTimeout(() => {
+        targetElement.style.outline = '';
+      }, 2000);
+      
+      console.log(`Successfully scrolled to section: ${sectionId}`);
+      return true;
+    } else {
+      console.log(`Section not found: ${sectionId}. Available elements:`, 
+        Array.from(document.querySelectorAll('[id]')).map(el => el.id).filter(Boolean)
+      );
+      return false;
+    }
+  } catch (error) {
+    console.error('Error scrolling to section:', error);
+    
+    // Fallback to hash-based scrolling
+    try {
+      window.location.hash = `#${sectionId}`;
+    } catch (hashError) {
+      console.error('Hash navigation also failed:', hashError);
+    }
+    return false;
+  }
+};
 
 // Custom styles for Swiper
 const swiperStyles = `
@@ -448,40 +602,24 @@ const ShopByPlantSimple = () => {
     );
   };
 
-  // Get top 5 product names by category from the data files
-  const getTop5ProductNamesByCategory = (category) => {
+  // Get product names from data files by category
+  const getProductNamesByCategory = (category) => {
     const categoryProductNames = {
-      "Houseplant Products": [
-        "Monstera Plant Food",
-        "Indoor Plant Food", 
-        "Fiddle Leaf Fig Plant Food",
-        "Christmas Cactus Fertilizer",
-        "Bird of Paradise Fertilizer"
-      ],
-      "Hydrophonic and Aquatic": [
-        "Liquid Plant Food",
-        "Lotus Fertilizer", 
-        "Hydroponic Nutrients",
-        "Aquatic Plant Fertilizer",
-        "Water Plant Fertilizer"
-      ],
-      "Garden Products": [
-        "Hydrangea Fertilizer",
-        "Lemon Tree Fertilizer", 
-        "Gardenia Fertilizer",
-        "Hibiscus Fertilizer",
-        "Arborvitae Tree Fertilizer"
-      ],
-      "Plant Supplements": [
-        "Ferrous Sulfate For Plants",
-        "Silica for Plants", 
-        "Fish Emulsion Fertilizer",
-        "Calcium for Plants",
-        "Potassium Fertilizer"
-      ]
+      "Houseplant Products": houseplantProductNames,
+      "Garden Products": gardenProductNames,
+      "Hydrophonic and Aquatic": hydroponicAquaticProductNames,
+      "Plant Supplements": specialtySupplementNames
     };
 
     return categoryProductNames[category] || [];
+  };
+
+  // Get the appropriate number of products based on mobile/web view
+  const getProductCountForView = (allProductNames, isMobile) => {
+    if (isMobile) {
+      return allProductNames.slice(0, 5); // Top 5 for mobile
+    }
+    return allProductNames; // All products for web
   };
 
   // Filter products to ensure they belong to the correct category
@@ -572,245 +710,78 @@ const ShopByPlantSimple = () => {
     });
   };
 
-  // Category-specific search when exact names don't work
-  const searchProductsForCategory = async (category) => {
-    const { searchProductsByName } = await import('../utils/shopifyApi');
-    
-    let searchResults = [];
-    
-    // Use very specific search terms for each category
-    const categorySearchTerms = {
-      "Houseplant Products": ["monstera", "fiddle leaf", "indoor plant", "christmas cactus", "bird of paradise"],
-      "Garden Products": ["hydrangea", "lemon tree", "gardenia", "hibiscus", "arborvitae"],
-      "Hydrophonic and Aquatic": ["liquid plant food", "lotus fertilizer", "hydroponic nutrients", "aquatic plant", "water plant"],
-      "Plant Supplements": ["ferrous sulfate", "silica plants", "fish emulsion", "calcium plants", "potassium fertilizer"]
-    };
-    
-    const searchTerms = categorySearchTerms[category] || ["plant"];
-    
-    for (const term of searchTerms) {
-      try {
-        const results = await searchProductsByName(term, 5);
-        const filteredResults = filterProductsByCategory(results, category);
-        searchResults.push(...filteredResults);
-        
-        if (searchResults.length >= 5) break;
-      } catch (error) {
-        console.error(`Error searching with term "${term}":`, error);
-      }
-    }
-    
-    // Remove duplicates and return top 5
-    const uniqueResults = searchResults.filter((product, index, array) => 
-      array.findIndex(p => p.id === product.id) === index
-    );
-    
-    return uniqueResults.slice(0, 5);
-  };
-
-  // Preload products for all categories
-  const preloadAllProducts = async () => {
-    setLoading(true);
-    const allProducts = {};
-    
-    // Categories that we want to preload
-    const categoriesToPreload = [
-      "Houseplant Products",
-      "Garden Products", 
-      "Hydrophonic and Aquatic",
-      "Plant Supplements"
-    ];
-    
-    try {
-      // Fetch products for all categories in parallel
-      const promises = categoriesToPreload.map(async (category) => {
-        try {
-          console.log(`Preloading products for category: ${category}`);
-          
-          let productData = [];
-          
-          // Get top 5 product names for the category
-          const top5Names = getTop5ProductNamesByCategory(category);
-          
-          if (top5Names.length > 0) {
-            // Import the fetchProductsByNames function and fetch these specific products
-            const { fetchProductsByNames } = await import('../utils/shopifyApi');
-            productData = await fetchProductsByNames(top5Names);
-            
-            console.log(`Found ${productData.length} products from Shopify API for ${category}`);
-            
-            // Filter products to ensure they match the category
-            productData = filterProductsByCategory(productData, category, top5Names);
-            console.log(`After filtering: ${productData.length} products match category ${category}`);
-            
-            // If we didn't get all 5 products, try to get more from the full data file
-            if (productData.length < 5) {
-              console.log(`Only found ${productData.length} products, trying to get more from full data file...`);
-              
-              try {
-                let allCategoryProducts = [];
-                switch (category) {
-                  case "Houseplant Products":
-                    const { fetchAllHouseplantProducts } = await import('../data/houseplantProducts');
-                    allCategoryProducts = await fetchAllHouseplantProducts();
-                    break;
-                  case "Garden Products":
-                    const { fetchAllGardenProducts } = await import('../data/gardenProducts');
-                    allCategoryProducts = await fetchAllGardenProducts();
-                    break;
-                  case "Hydrophonic and Aquatic":
-                    const { fetchAllHydroponicAquaticProducts } = await import('../data/hydroponicAquaticProducts');
-                    allCategoryProducts = await fetchAllHydroponicAquaticProducts();
-                    break;
-                  case "Plant Supplements":
-                    const { fetchAllSpecialtySupplements } = await import('../data/specialtySupplements');
-                    allCategoryProducts = await fetchAllSpecialtySupplements();
-                    break;
-                }
-                
-                // Filter these products too
-                allCategoryProducts = filterProductsByCategory(allCategoryProducts, category);
-                
-                // Merge with existing products, avoiding duplicates
-                const existingIds = new Set(productData.map(p => p.id));
-                const newProducts = allCategoryProducts.filter(p => !existingIds.has(p.id)).slice(0, 5 - productData.length);
-                productData = [...productData, ...newProducts];
-                
-                console.log(`After fallback: ${productData.length} total products`);
-              } catch (fallbackError) {
-                console.error('Error with fallback data fetch:', fallbackError);
-              }
-            }
-          }
-          
-          // If still no products, use category-specific search
-          if (productData.length === 0) {
-            console.log('No products found with exact names, using category-specific search');
-            productData = await searchProductsForCategory(category);
-          }
-          
-          // Ensure all products have the correct category assigned and proper formatting
-          const enrichedProducts = productData.slice(0, 5).map((product, index) => ({
-            ...product,
-            category: category, // Ensure category is set correctly
-            rating: product.rating || generateRandomRating(),
-            reviews: product.reviews || Math.floor(Math.random() * 800) + 200,
-            // Mark top product as best seller
-            bestSeller: product.bestSeller || index === 0
-          }));
-          
-          console.log(`Successfully preloaded ${enrichedProducts.length} products for ${category}`);
-          
-          return { category, products: enrichedProducts };
-        } catch (error) {
-          console.error(`Error preloading products for ${category}:`, error);
-          return { category, products: [] };
-        }
-      });
-      
-      // Wait for all categories to be loaded
-      const results = await Promise.all(promises);
-      
-      // Store results in the preloaded products state
-      results.forEach(({ category, products }) => {
-        allProducts[category] = products;
-      });
-      
-      setPreloadedProducts(allProducts);
-      setPreloadingComplete(true);
-      
-      // Set initial products for the default category
-      setProducts(allProducts[selectedCategory] || []);
-      
-      console.log('All products preloaded successfully');
-      
-    } catch (error) {
-      console.error('Error preloading products:', error);
-      setPreloadedProducts({});
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch products from Shopify API using the ranked data files
-  const fetchProductsByCategory = async (category) => {
-    // If products are already preloaded, use them immediately
-    if (preloadedProducts[category]) {
-      setProducts(preloadedProducts[category]);
+  // Fetch products from data files by category
+  const fetchProductsByCategory = async (category, forceRefresh = false) => {
+    // If products are already preloaded and we're not forcing a refresh, use them immediately
+    if (preloadedProducts[category] && !forceRefresh) {
+      const categoryProducts = preloadedProducts[category];
+      const productsToShow = getProductCountForView(categoryProducts, isMobile);
+      setProducts(productsToShow);
       return;
     }
     
-    // Fallback to individual fetch if not preloaded
     setLoading(true);
     
     try {
-      console.log(`Fetching products for category: ${category}`);
+      console.log(`Fetching products for category: ${category}, isMobile: ${isMobile}`);
       
       let productData = [];
       
-      // Get top 5 product names for the category
-      const top5Names = getTop5ProductNamesByCategory(category);
+      // Get all product names for the category from data files
+      const allProductNames = getProductNamesByCategory(category);
       
-      if (top5Names.length > 0) {
+      // Get the appropriate count based on mobile/web view
+      const productNamesToFetch = getProductCountForView(allProductNames, isMobile);
+      
+      console.log(`Fetching ${productNamesToFetch.length} products for ${category}`);
+      
+      if (productNamesToFetch.length > 0) {
         // Import the fetchProductsByNames function and fetch these specific products
         const { fetchProductsByNames } = await import('../utils/shopifyApi');
-        productData = await fetchProductsByNames(top5Names);
+        productData = await fetchProductsByNames(productNamesToFetch);
         
         console.log(`Found ${productData.length} products from Shopify API for ${category}`);
         
         // Filter products to ensure they match the category
-        productData = filterProductsByCategory(productData, category, top5Names);
+        productData = filterProductsByCategory(productData, category, productNamesToFetch);
         console.log(`After filtering: ${productData.length} products match category ${category}`);
+      }
+      
+      // If no products found, try the fallback method using the complete data file functions
+      if (productData.length === 0) {
+        console.log('No products found with specific names, trying fallback data file functions');
         
-        // If we didn't get all 5 products, try to get more from the full data file
-        if (productData.length < 5) {
-          console.log(`Only found ${productData.length} products, trying to get more from full data file...`);
-          
-          try {
-            let allCategoryProducts = [];
-            switch (category) {
-              case "Houseplant Products":
-                const { fetchAllHouseplantProducts } = await import('../data/houseplantProducts');
-                allCategoryProducts = await fetchAllHouseplantProducts();
-                break;
-              case "Garden Products":
-                const { fetchAllGardenProducts } = await import('../data/gardenProducts');
-                allCategoryProducts = await fetchAllGardenProducts();
-                break;
-              case "Hydrophonic and Aquatic":
-                const { fetchAllHydroponicAquaticProducts } = await import('../data/hydroponicAquaticProducts');
-                allCategoryProducts = await fetchAllHydroponicAquaticProducts();
-                break;
-              case "Plant Supplements":
-                const { fetchAllSpecialtySupplements } = await import('../data/specialtySupplements');
-                allCategoryProducts = await fetchAllSpecialtySupplements();
-                break;
-            }
-            
-            // Filter these products too
-            allCategoryProducts = filterProductsByCategory(allCategoryProducts, category);
-            
-            // Merge with existing products, avoiding duplicates
-            const existingIds = new Set(productData.map(p => p.id));
-            const newProducts = allCategoryProducts.filter(p => !existingIds.has(p.id)).slice(0, 5 - productData.length);
-            productData = [...productData, ...newProducts];
-            
-            console.log(`After fallback: ${productData.length} total products`);
-          } catch (fallbackError) {
-            console.error('Error with fallback data fetch:', fallbackError);
+        try {
+          let allCategoryProducts = [];
+          switch (category) {
+            case "Houseplant Products":
+              allCategoryProducts = await fetchAllHouseplantProducts();
+              break;
+            case "Garden Products":
+              allCategoryProducts = await fetchAllGardenProducts();
+              break;
+            case "Hydrophonic and Aquatic":
+              allCategoryProducts = await fetchAllHydroponicAquaticProducts();
+              break;
+            case "Plant Supplements":
+              allCategoryProducts = await fetchAllSpecialtySupplements();
+              break;
           }
+          
+          // Filter these products too
+          allCategoryProducts = filterProductsByCategory(allCategoryProducts, category);
+          
+          // Get appropriate count for view
+          productData = getProductCountForView(allCategoryProducts, isMobile);
+          
+          console.log(`After fallback: ${productData.length} total products`);
+        } catch (fallbackError) {
+          console.error('Error with fallback data fetch:', fallbackError);
         }
       }
       
-      // If still no products, use category-specific search
-      if (productData.length === 0) {
-        console.log('No products found with exact names, using category-specific search');
-        productData = await searchProductsForCategory(category);
-      }
-      
       // Ensure all products have the correct category assigned and proper formatting
-      const enrichedProducts = productData.slice(0, 5).map((product, index) => ({
+      const enrichedProducts = productData.map((product, index) => ({
         ...product,
         category: category, // Ensure category is set correctly
         rating: product.rating || generateRandomRating(),
@@ -830,6 +801,271 @@ const ShopByPlantSimple = () => {
     }
   };
 
+  // Preload products for all categories
+  const preloadAllProducts = async () => {
+    setLoading(true);
+    const allProducts = {};
+    
+    // Categories that we want to preload
+    const categoriesToPreload = [
+      "Houseplant Products",
+      "Garden Products", 
+      "Hydrophonic and Aquatic",
+      "Plant Supplements"
+    ];
+    
+    try {
+      // Fetch products for all categories in parallel with timeout
+      const promises = categoriesToPreload.map(async (category) => {
+        try {
+          console.log(`Preloading products for category: ${category}`);
+          
+          let productData = [];
+          
+          // Get all product names for the category from data files
+          const allProductNames = getProductNamesByCategory(category);
+          
+          console.log(`Found ${allProductNames.length} total product names for ${category}`);
+          
+          if (allProductNames.length > 0) {
+            try {
+              // Import the fetchProductsByNames function and fetch ALL products for preloading
+              const { fetchProductsByNames } = await import('../utils/shopifyApi');
+              
+              // Add timeout to prevent hanging
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout after 30 seconds')), 30000)
+              );
+              
+              const fetchPromise = fetchProductsByNames(allProductNames);
+              productData = await Promise.race([fetchPromise, timeoutPromise]);
+              
+              console.log(`Found ${productData.length} products from Shopify API for ${category}`);
+              
+              // Filter products to ensure they match the category
+              productData = filterProductsByCategory(productData, category, allProductNames);
+              console.log(`After filtering: ${productData.length} products match category ${category}`);
+            } catch (apiError) {
+              console.error(`API error for ${category}:`, apiError);
+              productData = []; // Reset to empty array if API fails
+            }
+          }
+          
+          // If no products found or API failed, try the fallback method using the complete data file functions
+          if (productData.length === 0) {
+            console.log(`No products found with API for ${category}, trying fallback data file functions`);
+            
+            try {
+              switch (category) {
+                case "Houseplant Products":
+                  productData = await fetchAllHouseplantProducts();
+                  break;
+                case "Garden Products":
+                  productData = await fetchAllGardenProducts();
+                  break;
+                case "Hydrophonic and Aquatic":
+                  productData = await fetchAllHydroponicAquaticProducts();
+                  break;
+                case "Plant Supplements":
+                  productData = await fetchAllSpecialtySupplements();
+                  break;
+              }
+              
+              // Filter these products too
+              productData = filterProductsByCategory(productData, category);
+              
+              console.log(`After fallback: ${productData.length} total products for ${category}`);
+            } catch (fallbackError) {
+              console.error('Error with fallback data fetch:', fallbackError);
+              
+              // Final fallback: use mock data for this category
+              productData = generateMockProductsForCategory(category);
+              console.log(`Using mock data: ${productData.length} products for ${category}`);
+            }
+          }
+          
+          // Ensure all products have the correct category assigned and proper formatting
+          const enrichedProducts = productData.map((product, index) => ({
+            ...product,
+            category: category, // Ensure category is set correctly
+            rating: product.rating || generateRandomRating(),
+            reviews: product.reviews || Math.floor(Math.random() * 800) + 200,
+            // Mark top product as best seller
+            bestSeller: product.bestSeller || index === 0
+          }));
+          
+          console.log(`Successfully preloaded ${enrichedProducts.length} products for ${category}`);
+          
+          return { category, products: enrichedProducts };
+        } catch (error) {
+          console.error(`Error preloading products for ${category}:`, error);
+          
+          // Return mock data for this category to prevent complete failure
+          const mockProducts = generateMockProductsForCategory(category);
+          console.log(`Using mock data for ${category}: ${mockProducts.length} products`);
+          
+          return { category, products: mockProducts };
+        }
+      });
+      
+      // Wait for all categories to be loaded
+      const results = await Promise.all(promises);
+      
+      // Store results in the preloaded products state
+      results.forEach(({ category, products }) => {
+        allProducts[category] = products;
+      });
+      
+      setPreloadedProducts(allProducts);
+      setPreloadingComplete(true);
+      
+      // Set initial products for the default category with appropriate count for view
+      const initialCategoryProducts = allProducts[selectedCategory] || [];
+      const productsToShow = getProductCountForView(initialCategoryProducts, isMobile);
+      setProducts(productsToShow);
+      
+      console.log('All products preloaded successfully');
+      
+    } catch (error) {
+      console.error('Error preloading products:', error);
+      
+      // Create fallback products for all categories
+      const fallbackProducts = {};
+      const categoriesToPreload = [
+        "Houseplant Products",
+        "Garden Products", 
+        "Hydrophonic and Aquatic",
+        "Plant Supplements"
+      ];
+      
+      categoriesToPreload.forEach(category => {
+        fallbackProducts[category] = generateMockProductsForCategory(category);
+      });
+      
+      setPreloadedProducts(fallbackProducts);
+      setPreloadingComplete(true);
+      
+      const initialCategoryProducts = fallbackProducts[selectedCategory] || [];
+      const productsToShow = getProductCountForView(initialCategoryProducts, isMobile);
+      setProducts(productsToShow);
+      
+      console.log('Using fallback mock data for all categories');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generate mock products for a category when API fails
+  const generateMockProductsForCategory = (category) => {
+    const mockData = {
+      "Houseplant Products": [
+        {
+          id: `mock-houseplant-1`,
+          name: "Indoor Plant Food",
+          description: "Perfect nutrition for your indoor plants",
+          image: "/assets/products/placeholder.png",
+          price: 12.99,
+          rating: 4.5,
+          reviews: 245,
+          bestSeller: true,
+          category: category,
+          variants: [{
+            id: "mock-variant-1",
+            title: "8 oz Bottle",
+            price: 12.99,
+            available: true,
+            quantity: 10
+          }],
+          hasAvailableVariants: true
+        },
+        {
+          id: `mock-houseplant-2`,
+          name: "Monstera Plant Food",
+          description: "Specialized nutrition for Monstera plants",
+          image: "/assets/products/placeholder.png",
+          price: 15.99,
+          rating: 4.7,
+          reviews: 189,
+          bestSeller: false,
+          category: category,
+          variants: [{
+            id: "mock-variant-2",
+            title: "8 oz Bottle",
+            price: 15.99,
+            available: true,
+            quantity: 8
+          }],
+          hasAvailableVariants: true
+        }
+      ],
+      "Garden Products": [
+        {
+          id: `mock-garden-1`,
+          name: "All Purpose Garden Fertilizer",
+          description: "Complete nutrition for outdoor plants",
+          image: "/assets/products/placeholder.png",
+          price: 18.99,
+          rating: 4.4,
+          reviews: 156,
+          bestSeller: true,
+          category: category,
+          variants: [{
+            id: "mock-variant-3",
+            title: "1 lb Container",
+            price: 18.99,
+            available: true,
+            quantity: 15
+          }],
+          hasAvailableVariants: true
+        }
+      ],
+      "Hydrophonic and Aquatic": [
+        {
+          id: `mock-hydro-1`,
+          name: "Hydroponic Nutrient Solution",
+          description: "Complete liquid nutrition for hydroponic systems",
+          image: "/assets/products/placeholder.png",
+          price: 22.99,
+          rating: 4.6,
+          reviews: 98,
+          bestSeller: true,
+          category: category,
+          variants: [{
+            id: "mock-variant-4",
+            title: "16 oz Bottle",
+            price: 22.99,
+            available: true,
+            quantity: 12
+          }],
+          hasAvailableVariants: true
+        }
+      ],
+      "Plant Supplements": [
+        {
+          id: `mock-supplement-1`,
+          name: "Calcium for Plants",
+          description: "Essential calcium supplement for plant health",
+          image: "/assets/products/placeholder.png",
+          price: 16.99,
+          rating: 4.3,
+          reviews: 134,
+          bestSeller: true,
+          category: category,
+          variants: [{
+            id: "mock-variant-5",
+            title: "8 oz Bottle",
+            price: 16.99,
+            available: true,
+            quantity: 20
+          }],
+          hasAvailableVariants: true
+        }
+      ]
+    };
+
+    return mockData[category] || [];
+  };
+
   // Get the current selected category object
   const getCurrentCategory = () => {
     return categories.find(cat => cat.category === selectedCategory);
@@ -838,14 +1074,83 @@ const ShopByPlantSimple = () => {
   const handleCategoryClick = (category) => {
     setSelectedCategory(category);
     
-    // If products are preloaded, switch immediately
+    // If products are preloaded, switch immediately with appropriate count for current view
     if (preloadedProducts[category]) {
-      setProducts(preloadedProducts[category]);
+      const categoryProducts = preloadedProducts[category];
+      const productsToShow = getProductCountForView(categoryProducts, isMobile);
+      setProducts(productsToShow);
     } else {
       // Fallback to fetching if not preloaded
       fetchProductsByCategory(category);
     }
   };
+
+  // Handle mobile/web view changes - refresh products with appropriate count
+  useEffect(() => {
+    if (preloadingComplete && preloadedProducts[selectedCategory]) {
+      const categoryProducts = preloadedProducts[selectedCategory];
+      const productsToShow = getProductCountForView(categoryProducts, isMobile);
+      setProducts(productsToShow);
+      console.log(`View changed to ${isMobile ? 'mobile' : 'web'}, showing ${productsToShow.length} products`);
+    }
+  }, [isMobile, selectedCategory, preloadingComplete, preloadedProducts]);
+
+  // Check if there are more products available than currently shown
+  const hasMoreProducts = () => {
+    if (!preloadedProducts[selectedCategory]) return false;
+    const totalProducts = preloadedProducts[selectedCategory].length;
+    const currentlyShown = products.length;
+    return totalProducts > currentlyShown;
+  };
+
+  // Handle "See All" button click with improved navigation
+  const handleSeeAllClick = () => {
+    // Navigate to products page with the current category
+    const categoryRoutes = {
+      "Houseplant Products": { route: "/products", hash: "#houseplants", category: "houseplants" },
+      "Garden Products": { route: "/products", hash: "#garden", category: "garden" }, 
+      "Hydrophonic and Aquatic": { route: "/products", hash: "#hydroponic", category: "hydroponic" },
+      "Plant Supplements": { route: "/products", hash: "#supplements", category: "supplements" }
+    };
+    
+    const targetInfo = categoryRoutes[selectedCategory] || { route: "/products", hash: "", category: "" };
+    
+    // Navigate with state to help the products page identify the target section
+    navigate(targetInfo.route, { 
+      state: { 
+        targetCategory: targetInfo.category,
+        targetHash: targetInfo.hash,
+        scrollToCategory: true,
+        fromShopByPlant: true,
+        timestamp: Date.now() // Add timestamp to ensure fresh navigation
+      } 
+    });
+  };
+
+  // See All Button Component
+  const SeeAllButton = () => (
+    <div className="see-all-card"
+      onClick={handleSeeAllClick}
+    >
+      {/* Text */}
+      <div className="text-center mb-3">
+        <h3 className="font-bold text-gray-800 text-sm mb-1">SEE ALL</h3>
+        <p className="text-xs text-gray-600 leading-tight">
+          View all {preloadedProducts[selectedCategory]?.length || 0} products
+        </p>
+        <p className="text-xs text-[#ff6b6b] font-medium mt-1">
+          in this category
+        </p>
+      </div>
+      
+      {/* Orange Arrow Icon - moved to bottom */}
+      <div className="bg-[#ff6b6b] rounded-full p-3 shadow-md">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </div>
+    </div>
+  );
 
   // Preload all products on mount
   useEffect(() => {
@@ -1049,7 +1354,7 @@ const ShopByPlantSimple = () => {
               min-width: 0;
             }
 
-            .product-card {
+            .product-card, .see-all-card {
               padding: 8px;
               min-height: 320px;
               max-height: 320px;
@@ -1057,6 +1362,11 @@ const ShopByPlantSimple = () => {
               display: flex;
               flex-direction: column;
               justify-content: space-between;
+            }
+
+            .see-all-card {
+              justify-content: center;
+              text-align: center;
             }
 
             .product-name-container {
@@ -1141,7 +1451,7 @@ const ShopByPlantSimple = () => {
           }
 
           @media (max-width: 480px) {
-            .product-card {
+            .product-card, .see-all-card {
               padding: 6px;
               min-height: 300px;
               max-height: 300px;
@@ -1182,7 +1492,7 @@ const ShopByPlantSimple = () => {
               margin: -8px -8px;
             }
 
-            .product-card {
+            .product-card, .see-all-card {
               padding: 6px;
               min-height: 280px;
               max-height: 280px;
@@ -1210,7 +1520,7 @@ const ShopByPlantSimple = () => {
               margin: -6px -6px;
             }
 
-            .product-card {
+            .product-card, .see-all-card {
               padding: 4px;
               min-height: 260px;
               max-height: 260px;
@@ -1230,6 +1540,31 @@ const ShopByPlantSimple = () => {
               padding: 2px;
               height: 24px;
             }
+          }
+
+          /* See All Button Styles */
+          .see-all-card {
+            background: linear-gradient(145deg, #e8f4f2 0%, #f3e6e0 100%);
+            border-radius: 20px;
+            padding: 12px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            border: 2px dashed #ff6b6b;
+            position: relative;
+            overflow: visible !important;
+            backdrop-filter: blur(10px);
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+          }
+
+          .see-all-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.15);
+            border-style: solid;
+            background: linear-gradient(145deg, #f0f6f4 0%, #f5ebe6 100%);
           }
         `}
       </style>
@@ -1334,6 +1669,13 @@ const ShopByPlantSimple = () => {
                       <ProductCard product={product} index={index} />
                     </li>
                   ))}
+                  
+                  {/* Add See All button as additional slide on mobile when more products are available */}
+                  {isMobile && hasMoreProducts() && (
+                    <li className="glide__slide" key="see-all-slide">
+                      <SeeAllButton />
+                    </li>
+                  )}
                 </ul>
               </div>
 
@@ -1353,6 +1695,21 @@ const ShopByPlantSimple = () => {
                 </div>
               )}
             </div>
+
+            {/* See All Button - Non-mobile fallback (outside carousel) */}
+            {!isMobile && hasMoreProducts() && (
+              <div className="mt-6 flex justify-center">
+                <button
+                  onClick={handleSeeAllClick}
+                  className="bg-gradient-to-r from-[#ff6b6b] to-[#ff8c8c] text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
+                >
+                  <span>View All {preloadedProducts[selectedCategory]?.length || 0} Products</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <div className="text-center py-8 sm:py-12 bg-[#fffbef]">

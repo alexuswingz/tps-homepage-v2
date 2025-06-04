@@ -503,7 +503,7 @@ export const fetchProductByName = async (productName) => {
   }
 };
 
-export const fetchProductsByNames = async (productNames, batchSize = 10) => {
+export const fetchProductsByNames = async (productNames, batchSize = 5) => {
   if (!productNames || productNames.length === 0) {
     return [];
   }
@@ -511,108 +511,51 @@ export const fetchProductsByNames = async (productNames, batchSize = 10) => {
   console.log(`Fetching ${productNames.length} products by name...`);
   let allProducts = [];
   
+  // Use smaller batch size to avoid query complexity issues
+  const safeBatchSize = Math.min(batchSize, 5);
+  
   // Process products in batches to avoid query size limits
-  for (let i = 0; i < productNames.length; i += batchSize) {
-    const batch = productNames.slice(i, i + batchSize);
+  for (let i = 0; i < productNames.length; i += safeBatchSize) {
+    const batch = productNames.slice(i, i + safeBatchSize);
     
     try {
-      // Create a query that searches for exact product titles
-      const titleQueries = batch.map(name => `title:"${escapeGraphQLString(name)}"`).join(' OR ');
+      // Try batch search first
+      const batchProducts = await fetchProductBatch(batch);
+      allProducts.push(...batchProducts);
+      console.log(`Batch ${Math.floor(i/safeBatchSize) + 1}: Found ${batchProducts.length} products`);
       
-      const query = `
-        query FetchProductsByNames {
-          products(first: ${batchSize}, query: "${titleQueries}") {
-            pageInfo {
-              hasNextPage
-              endCursor
-            }
-            edges {
-              node {
-                id
-                title
-                description
-                handle
-                productType
-                vendor
-                tags
-                createdAt
-                updatedAt
-                priceRange {
-                  minVariantPrice {
-                    amount
-                    currencyCode
-                  }
-                  maxVariantPrice {
-                    amount
-                    currencyCode
-                  }
-                }
-                images(first: 5) {
-                  edges {
-                    node {
-                      id
-                      transformedSrc
-                      altText
-                      width
-                      height
-                    }
-                  }
-                }
-                variants(first: 20) {
-                  edges {
-                    node {
-                      id
-                      title
-                      sku
-                      availableForSale
-                      quantityAvailable
-                      price {
-                        amount
-                        currencyCode
-                      }
-                      compareAtPrice {
-                        amount
-                        currencyCode
-                      }
-                      weight
-                      weightUnit
-                      selectedOptions {
-                        name
-                        value
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      `;
-      
-      const result = await fetchFromStorefrontAPI(query);
-      
-      if (result.data?.products?.edges) {
-        const batchProducts = result.data.products.edges
-          .map(edge => mapShopifyProductNode(edge.node))
-          .filter(product => product.hasAvailableVariants);
-        
-        allProducts.push(...batchProducts);
-        console.log(`Batch ${Math.floor(i/batchSize) + 1}: Found ${batchProducts.length} products`);
-      }
-      
-      // Add a small delay between batches to avoid rate limiting
-      if (i + batchSize < productNames.length) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+      // Add a delay between batches to avoid rate limiting
+      if (i + safeBatchSize < productNames.length) {
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
       
     } catch (error) {
       console.error(`Error fetching batch starting at index ${i}:`, error);
-      // Continue with next batch even if one fails
+      
+      // Fallback: try individual product searches for this batch
+      console.log(`Trying individual searches for batch starting at index ${i}`);
+      for (const productName of batch) {
+        try {
+          const individualProduct = await fetchProductByName(productName);
+          if (individualProduct) {
+            allProducts.push(individualProduct);
+          }
+          // Small delay between individual requests
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (individualError) {
+          console.error(`Error fetching individual product "${productName}":`, individualError);
+        }
+      }
     }
   }
   
+  // Remove duplicates based on product ID
+  const uniqueProducts = allProducts.filter((product, index, array) => 
+    array.findIndex(p => p.id === product.id) === index
+  );
+  
   // Sort products based on the original order in productNames
-  const sortedProducts = allProducts.sort((a, b) => {
+  const sortedProducts = uniqueProducts.sort((a, b) => {
     const aIndex = productNames.findIndex(name => 
       a.name.toLowerCase().includes(name.toLowerCase()) || 
       name.toLowerCase().includes(a.name.toLowerCase())
@@ -630,6 +573,43 @@ export const fetchProductsByNames = async (productNames, batchSize = 10) => {
   
   console.log(`Successfully fetched ${sortedProducts.length} products total`);
   return sortedProducts;
+};
+
+// Helper function to fetch a batch of products with improved error handling
+const fetchProductBatch = async (productNames) => {
+  if (!productNames || productNames.length === 0) {
+    return [];
+  }
+  
+  // Create safer search queries - use individual searches instead of complex OR queries
+  const searchPromises = productNames.map(async (productName) => {
+    try {
+      // Use simple search instead of complex title matching
+      const escapedName = escapeGraphQLString(productName);
+      const results = await searchProductsByName(escapedName, 5);
+      
+      // Find the best match for this specific product name
+      const exactMatch = results.find(product => 
+        product.name.toLowerCase() === productName.toLowerCase()
+      );
+      
+      if (exactMatch) return exactMatch;
+      
+      // If no exact match, find the closest match
+      const partialMatch = results.find(product => 
+        product.name.toLowerCase().includes(productName.toLowerCase()) ||
+        productName.toLowerCase().includes(product.name.toLowerCase())
+      );
+      
+      return partialMatch || null;
+    } catch (error) {
+      console.error(`Error searching for "${productName}":`, error);
+      return null;
+    }
+  });
+  
+  const results = await Promise.all(searchPromises);
+  return results.filter(product => product !== null);
 };
 
 export const searchProductsByName = async (searchTerm, limit = 50) => {
