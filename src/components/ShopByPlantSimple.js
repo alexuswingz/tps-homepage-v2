@@ -2,6 +2,53 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from './CartContext';
 import { fetchProductsByCategory as fetchProductsByCategoryAPI } from '../utils/shopifyApi';
+import Glide from '@glidejs/glide';
+import '@glidejs/glide/dist/css/glide.core.min.css';
+import '@glidejs/glide/dist/css/glide.theme.min.css';
+
+// Custom styles for Swiper
+const swiperStyles = `
+  .products-swiper {
+    padding: 20px 10px 40px !important;
+    margin: -20px -10px -40px;
+  }
+  
+  .swiper-pagination {
+    bottom: 0 !important;
+  }
+  
+  .swiper-pagination-bullet {
+    background: #ff6b6b !important;
+    opacity: 0.5;
+  }
+  
+  .swiper-pagination-bullet-active {
+    opacity: 1;
+  }
+  
+  .swiper-button-next,
+  .swiper-button-prev {
+    color: #ff6b6b !important;
+  }
+  
+  .swiper-button-next:after,
+  .swiper-button-prev:after {
+    font-size: 24px;
+    font-weight: bold;
+  }
+  
+  .swiper-button-disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  
+  @media (max-width: 640px) {
+    .products-swiper {
+      padding: 10px 5px 30px !important;
+      margin: -10px -5px -30px;
+    }
+  }
+`;
 
 const ShopByPlantSimple = () => {
   const navigate = useNavigate();
@@ -10,11 +57,12 @@ const ShopByPlantSimple = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const glideRef = useRef(null);
 
   // Hook to detect mobile screen size
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 640); // sm breakpoint in Tailwind
+      setIsMobile(window.innerWidth < 640);
     };
 
     checkScreenSize();
@@ -22,6 +70,31 @@ const ShopByPlantSimple = () => {
 
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
+
+  // Initialize Glide
+  useEffect(() => {
+    if (products.length > 0 && glideRef.current) {
+      const glide = new Glide(glideRef.current, {
+        type: 'slider',
+        bound: true,
+        rewind: false,
+        gap: 24,
+        perView: isMobile ? 2 : 3.5,
+        breakpoints: {
+          640: {
+            perView: 2,
+            gap: 12
+          }
+        }
+      });
+
+      glide.mount();
+
+      return () => {
+        glide.destroy();
+      };
+    }
+  }, [products, isMobile]);
 
   // Background gradient styles for each product card (same as ProductsPage)
   const cardBackgrounds = [
@@ -76,8 +149,10 @@ const ShopByPlantSimple = () => {
     const upperName = name.toUpperCase();
     
     return (
-      <div className="product-name-container h-12 flex items-center mb-3">
-        <p className="text-sm sm:text-base font-bold text-gray-800 leading-tight truncate w-full">{upperName}</p>
+      <div className="product-name-container h-8 flex items-center mb-3">
+        <h3 className="font-bold text-gray-800 text-sm sm:text-base leading-tight tracking-tight w-full truncate">
+          {upperName}
+        </h3>
       </div>
     );
   };
@@ -226,7 +301,6 @@ const ShopByPlantSimple = () => {
               className="h-full w-auto object-contain"
               style={{ backgroundColor: 'transparent' }}
               onError={handleImageError}
-              onLoad={() => setImageError(false)}
             />
             {imageError && (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -248,9 +322,7 @@ const ShopByPlantSimple = () => {
             </div>
           </div>
           
-          <div className="product-name-container h-6 flex items-center mb-1 sm:mb-2 w-full">
-            <p className="text-sm sm:text-base font-bold text-gray-800 leading-tight truncate w-full">{product.name.toUpperCase()}</p>
-          </div>
+          {formatProductName(product.name)}
           
           {/* Variant selection dropdown */}
           <div className="relative mb-1 sm:mb-2" ref={dropdownRef} style={{ zIndex: dropdownOpen ? 50 : 'auto' }}>
@@ -313,22 +385,29 @@ const ShopByPlantSimple = () => {
             )}
           </div>
           
+          <div className="flex-grow">
+            <div className="border border-gray-200 rounded-full bg-white p-2 sm:p-2.5 mb-3 sm:mb-4">
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-xs sm:text-base pl-1.5 sm:pl-2 text-gray-800">{activeVariant?.title || '8 Ounce'}</span>
+                <span className="bg-[#f3e6e0] px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full font-bold text-xs sm:text-base text-gray-800">
+                  ${activeVariant ? activeVariant.price.toFixed(2) : product.price.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <button 
             onClick={handleAddToCart}
-            className={`w-full font-bold text-sm sm:text-base py-2 sm:py-3 px-2 sm:px-4 rounded-full transition-all duration-200 flex items-center justify-center
+            className={`w-full font-bold text-xs sm:text-base py-2 sm:py-2.5 px-3 sm:px-4 rounded-full transition-all duration-200 flex items-center justify-center
               ${activeVariant && activeVariant.available 
                 ? 'bg-[#ff6b57] hover:bg-[#ff5a43] hover:shadow-md active:scale-[0.98] text-white shadow-sm' 
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
             disabled={!activeVariant || !activeVariant.available}
           >
-            {activeVariant && activeVariant.available ? (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-                ADD TO CART
-              </>
-            ) : 'OUT OF STOCK'}
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            ADD TO CART
           </button>
         </div>
       </div>
@@ -882,21 +961,259 @@ const ShopByPlantSimple = () => {
   }, []);
 
   return (
-    <div className="bg-[#fff9f2] py-2 sm:py-8">
+    <div className="bg-[#fffbef] py-2 sm:py-8">
+      <style>
+        {`
+          .glide {
+            padding: 20px 20px !important;
+            margin: -20px -20px;
+            background: transparent;
+          }
+          
+          .glide__slide {
+            height: auto;
+            padding: 12px;
+          }
+
+          .product-card {
+            background: linear-gradient(145deg, #e8f4f2 0%, #f3e6e0 100%);
+            border-radius: 20px;
+            padding: 20px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 107, 107, 0.1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+          }
+
+          .product-name-container {
+            text-align: left;
+            width: 100%;
+            height: 32px;
+            display: flex;
+            align-items: center;
+          }
+
+          .product-name-container h3 {
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 1rem;
+            line-height: 1.2;
+          }
+
+          .product-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #ff6b6b 0%, #ff8c8c 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+
+          .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.15);
+            background: linear-gradient(145deg, #e8f4f2 0%, #f5ebe6 100%);
+          }
+
+          .product-card:hover::before {
+            opacity: 1;
+          }
+
+          .product-image-container {
+            position: relative;
+            padding-bottom: 100%;
+            margin-bottom: 16px;
+            border-radius: 12px;
+            overflow: hidden;
+          }
+
+          .product-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 12px;
+            background: transparent;
+          }
+          
+          .glide__arrows {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100%;
+            z-index: 2;
+          }
+          
+          .glide__arrow {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e8f4f2 0%, #f3e6e0 100%);
+            border: none;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.15);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0;
+            color: #ff6b6b;
+          }
+          
+          .glide__arrow:hover {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8c8c 100%);
+            color: white;
+          }
+          
+          .glide__arrow--left {
+            left: 10px;
+          }
+          
+          .glide__arrow--right {
+            right: 10px;
+          }
+
+          .price-tag {
+            background: linear-gradient(135deg, #e8f4f2 0%, #f5ebe6 100%);
+            border: 1px solid rgba(255, 107, 107, 0.1);
+            border-radius: 999px;
+            padding: 0.75rem;
+            transition: all 0.3s ease;
+          }
+
+          .add-to-cart-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8c8c 100%);
+            color: white;
+            border: none;
+            border-radius: 999px;
+            padding: 0.75rem 1.5rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .add-to-cart-btn:hover {
+            background: linear-gradient(135deg, #ff5a5a 0%, #ff7b7b 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+          }
+
+          .best-seller-badge {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8c8c 100%);
+            color: white;
+            padding: 0.25rem 1rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2);
+          }
+
+          .category-card {
+            background: linear-gradient(145deg, #e8f4f2 0%, #f3e6e0 100%);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+          }
+
+          .category-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(255, 107, 107, 0.12);
+          }
+          
+          @media (max-width: 640px) {
+            .glide {
+              padding: 12px 12px !important;
+              margin: -12px -12px;
+            }
+
+            .glide__slide {
+              padding: 6px;
+            }
+
+            .product-card {
+              padding: 12px;
+              transform: scale(0.95);
+            }
+
+            .product-name-container {
+              height: 24px;
+              margin-bottom: 0.5rem;
+            }
+
+            .product-name-container h3 {
+              font-size: 0.875rem;
+            }
+
+            .variant-price-container {
+              padding: 0.375rem;
+              margin-bottom: 0.5rem;
+            }
+
+            .price-tag {
+              padding: 0.25rem 0.625rem;
+              font-size: 0.75rem;
+            }
+
+            .add-to-cart-btn {
+              padding: 0.5rem 0.75rem;
+              font-size: 0.75rem;
+            }
+
+            .product-image-container {
+              margin-bottom: 0.5rem;
+            }
+
+            .product-image {
+              padding: 8px;
+            }
+
+            .best-seller-badge {
+              font-size: 0.65rem;
+              padding: 0.25rem 0.625rem;
+              top: 0.375rem;
+              left: 0.375rem;
+            }
+
+            .rating-container {
+              transform: scale(0.85);
+              transform-origin: left;
+              margin-bottom: 0.375rem;
+            }
+          }
+        `}
+      </style>
+      
       <div className="max-w-7xl mx-auto px-2 xs:px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-6 sm:mb-8 px-1">
-          <h1 className="text-5xl sm:text-6xl font-bold text-[#ff6b6b] mb-2 hidden sm:block">Shop by Plant</h1>
-          <p className="text-gray-500 text-sm sm:text-base tracking-widest uppercase hidden sm:block">Choose a Collection</p>
+        <div className="text-center mb-6 sm:mb-8 px-1 bg-[#fffbef]">
+          <h1 className="text-5xl sm:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#ff6b6b] to-[#ff8c8c] mb-2 hidden sm:block">Shop by Plant</h1>
+          <p className="text-gray-600 text-sm sm:text-base tracking-widest uppercase hidden sm:block">Choose a Collection</p>
         </div>
 
         {/* Mobile Plant Categories Header */}
-        <div className="block sm:hidden px-2 xs:px-4 mb-2">
-          <h1 className="text-3xl xs:text-4xl font-bold text-[#ff6b6b]">Plant Categories</h1>
+        <div className="block sm:hidden px-2 xs:px-4 mb-2 bg-[#fffbef]">
+          <h1 className="text-3xl xs:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#ff6b6b] to-[#ff8c8c]">Plant Categories</h1>
         </div>
 
         {/* Category Navigation - Mobile List / Desktop Tiles */}
-        <div className="relative mb-2 sm:mb-12">
+        <div className="relative mb-2 sm:mb-12 bg-[#fffbef]">
           {/* Mobile List Layout */}
           <div className="block sm:hidden">
             <div className="px-2 xs:px-4">
@@ -932,21 +1249,15 @@ const ShopByPlantSimple = () => {
                 className="flex-shrink-0 group"
               >
                 <div className="relative p-1">
-                  <div className={`w-32 h-32 relative overflow-hidden transition-transform duration-200 origin-center ${
+                  <div className={`w-32 h-32 relative overflow-hidden transition-transform duration-200 origin-center category-card ${
                     selectedCategory === cat.category
-                      ? 'border-2 border-black rounded-2xl group-hover:scale-105'
-                      : 'group-hover:scale-105'
-                  }`}
-                    style={{ backgroundColor: '#a8a18c' }}
-                  >
+                      ? 'border-2 border-[#ff6b6b]'
+                      : ''
+                  }`}>
                     <img
                       src={cat.image}
                       alt={cat.name}
-                      className={`w-full h-full object-cover transition-opacity duration-200 ${
-                        selectedCategory === cat.category
-                          ? 'opacity-100'
-                          : 'opacity-90 group-hover:opacity-100'
-                      }`}
+                      className="w-full h-full object-cover"
                     />
                   </div>
                 </div>
@@ -956,12 +1267,12 @@ const ShopByPlantSimple = () => {
                       key={i} 
                       className={`${
                         i === 0 
-                          ? 'font-bold text-black tracking-wide'
-                          : 'text-gray-400 tracking-wider'
+                          ? 'font-bold text-gray-800 tracking-wide'
+                          : 'text-gray-500 tracking-wider'
                       } ${
                         selectedCategory === cat.category
-                          ? i === 0 ? 'text-black' : 'text-gray-500'
-                          : i === 0 ? 'text-gray-400' : 'text-gray-400'
+                          ? i === 0 ? 'text-[#ff6b6b]' : 'text-gray-600'
+                          : i === 0 ? 'text-gray-600' : 'text-gray-400'
                       } text-sm whitespace-nowrap transition-colors duration-200`}
                     >
                       {line}
@@ -975,34 +1286,98 @@ const ShopByPlantSimple = () => {
 
         {/* Products Grid */}
         {loading ? (
-          <div className="text-center py-4 sm:py-12">
+          <div className="text-center py-4 sm:py-12 bg-[#fffbef]">
             <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-[#FF6B6B] mx-auto"></div>
             <p className="mt-4 text-gray-600 text-sm sm:text-base">Loading products...</p>
           </div>
         ) : products.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-              {products.slice(0, isMobile ? 5 : 8).map((product, index) => (
-                <ProductCard 
-                  key={product.id} 
-                  product={product} 
-                  index={index}
-                />
-              ))}
-            </div>
-            
-            {/* Mobile indicator showing top products */}
-            {isMobile && products.length > 5 && (
-              <div className="text-center mt-4 px-2">
-                <p className="text-xs text-gray-500">
-                  Showing top 5 products • {products.length} total available
-                </p>
+            <div className="relative" ref={glideRef}>
+              <div className="glide__track" data-glide-el="track">
+                <ul className="glide__slides">
+                  {products.map((product, index) => (
+                    <li className="glide__slide" key={product.id}>
+                      <div className="product-card">
+                        {product.bestSeller && (
+                          <div className="best-seller-badge">
+                            BEST SELLER!
+                          </div>
+                        )}
+                        
+                        <div className="product-image-container">
+                          <img 
+                            src={product.image || "/assets/products/placeholder.png"}
+                            alt={product.name}
+                            className="product-image"
+                            onError={(e) => {
+                              e.target.src = "/assets/products/placeholder.png";
+                            }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-1">
+                            <span className="text-gray-800 text-sm font-medium">{product.rating || generateRandomRating()}</span>
+                            {renderStars()}
+                            <span className="text-gray-600 text-xs">({product.reviews})</span>
+                          </div>
+                        </div>
+
+                        {formatProductName(product.name)}
+
+                        <div className="flex-grow">
+                          <div className="border border-gray-200 rounded-full bg-white p-2 sm:p-2.5 mb-3 sm:mb-4">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium text-xs sm:text-base pl-1.5 sm:pl-2 text-gray-800">{product.variants?.[0]?.title || '8 Ounce'}</span>
+                              <span className="bg-[#f3e6e0] px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full font-bold text-xs sm:text-base text-gray-800">
+                                ${product.variants?.[0]?.price?.toFixed(2) || product.price?.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(product, product.variants?.[0], 1);
+                          }}
+                          className={`w-full font-bold text-xs sm:text-base py-2 sm:py-2.5 px-3 sm:px-4 rounded-full transition-all duration-200 flex items-center justify-center
+                            ${product.variants?.[0] && product.variants?.[0].available 
+                              ? 'bg-[#ff6b57] hover:bg-[#ff5a43] hover:shadow-md active:scale-[0.98] text-white shadow-sm' 
+                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                          disabled={!product.variants?.[0] || !product.variants?.[0].available}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                          </svg>
+                          ADD TO CART
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            )}
+
+              {/* Glide Arrows */}
+              {!isMobile && (
+                <div className="glide__arrows" data-glide-el="controls">
+                  <button className="glide__arrow glide__arrow--left" data-glide-dir="<">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button className="glide__arrow glide__arrow--right" data-glide-dir=">">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
           </>
         ) : (
-          <div className="text-center py-8 sm:py-12">
-            <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 mx-2 sm:mx-0">
+          <div className="text-center py-8 sm:py-12 bg-[#fffbef]">
+            <div className="bg-gradient-to-br from-[#e8f4f2] to-[#f3e6e0] rounded-lg shadow-sm p-6 sm:p-8 mx-2 sm:mx-0">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
                 {getCurrentCategory()?.name.replace('\n', ' ')}
               </h2>
@@ -1012,7 +1387,7 @@ const ShopByPlantSimple = () => {
               <p className="text-gray-500 mb-4">No products found in this category.</p>
               <button
                 onClick={() => handleCategoryClick("Houseplant Products")}
-                className="bg-[#FF6B6B] text-white px-6 py-3 rounded-full font-medium hover:bg-[#ff5a43] transition-colors duration-200"
+                className="bg-gradient-to-r from-[#ff6b6b] to-[#ff8c8c] text-white px-6 py-3 rounded-full font-medium hover:shadow-lg transition-all duration-200"
               >
                 View House Plants
               </button>
