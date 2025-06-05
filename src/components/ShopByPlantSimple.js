@@ -887,15 +887,7 @@ const ShopByPlantSimple = () => {
             transition: opacity 0.3s ease;
           }
 
-          .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.15);
-            background: linear-gradient(145deg, #e8f4f2 0%, #f5ebe6 100%);
-          }
 
-          .product-card:hover::before {
-            opacity: 1;
-          }
 
           .product-image-container {
             position: relative;
@@ -941,10 +933,7 @@ const ShopByPlantSimple = () => {
             color: #ff6b6b;
           }
           
-          .glide__arrow:hover {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ff8c8c 100%);
-            color: white;
-          }
+
           
           .glide__arrow--left {
             left: 10px;
@@ -975,11 +964,7 @@ const ShopByPlantSimple = () => {
             justify-content: center;
           }
 
-          .add-to-cart-btn:hover {
-            background: linear-gradient(135deg, #ff5a5a 0%, #ff7b7b 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
-          }
+
 
           .best-seller-badge {
             background: linear-gradient(135deg, #ff6b6b 0%, #ff8c8c 100%);
@@ -1001,10 +986,7 @@ const ShopByPlantSimple = () => {
             transition: all 0.3s ease;
           }
 
-          .category-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 16px rgba(255, 107, 107, 0.12);
-          }
+
           
           @media (max-width: 640px) {
             .glide {
@@ -1223,12 +1205,7 @@ const ShopByPlantSimple = () => {
             text-align: center;
           }
 
-          .see-all-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.15);
-            border-style: solid;
-            background: linear-gradient(145deg, #f0f6f4 0%, #f5ebe6 100%);
-          }
+
         `}
       </style>
       
@@ -1274,11 +1251,6 @@ const ShopByPlantSimple = () => {
                         {loadingStatus === 'loading' && (
                           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#ff6b6b]"></div>
                         )}
-                        
-                        {/* Ready indicator */}
-                        {isReady && loadingStatus === 'loaded' && (
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        )}
                       </button>
                     </div>
                   );
@@ -1315,13 +1287,6 @@ const ShopByPlantSimple = () => {
                       {loadingStatus === 'loading' && (
                         <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                        </div>
-                      )}
-                      
-                      {/* Ready indicator */}
-                      {isReady && loadingStatus === 'loaded' && (
-                        <div className="absolute top-2 right-2">
-                          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                         </div>
                       )}
                     </div>

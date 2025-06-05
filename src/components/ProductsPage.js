@@ -3214,7 +3214,7 @@ const ProductsPage = () => {
                   <img 
                     src={category.image} 
                     alt={category.name}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover"
                     onError={(e) => {
                       console.error(`Failed to load category image: ${category.image}`);
                       e.target.src = "/assets/Collection Tiles Images/default-category.jpg";
@@ -3267,7 +3267,7 @@ const ProductsPage = () => {
             </div>
             <button 
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="bg-[#ff6b57] text-white p-2 rounded-full shadow-md hover:bg-[#e55c4a] flex-shrink-0 ml-2 transform hover:scale-105 transition-transform"
+              className="bg-[#ff6b57] text-white p-2 rounded-full shadow-md hover:bg-[#e55c4a] flex-shrink-0 ml-2"
               aria-label="Scroll to top"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -3393,7 +3393,7 @@ const ProductsPage = () => {
                             </div>
                             
                             {/* Modern CTA Button */}
-                            <div className="flex items-center space-x-4 bg-[#ff6b57] hover:bg-[#ff5a43] rounded-full px-6 py-3 group-hover:scale-105 transition-all duration-300">
+                            <div className="flex items-center space-x-4 bg-[#ff6b57] hover:bg-[#ff5a43] rounded-full px-6 py-3 transition-all duration-300">
                               <span className="text-white font-semibold text-sm">SHOP ALL</span>
                               <svg 
                                 className="w-4 h-4 text-white transform group-hover:translate-x-1 transition-transform duration-300" 
@@ -3437,7 +3437,7 @@ const ProductsPage = () => {
                             </div>
                             
                             {/* Modern CTA Button */}
-                            <div className="flex items-center space-x-6 bg-[#ff6b57] hover:bg-[#ff5a43] rounded-full px-12 py-6 group-hover:scale-105 transition-all duration-300">
+                            <div className="flex items-center space-x-6 bg-[#ff6b57] hover:bg-[#ff5a43] rounded-full px-12 py-6 transition-all duration-300">
                               <span className="text-white font-semibold text-lg">Shop All Products</span>
                               <svg 
                                 className="w-5 h-5 text-white transform group-hover:translate-x-1 transition-transform duration-300" 

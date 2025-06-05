@@ -743,10 +743,9 @@ const BuildABundlePage = () => {
     const itemInBundle = selectedItems.find(item => item.product.id === product.id);
     
     // Create a custom add to cart handler for bundle functionality
-    const handleBundleAddToCart = () => {
-      const activeVariant = defaultVariant;
-      if (activeVariant && (bundleCount < 3 || itemInBundle)) {
-        addToBundle(product, activeVariant);
+    const handleBundleAddToCart = (product, variant) => {
+      if (variant && (bundleCount < 3 || itemInBundle)) {
+        addToBundle(product, variant);
       }
     };
     
@@ -799,7 +798,7 @@ const BuildABundlePage = () => {
           </div>
         )}
         
-        {/* Standard ProductCard with click handler */}
+        {/* Standard ProductCard with custom bundle functionality */}
         <div 
           onClick={() => {
             if (defaultVariant && (bundleCount < 3 || itemInBundle)) {
@@ -812,25 +811,9 @@ const BuildABundlePage = () => {
             product={bundleProduct} 
             index={index} 
             isMobile={window.innerWidth < 640}
+            customButtonText={itemInBundle ? 'ADD ANOTHER' : 'ADD TO BUNDLE'}
+            customButtonHandler={handleBundleAddToCart}
           />
-        </div>
-        
-        {/* Custom bundle button overlay to replace the default add to cart */}
-        <div className="absolute bottom-3 left-3 right-3 z-10">
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              handleBundleAddToCart();
-            }}
-            className={`w-full font-bold py-2 px-4 rounded-full transition-colors text-xs ${
-              defaultVariant && (bundleCount < 3 || itemInBundle) 
-                ? 'bg-[#ff6b57] hover:bg-[#ff5a5a] text-white' 
-                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-            }`}
-            disabled={!defaultVariant || (bundleCount >= 3 && !itemInBundle)}
-          >
-            {itemInBundle ? 'ADD ANOTHER' : 'ADD TO BUNDLE'}
-          </button>
         </div>
       </div>
     );
@@ -1086,7 +1069,7 @@ const BuildABundlePage = () => {
                             ? 'ring-2 ring-[#ff6b57]' 
                             : ''
                         }`}>
-                          <img src={category.image} alt={category.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
+                          <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
                         </div>
                         <p className={`text-xs leading-tight whitespace-pre-line lg:text-sm ${
                           (selectedCategory === '' && category.category === '') || selectedCategory === category.category

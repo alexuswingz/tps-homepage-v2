@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from './CartContext';
 
-const ProductCard = ({ product, index, isMobile = false }) => {
+const ProductCard = ({ product, index, isMobile = false, customButtonText = null, customButtonHandler = null }) => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   
@@ -136,7 +136,12 @@ const ProductCard = ({ product, index, isMobile = false }) => {
       setIsAdding(true);
       
       try {
-        addToCart(product, variantToAdd, 1);
+        // Use custom handler if provided, otherwise use default cart functionality
+        if (customButtonHandler) {
+          customButtonHandler(product, variantToAdd);
+        } else {
+          addToCart(product, variantToAdd, 1);
+        }
       } catch (error) {
         console.error('Error adding to cart:', error);
       }
@@ -255,15 +260,7 @@ const ProductCard = ({ product, index, isMobile = false }) => {
             transition: opacity 0.3s ease;
           }
 
-          .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.15);
-            background: linear-gradient(145deg, #e8f4f2 0%, #f5ebe6 100%);
-          }
 
-          .product-card:hover::before {
-            opacity: 1;
-          }
 
           .product-image-container {
             position: relative;
@@ -305,11 +302,7 @@ const ProductCard = ({ product, index, isMobile = false }) => {
             justify-content: center;
           }
 
-          .add-to-cart-btn:hover {
-            background: linear-gradient(135deg, #ff5a5a 0%, #ff7b7b 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
-          }
+
 
           .best-seller-badge {
             background: linear-gradient(135deg, #ff6b6b 0%, #ff8c8c 100%);
@@ -597,7 +590,7 @@ const ProductCard = ({ product, index, isMobile = false }) => {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
-            <span className="text-xs sm:text-base">{isAdding ? 'ADDING...' : 'ADD TO CART'}</span>
+            <span className="text-xs sm:text-base">{isAdding ? 'ADDING...' : (customButtonText || 'ADD TO CART')}</span>
           </button>
         </div>
       </div>
