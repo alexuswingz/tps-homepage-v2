@@ -238,12 +238,12 @@ const NavBar = () => {
   return (
     <>
       {/* Announcement Bar - Always visible */}
-      <div className="fixed top-0 left-0 w-full z-50">
+      <div className="fixed top-0 left-0 w-full z-[70]">
         <AnnouncementBar />
       </div>
       
       {/* Navbar - fixed position with top adjusted to position below announcement */}
-      <nav className="bg-[#fffbef] w-full border-b border-gray-200 fixed top-[42px] z-40">
+      <nav className="bg-[#fffbef] w-full border-b border-gray-200 fixed top-[42px] z-[60]">
         {/* Desktop Navigation */}
         <div className="max-w-7xl mx-auto px-6 w-full hidden md:flex items-center justify-between py-5">
           <div className="flex items-center space-x-12">
@@ -374,7 +374,7 @@ const NavBar = () => {
         
         {/* Desktop Dropdown menu - positioned below navbar */}
         <div 
-          className="absolute z-40 left-0 right-0 w-full bg-[#fffbef] border-b border-gray-200 shadow-lg transition-all duration-300 hidden md:block"
+          className="absolute z-[60] left-0 right-0 w-full bg-[#fffbef] border-b border-gray-200 shadow-lg transition-all duration-300 hidden md:block"
           style={{ 
             top: '100%',
             opacity: shopMenuOpen ? 1 : 0,

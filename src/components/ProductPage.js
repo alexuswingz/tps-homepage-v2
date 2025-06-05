@@ -167,9 +167,9 @@ const MobileImageGallery = ({ isOpen, onClose, images, initialImage, productName
   if (!isOpen) return null;
   
   return (
-    <div className="fixed inset-0 bg-white z-[60] flex flex-col">
-      {/* Navigation header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white sticky top-0 z-10 border-b border-gray-100">
+    <div className="fixed inset-0 bg-white z-[80] flex flex-col">
+      {/* Navigation header - positioned below announcement bar */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white fixed top-[42px] left-0 right-0 z-10 border-b border-gray-100">
         <span className="text-gray-800 text-sm font-medium">
           {currentIndex + 1} / {images.length}
         </span>
@@ -184,7 +184,7 @@ const MobileImageGallery = ({ isOpen, onClose, images, initialImage, productName
       </div>
       
       {/* Swiper Gallery */}
-      <div className="flex-1 bg-white">
+      <div className="flex-1 bg-white pt-[98px]">
         <Swiper
           initialSlide={currentIndex}
           modules={[Pagination, Zoom]}

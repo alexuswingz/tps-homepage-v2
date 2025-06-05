@@ -639,7 +639,7 @@ export const CartProvider = ({ children }) => {
       
       {/* Discount Notification */}
       {discount && isCartOpen && (
-        <div className="fixed top-[120px] left-0 right-0 flex justify-center z-50">
+        <div className="fixed top-[120px] left-0 right-0 flex justify-center z-[55]">
           <div className="bg-[#f8f0ff] border border-[#e0c6ff] rounded-lg p-3 mx-4 shadow-md">
             <div className="flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#7b2cbf] mr-2" viewBox="0 0 20 20" fill="currentColor">
