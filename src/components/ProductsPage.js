@@ -3411,7 +3411,7 @@ const ProductsPage = () => {
                       {/* Mobile Products Grid */}
                       <div className="grid grid-cols-2 gap-4 md:hidden">
                         {categoryProducts.slice(0, 5).map((product, index) => (
-                          <ProductCard key={product.id} product={product} index={index} isMobile={isMobile} />
+                          <ProductCard key={product.id} product={product} index={index} isMobile={isMobile} enhancedMobilePadding={true} />
                         ))}
                         {/* Shop All Card as the last item */}
                         <ShopAllCard category={category} index={5} />
@@ -3454,7 +3454,7 @@ const ProductsPage = () => {
                         {/* Desktop Products Grid */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                           {categoryProducts.slice(0, 7).map((product, index) => (
-                            <ProductCard key={product.id} product={product} index={index} isMobile={isMobile} />
+                            <ProductCard key={product.id} product={product} index={index} isMobile={isMobile} enhancedMobilePadding={true} />
                           ))}
                           {/* Shop All Card as the last item */}
                           <ShopAllCard category={category} index={7} />

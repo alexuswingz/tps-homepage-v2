@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from './CartContext';
 
-const ProductCard = ({ product, index, isMobile = false, customButtonText = null, customButtonHandler = null }) => {
+const ProductCard = ({ product, index, isMobile = false, customButtonText = null, customButtonHandler = null, enhancedMobilePadding = false }) => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   
@@ -446,6 +446,24 @@ const ProductCard = ({ product, index, isMobile = false, customButtonText = null
             }
           }
 
+          /* iPhone 14 Pro Max and similar large mobile screens - Bottom spacing for button area */
+          @media (max-width: 450px) and (min-width: 415px) {
+            .product-card.enhanced-mobile-padding {
+              padding-bottom: 20px;
+              min-height: 310px;
+            }
+            
+            .product-card.enhanced-mobile-padding .variant-selector-mobile {
+              margin-bottom: 14px;
+            }
+            
+            .product-card.enhanced-mobile-padding .add-to-cart-btn {
+              margin-bottom: 0;
+              margin-top: 6px;
+              transform: translateY(-8px);
+            }
+          }
+
           @media (max-width: 375px) {
             .product-card {
               padding: 6px;
@@ -495,7 +513,7 @@ const ProductCard = ({ product, index, isMobile = false, customButtonText = null
       </style>
 
       <div 
-        className={`product-card ${getCategoryBackground(index)} rounded-lg shadow-sm relative cursor-pointer`}
+        className={`product-card ${getCategoryBackground(index)} rounded-lg shadow-sm relative cursor-pointer ${enhancedMobilePadding ? 'enhanced-mobile-padding' : ''}`}
         onClick={handleCardClick}
         style={{ overflow: 'visible' }}
       >
