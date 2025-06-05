@@ -302,7 +302,7 @@ const MobileProductCarousel = ({ images, onImageClick }) => {
             {images.map((image, index) => (
               <li key={index} className="glide__slide">
                 <div 
-                  className="relative aspect-square bg-white rounded-2xl overflow-hidden shadow-sm"
+                  className="relative aspect-square overflow-hidden"
                   onClick={() => onImageClick(index + 1)}
                 >
                   {/* Background video - only show for slides that have hasVideo true */}
@@ -324,7 +324,7 @@ const MobileProductCarousel = ({ images, onImageClick }) => {
                     <img 
                       src={image.src}
                       alt={image.alt}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain mix-blend-multiply"
                     />
                   </div>
                 </div>
@@ -1133,7 +1133,7 @@ const ProductPage = () => {
               {/* Desktop Image View */}
               <div className="hidden md:block">
                 <div 
-                  className="relative rounded-2xl overflow-hidden cursor-pointer aspect-square"
+                  className="relative overflow-hidden cursor-pointer aspect-square"
                   onClick={() => setImageModalOpen(true)}
                 >
                   {/* Background video - only show for slides that have hasVideo true */}
@@ -1434,7 +1434,7 @@ const ProductPage = () => {
                       BETTER TOGETHER
                     </span>
                     <div className="flex justify-center items-center gap-2 h-32 md:h-24 mb-2 relative z-10">
-                      <div className="h-full w-1/2 rounded-lg flex items-center justify-center">
+                      <div className="h-full w-1/2 flex items-center justify-center">
                         <img 
                           src={
                             variantImages[selectedVariant.id] || 
@@ -1445,7 +1445,7 @@ const ProductPage = () => {
                         />
                       </div>
                       <div className="text-[#E94F37] font-bold">+</div>
-                      <div className="h-full w-1/2 rounded-lg flex items-center justify-center">
+                      <div className="h-full w-1/2 flex items-center justify-center">
                         <img 
                           src={silicaProduct ? silicaProduct.image : "/assets/products/silica-plant-food.png"}
                           alt={silicaProduct ? silicaProduct.name : "Silica For Plants"}
@@ -1639,7 +1639,7 @@ const ProductPage = () => {
           <div className="md:hidden">
             <div className="flex items-center gap-2">
               {/* Product image */}
-              <div className="w-10 h-10 rounded-md overflow-hidden border border-gray-200 flex-shrink-0">
+              <div className="w-10 h-10 flex-shrink-0">
                 <img 
                   src={productImages[0]?.src || product?.image} 
                   alt={product?.name} 
@@ -1705,11 +1705,11 @@ const ProductPage = () => {
           <div className="hidden md:flex md:items-center md:justify-between">
             <div className="flex items-center space-x-4">
               {/* Product Image */}
-              <div className="w-14 h-14 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0">
+              <div className="w-14 h-14 flex-shrink-0">
                 <img 
                   src={productImages[0]?.src || product?.image} 
                   alt={product?.name} 
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain mix-blend-multiply"
                 />
               </div>
               

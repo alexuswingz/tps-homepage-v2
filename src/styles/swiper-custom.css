@@ -1,0 +1,116 @@
+.products-swiper {
+  overflow: visible !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.products-swiper .swiper-slide {
+  height: auto !important;
+  transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+}
+
+/* Navigation Buttons */
+.products-swiper .swiper-button-prev,
+.products-swiper .swiper-button-next {
+  width: 40px !important;
+  height: 40px !important;
+  background-color: transparent;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.products-swiper .swiper-button-prev:hover,
+.products-swiper .swiper-button-next:hover {
+  transform: scale(1.1);
+}
+
+.products-swiper .swiper-button-prev::after,
+.products-swiper .swiper-button-next::after {
+  font-size: 18px !important;
+  font-weight: bold;
+  color: #ff6b57;
+}
+
+.products-swiper .swiper-button-prev {
+  left: -20px !important;
+}
+
+.products-swiper .swiper-button-next {
+  right: -20px !important;
+}
+
+.products-swiper .swiper-button-disabled {
+  opacity: 0 !important;
+  cursor: not-allowed;
+}
+
+/* Smooth scrolling enhancements */
+.products-swiper .swiper-wrapper {
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+}
+
+/* Touch device optimizations */
+@media (hover: none) {
+  .products-swiper {
+    overflow: hidden !important;
+  }
+
+  .products-swiper .swiper-button-prev,
+  .products-swiper .swiper-button-next {
+    display: none !important;
+  }
+}
+
+/* Custom scrollbar styling */
+.products-swiper::-webkit-scrollbar {
+  display: none;
+}
+
+.products-swiper {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Performance optimizations */
+.products-swiper .swiper-wrapper {
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Smooth momentum scrolling for touch devices */
+@supports (-webkit-overflow-scrolling: touch) {
+  .products-swiper {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* FreeMode customizations */
+.products-swiper.swiper-free-mode > .swiper-wrapper {
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+}
+
+/* Fade edges only for mobile */
+@media (max-width: 768px) {
+  .products-swiper::before,
+  .products-swiper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 60px;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .products-swiper::before {
+    left: 0;
+    background: linear-gradient(to right, rgba(255, 249, 242, 1), rgba(255, 249, 242, 0));
+  }
+
+  .products-swiper::after {
+    right: 0;
+    background: linear-gradient(to left, rgba(255, 249, 242, 1), rgba(255, 249, 242, 0));
+  }
+} 
