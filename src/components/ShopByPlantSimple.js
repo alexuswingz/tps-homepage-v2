@@ -214,6 +214,7 @@ const ShopByPlantSimple = () => {
   const [preloadedProducts, setPreloadedProducts] = useState({});
   const [categoryLoadingStatus, setCategoryLoadingStatus] = useState({});
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(null);
   const glideRef = useRef(null);
 
   // Hook to detect mobile screen size
@@ -416,6 +417,12 @@ const ShopByPlantSimple = () => {
   const loadCategoryProducts = async (category, isInitialLoad = false) => {
     console.log(`Loading products for category: ${category}`);
     
+    // Prevent duplicate loading
+    if (categoryLoadingStatus[category] === 'loading') {
+      console.log(`Category ${category} is already being loaded, skipping...`);
+      return preloadedProducts[category] || [];
+    }
+    
     // Set loading status for this category
     setCategoryLoadingStatus(prev => ({
       ...prev,
@@ -437,7 +444,7 @@ const ShopByPlantSimple = () => {
           
           // Add timeout to prevent hanging
           const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout after 20 seconds')), 20000)
+            setTimeout(() => reject(new Error('Timeout after 15 seconds')), 15000)
           );
           
           const fetchPromise = fetchProductsByNames(allProductNames);
@@ -504,22 +511,11 @@ const ShopByPlantSimple = () => {
         [category]: enrichedProducts
       }));
       
-      // Update category loading status
+      // Update category loading status to loaded
       setCategoryLoadingStatus(prev => ({
         ...prev,
         [category]: 'loaded'
       }));
-      
-      // If this is the currently selected category, update products display immediately
-      if (category === selectedCategory) {
-        const productsToShow = getProductCountForView(enrichedProducts, isMobile);
-        setProducts(productsToShow);
-        
-        if (isInitialLoad) {
-          setLoading(false);
-          setInitialLoadComplete(true);
-        }
-      }
       
       return enrichedProducts;
       
@@ -542,17 +538,6 @@ const ShopByPlantSimple = () => {
         [category]: mockProducts
       }));
       
-      // If this is the currently selected category, show mock products
-      if (category === selectedCategory) {
-                 const productsToShow = getProductCountForView(mockProducts, isMobile);
-        setProducts(productsToShow);
-        
-        if (isInitialLoad) {
-          setLoading(false);
-          setInitialLoadComplete(true);
-        }
-      }
-      
       return mockProducts;
     }
   };
@@ -570,8 +555,27 @@ const ShopByPlantSimple = () => {
       "Plant Supplements"
     ];
     
-    // Load the initial/selected category first
-    await loadCategoryProducts(selectedCategory, true);
+    try {
+      // Load the initial/selected category first
+      const initialProducts = await loadCategoryProducts(selectedCategory, true);
+      
+      if (initialProducts && initialProducts.length > 0) {
+        const productsToShow = getProductCountForView(initialProducts, isMobile);
+        setProducts(productsToShow);
+        setInitialLoadComplete(true);
+        console.log(`Initial load complete for ${selectedCategory} with ${productsToShow.length} products`);
+      } else {
+        console.log(`No products found for initial category: ${selectedCategory}`);
+        setProducts([]);
+        setInitialLoadComplete(true);
+      }
+    } catch (error) {
+      console.error('Error in initial loading:', error);
+      setProducts([]);
+      setInitialLoadComplete(true);
+    } finally {
+      setLoading(false);
+    }
     
     // Load remaining categories in background
     const remainingCategories = categoriesToLoad.filter(cat => cat !== selectedCategory);
@@ -580,51 +584,86 @@ const ShopByPlantSimple = () => {
     remainingCategories.forEach((category, index) => {
       // Stagger the loading slightly to avoid overwhelming the API
       setTimeout(() => {
-        loadCategoryProducts(category, false);
-      }, (index + 1) * 500); // 500ms delay between each category
+        loadCategoryProducts(category, false).catch(error => {
+          console.error(`Background loading failed for ${category}:`, error);
+        });
+      }, (index + 1) * 1000); // 1 second delay between each category
     });
   };
 
-  const handleCategoryClick = (category) => {
+  const handleCategoryClick = async (category) => {
     console.log(`Switching to category: ${category}`);
+    
+    // Clear any existing timeout first
+    if (loadingTimeout) {
+      clearTimeout(loadingTimeout);
+      setLoadingTimeout(null);
+    }
+    
     setSelectedCategory(category);
     
     // Check if this category is already loaded
-    if (preloadedProducts[category]) {
+    if (preloadedProducts[category] && preloadedProducts[category].length > 0) {
       const categoryProducts = preloadedProducts[category];
       const productsToShow = getProductCountForView(categoryProducts, isMobile);
       setProducts(productsToShow);
-      console.log(`Switched to ${category} with ${productsToShow.length} products`);
-    } else {
-      // Category not loaded yet - show loading state and start loading
-      const categoryStatus = categoryLoadingStatus[category];
-      
-      if (categoryStatus !== 'loading') {
-        console.log(`Category ${category} not loaded yet, starting load...`);
-        setLoading(true);
-        loadCategoryProducts(category, false).then(() => {
-          setLoading(false);
-        });
-      } else {
-        console.log(`Category ${category} is currently loading...`);
-        setLoading(true);
-        
-        // Set up a listener for when this category finishes loading
-        const checkCategoryLoaded = () => {
-          if (preloadedProducts[category]) {
-            const categoryProducts = preloadedProducts[category];
-            const productsToShow = getProductCountForView(categoryProducts, isMobile);
-            setProducts(productsToShow);
-            setLoading(false);
-            console.log(`Category ${category} finished loading`);
-          } else {
-            // Check again in 500ms
-            setTimeout(checkCategoryLoaded, 500);
-          }
-        };
-        checkCategoryLoaded();
-      }
+      setLoading(false);
+      console.log(`Switched to ${category} with ${productsToShow.length} products from cache`);
+      return;
     }
+    
+    // Category not loaded yet - show loading state and start loading
+    const categoryStatus = categoryLoadingStatus[category];
+    
+    if (categoryStatus === 'loading') {
+      console.log(`Category ${category} is already loading, waiting...`);
+      setLoading(true);
+      return;
+    }
+    
+         if (categoryStatus !== 'loaded') {
+       console.log(`Category ${category} not loaded yet, starting load...`);
+       setLoading(true);
+       
+       // Clear any existing timeout
+       if (loadingTimeout) {
+         clearTimeout(loadingTimeout);
+       }
+       
+       // Set a timeout to prevent getting stuck in loading state
+       const timeout = setTimeout(() => {
+         console.log(`Loading timeout for ${category}, forcing loading state to false`);
+         setLoading(false);
+         setCategoryLoadingStatus(prev => ({
+           ...prev,
+           [category]: 'error'
+         }));
+       }, 30000); // 30 second timeout
+       
+       setLoadingTimeout(timeout);
+       
+       try {
+         const loadedProducts = await loadCategoryProducts(category, false);
+         if (loadedProducts && loadedProducts.length > 0) {
+           const productsToShow = getProductCountForView(loadedProducts, isMobile);
+           setProducts(productsToShow);
+           console.log(`Successfully loaded ${category} with ${productsToShow.length} products`);
+         } else {
+           console.log(`No products found for ${category}`);
+           setProducts([]);
+         }
+       } catch (error) {
+         console.error(`Error loading ${category}:`, error);
+         setProducts([]);
+       } finally {
+         // Clear the timeout and loading state
+         if (timeout) {
+           clearTimeout(timeout);
+         }
+         setLoadingTimeout(null);
+         setLoading(false);
+       }
+     }
   };
 
   // Handle mobile/web view changes - refresh products with appropriate count
@@ -698,6 +737,15 @@ const ShopByPlantSimple = () => {
   useEffect(() => {
     startProgressiveLoading();
   }, []);
+
+  // Cleanup effect for timeouts
+  useEffect(() => {
+    return () => {
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
+    };
+  }, [loadingTimeout]);
 
   // Get category loading status for display
   const getCategoryLoadingStatus = (category) => {

@@ -471,24 +471,54 @@ const ProductCard = ({ product, index, isMobile = false, customButtonText = null
 
           @media (max-width: 375px) {
             .product-card {
-              padding: 6px;
-              min-height: 280px;
-              max-height: 280px;
+              padding: 6px 6px 1px 6px;
+              min-height: 245px;
+              max-height: 245px;
+              display: flex;
+              flex-direction: column;
+            }
+
+            .product-card .p-1 {
+              padding: 0.125rem !important;
             }
 
             .product-image-container {
-              height: 80px !important;
+              height: 70px !important;
+              margin-bottom: 0.125rem;
+            }
+
+            .product-name-container {
+              height: 16px;
+              margin-bottom: 0.125rem;
             }
 
             .product-name-container h3 {
-              font-size: 0.65rem;
+              font-size: 0.6rem;
+            }
+
+            .variant-selector-mobile {
+              margin-bottom: 0.125rem;
             }
 
             .variant-selector-mobile select,
             .variant-selector-mobile .custom-dropdown {
-              font-size: 0.55rem;
-              padding: 3px;
+              font-size: 0.5rem;
+              padding: 2px;
+              height: 22px;
+            }
+
+            .reviews-mobile {
+              margin-bottom: 0.125rem;
+              transform: scale(0.75);
+              transform-origin: left;
+            }
+
+            .add-to-cart-btn {
+              margin-bottom: 0;
+              margin-top: auto;
+              padding: 0.25rem 0.4rem;
               height: 26px;
+              font-size: 0.6rem;
             }
           }
 
