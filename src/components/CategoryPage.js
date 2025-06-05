@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from './CartContext';
+import ProductCard from './ProductCard';
+
+// Import data files for categorization
+import { houseplantProductNames, fetchAllHouseplantProducts } from '../data/houseplantProducts';
+import { gardenProductNames, fetchAllGardenProducts } from '../data/gardenProducts';
+import { hydroponicAquaticProductNames, fetchAllHydroponicAquaticProducts } from '../data/hydroponicAquaticProducts';
+import { specialtySupplementNames, fetchAllSpecialtySupplements } from '../data/specialtySupplements';
 
 // Category definitions matching the ShopByPlant component
 const categories = [
@@ -43,255 +50,104 @@ const TOP_HOUSEPLANT_PRODUCTS = [
   { name: "Banana Tree Fertilizer", upc: "810151950006", priority: 8 }
 ];
 
-// Background gradient styles for each product card
-const cardBackgrounds = [
-  'bg-gradient-to-br from-[#e6f4fa] to-[#d9eef8]', // Light blue gradient
-  'bg-gradient-to-br from-[#f2f9e7] to-[#e8f4d9]', // Light green gradient
-  'bg-gradient-to-br from-[#fef5e7] to-[#fbecd3]', // Light yellow/cream gradient
-  'bg-gradient-to-br from-[#f8effc] to-[#f1e3fa]'  // Light lavender gradient
-];
+// Get product names from data files by category
+const getProductNamesByCategory = (category) => {
+  const categoryProductNames = {
+    "Houseplant Products": houseplantProductNames,
+    "Garden Products": gardenProductNames,
+    "Hydrophonic and Aquatic": hydroponicAquaticProductNames,
+    "Plant Supplements": specialtySupplementNames
+  };
 
-// Product Card Component (same as in ProductsPage.js)
-const ProductCard = ({ product, index }) => {
-  const { addToCart } = useCart();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [quantity, setQuantity] = useState(1);
-  const [activeVariant, setActiveVariant] = useState(null);
-  const dropdownRef = useRef(null);
+  return categoryProductNames[category] || [];
+};
 
-  // Get alternating background instead of random
-  const getCategoryBackground = () => {
-    const backgroundIndex = index % cardBackgrounds.length;
-    return cardBackgrounds[backgroundIndex];
-  };
-  
-  // Initialize selected variant on component mount
-  useEffect(() => {
-    // Find first available variant or default to first variant
-    const initialVariant = product.variants.find(variant => variant.available) || product.variants[0];
-    setActiveVariant(initialVariant);
-  }, [product.variants]);
-  
-  // Add click outside listener to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-  
-  // Calculate max quantity that can be ordered (respect inventory limits)
-  const maxQuantity = activeVariant && activeVariant.available ? 
-    (activeVariant.inventoryQuantity || 99) : 0;
-  
-  const handleQuantityChange = (e) => {
-    const value = parseInt(e.target.value);
-    if (value >= 1 && value <= maxQuantity) {
-      setQuantity(value);
-    }
-  };
-  
-  const incrementQuantity = () => {
-    if (quantity < maxQuantity) {
-      setQuantity(quantity + 1);
-    }
-  };
-  
-  const decrementQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(quantity - 1);
-    }
-  };
-  
-  const handleAddToCart = () => {
-    if (activeVariant && activeVariant.available) {
-      addToCart(product, activeVariant, quantity);
-    }
-  };
-  
-  const selectVariant = (variant) => {
-    setActiveVariant(variant);
-    setDropdownOpen(false);
-  };
-  
-  const renderStars = () => {
-    return (
-      <div className="flex">
-        {[...Array(5)].map((_, i) => (
-          <svg key={i} className="h-3 w-3 sm:h-4 sm:w-4 text-[#ff6b57] fill-current" viewBox="0 0 24 24">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-          </svg>
-        ))}
-      </div>
-    );
-  };
-  
-  // Format product name to have product type on separate line
-  const formatProductName = (name) => {
-    const upperName = name.toUpperCase();
+// Filter products to ensure they belong to the correct category
+const filterProductsByCategory = (products, category, targetNames = []) => {
+  return products.filter(product => {
+    const productName = product.name.toLowerCase();
     
-    if (upperName.length > 20) {
-      const words = upperName.split(' ');
-      const half = Math.ceil(words.length / 2);
-      const firstHalf = words.slice(0, half).join(' ');
-      const secondHalf = words.slice(half).join(' ');
-      
-      return (
-        <div className="product-name-container h-16 sm:h-20 flex flex-col justify-start">
-          <p className="text-base sm:text-xl font-bold text-gray-800">{firstHalf}</p>
-          <p className="text-base sm:text-xl font-bold text-gray-800">{secondHalf}</p>
-        </div>
-      );
+    // First check if the product name matches any of our target names exactly
+    if (targetNames.length > 0) {
+      const isTargetProduct = targetNames.some(targetName => {
+        const targetLower = targetName.toLowerCase();
+        return productName.includes(targetLower) || 
+               targetLower.includes(productName) ||
+               productName === targetLower;
+      });
+      if (isTargetProduct) return true;
     }
     
-    return (
-      <div className="product-name-container h-16 sm:h-20 flex flex-col justify-start">
-        <p className="text-base sm:text-xl font-bold text-gray-800 truncate overflow-hidden">{upperName}</p>
-        <div className="h-4 sm:h-6"></div>
-      </div>
-    );
-  };
-  
-  // Only show dropdown if there are multiple variants
-  const hasMultipleVariants = product.variants.length > 1;
-  
-  return (
-    <div 
-      className={`${getCategoryBackground()} rounded-lg overflow-hidden shadow-sm relative`}
-    >
-      {product.bestSeller && (
-        <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm">
-          BEST SELLER!
-        </div>
-      )}
-      
-      <div className="p-3 sm:p-6">
-        <img 
-          src={product.image} 
-          alt={product.name} 
-          className="h-32 sm:h-48 mx-auto mb-2 sm:mb-4 object-contain mix-blend-multiply"
-        />
+    // Category-specific filtering with more precise rules
+    switch (category) {
+      case "Houseplant Products":
+        return (
+          productName.includes('indoor') ||
+          productName.includes('houseplant') ||
+          productName.includes('monstera') ||
+          productName.includes('fiddle') ||
+          productName.includes('christmas cactus') ||
+          productName.includes('bird of paradise') ||
+          productName.includes('succulent') ||
+          productName.includes('snake plant') ||
+          productName.includes('orchid') ||
+          productName.includes('fern') ||
+          productName.includes('bonsai') ||
+          productName.includes('money tree') ||
+          productName.includes('pothos') ||
+          productName.includes('philodendron') ||
+          productName.includes('african violet') ||
+          productName.includes('air plant') ||
+          productName.includes('peace lily')
+        ) && !productName.includes('garden') && !productName.includes('lawn') && !productName.includes('outdoor');
         
-        <div className="flex items-center justify-between mb-1 sm:mb-2">
-          {renderStars()}
-          <span className="text-gray-600 text-xs sm:text-sm">{product.reviews} reviews</span>
-        </div>
+      case "Garden Products":
+        return (
+          productName.includes('hydrangea') ||
+          productName.includes('lemon tree') ||
+          productName.includes('gardenia') ||
+          productName.includes('hibiscus') ||
+          productName.includes('arborvitae') ||
+          productName.includes('citrus') ||
+          productName.includes('tomato') ||
+          productName.includes('rose') ||
+          productName.includes('lawn') ||
+          productName.includes('garden') ||
+          productName.includes('tree') ||
+          productName.includes('fruit') ||
+          productName.includes('vegetable') ||
+          productName.includes('outdoor')
+        ) && !productName.includes('indoor') && !productName.includes('houseplant') && !productName.includes('hydroponic');
         
-        {formatProductName(product.name)}
+      case "Hydrophonic and Aquatic":
+        return (
+          productName.includes('liquid plant') ||
+          productName.includes('lotus') ||
+          productName.includes('hydroponic') ||
+          productName.includes('aquatic') ||
+          productName.includes('water plant') ||
+          productName.includes('water garden')
+        );
         
-        {/* Variant selection dropdown */}
-        <div className="relative mb-2 sm:mb-4" ref={dropdownRef}>
-          <div 
-            onClick={() => hasMultipleVariants && setDropdownOpen(!dropdownOpen)}
-            className={`flex justify-between items-center ${hasMultipleVariants ? 'cursor-pointer' : 'cursor-default'}`}
-          >
-            <div className="flex flex-1 items-center justify-between border border-gray-300 rounded-full bg-white relative overflow-hidden">
-              <div className="flex-1 p-2 pl-4 text-xs sm:text-sm">
-                <span className="font-medium">{activeVariant?.title || '8 Ounces'}</span>
-              </div>
-              
-              <div className="flex-1 p-2 pr-4 text-right text-xs sm:text-sm">
-                <span className="font-medium">${activeVariant ? activeVariant.price.toFixed(2) : product.price.toFixed(2)}</span>
-              </div>
-              
-              {hasMultipleVariants && (
-                <div className="absolute right-4 pointer-events-none">
-                  <svg className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${dropdownOpen ? 'transform rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              )}
-              
-              {hasMultipleVariants && (
-                <div className={`absolute inset-0 bg-gray-100 bg-opacity-0 hover:bg-opacity-20 transition-all duration-200 ${dropdownOpen ? 'bg-opacity-20' : ''}`}></div>
-              )}
-            </div>
-          </div>
-          
-          {/* Dropdown options */}
-          {hasMultipleVariants && dropdownOpen && (
-            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-52 overflow-y-auto">
-              {product.variants.map((variant, idx) => (
-                <div 
-                  key={variant.id || idx}
-                  onClick={() => selectVariant(variant)}
-                  className={`p-2 px-4 text-xs sm:text-sm cursor-pointer transition-colors duration-150
-                    ${!variant.available ? 'text-gray-400 hover:bg-gray-50' : 'hover:bg-gray-100'}
-                    ${activeVariant?.id === variant.id ? 'bg-gray-100 font-medium' : ''}`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span>{variant.title}</span>
-                    <span>${variant.price.toFixed(2)}</span>
-                  </div>
-                  {!variant.available && (
-                    <span className="text-xs text-red-500 block mt-1">Out of stock</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      case "Plant Supplements":
+        return (
+          productName.includes('ferrous sulfate') ||
+          productName.includes('silica for plants') ||
+          productName.includes('fish emulsion') ||
+          productName.includes('calcium for plants') ||
+          productName.includes('potassium fertilizer') ||
+          productName.includes('supplement') ||
+          productName.includes('nitrogen') ||
+          productName.includes('phosphorus') ||
+          productName.includes('root supplement') ||
+          productName.includes('compost') ||
+          productName.includes('seaweed')
+        ) && !productName.includes('tree') && !productName.includes('garden');
         
-        {/* Quantity selector - only show if the product is available */}
-        {activeVariant && activeVariant.available && (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
-            <label htmlFor={`quantity-${product.id}`} className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-0">
-              Quantity: {maxQuantity > 0 ? `(${maxQuantity} available)` : ''}
-            </label>
-            <div className="flex items-center border border-gray-300 rounded self-start sm:self-auto">
-              <button 
-                onClick={decrementQuantity}
-                className="px-2 py-1 text-gray-600 hover:bg-gray-100"
-                disabled={quantity <= 1}
-              >
-                -
-              </button>
-              <input
-                id={`quantity-${product.id}`}
-                type="number"
-                min="1"
-                max={maxQuantity}
-                value={quantity}
-                onChange={handleQuantityChange}
-                className="w-12 px-2 py-1 text-center text-sm border-x border-gray-300"
-              />
-              <button 
-                onClick={incrementQuantity}
-                className="px-2 py-1 text-gray-600 hover:bg-gray-100"
-                disabled={quantity >= maxQuantity}
-              >
-                +
-              </button>
-            </div>
-          </div>
-        )}
-        
-        <button 
-          onClick={handleAddToCart}
-          className={`w-full font-bold text-sm sm:text-base py-2 sm:py-3 px-2 sm:px-4 rounded-full transition-all duration-200 flex items-center justify-center
-            ${activeVariant && activeVariant.available 
-              ? 'bg-[#ff6b57] hover:bg-[#ff5a43] hover:shadow-md active:scale-[0.98] text-white shadow-sm' 
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-          disabled={!activeVariant || !activeVariant.available || maxQuantity === 0}
-        >
-          {activeVariant && activeVariant.available ? (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-              ADD TO CART
-            </>
-          ) : maxQuantity === 0 ? 'OUT OF STOCK' : 'UNAVAILABLE'}
-        </button>
-      </div>
-    </div>
-  );
+      default:
+        return false;
+    }
+  });
 };
 
 const CategoryPage = () => {
@@ -597,94 +453,41 @@ const CategoryPage = () => {
     }
   };
 
-  // Function to fetch products by category
+  // Function to fetch products by category using data files
   const fetchProductsByCategory = async (categoryName) => {
     try {
       setLoading(true);
       console.log(`Fetching products for category: ${categoryName}`);
 
-      // Updated GraphQL query to fetch products
-      const query = `
-        {
-          products(first: 100) {
-            pageInfo {
-              hasNextPage
-              endCursor
-            }
-            edges {
-              node {
-                id
-                title
-                description
-                tags
-                productType
-                vendor
-                handle
-                priceRange {
-                  minVariantPrice {
-                    amount
-                    currencyCode
-                  }
-                }
-                images(first: 5) {
-                  edges {
-                    node {
-                      transformedSrc
-                      altText
-                      width
-                      height
-                    }
-                  }
-                }
-                variants(first: 20) {
-                  edges {
-                    node {
-                      id
-                      title
-                      price {
-                        amount
-                        currencyCode
-                      }
-                      availableForSale
-                      quantityAvailable
-                      sku
-                      compareAtPrice {
-                        amount
-                        currencyCode
-                      }
-                      selectedOptions {
-                        name
-                        value
-                      }
-                      image {
-                        transformedSrc
-                        altText
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+      let categoryProducts = [];
+      
+      // Use the data files to fetch products by category
+      try {
+        switch (categoryName) {
+          case "Houseplant Products":
+            categoryProducts = await fetchAllHouseplantProducts();
+            break;
+          case "Garden Products":
+            categoryProducts = await fetchAllGardenProducts();
+            break;
+          case "Hydrophonic and Aquatic":
+            categoryProducts = await fetchAllHydroponicAquaticProducts();
+            break;
+          case "Plant Supplements":
+            categoryProducts = await fetchAllSpecialtySupplements();
+            break;
+          default:
+            console.log(`No data file available for category: ${categoryName}`);
+            categoryProducts = [];
         }
-      `;
-
-      const result = await fetchFromStorefrontAPI(query);
-      
-      if (!result || !result.data) {
-        console.error("API returned no data or invalid response");
-        setLoading(false);
-        return;
-      }
-      
-      if (result.data.products && result.data.products.edges.length > 0) {
-        // Map products to our format
-        const allProducts = result.data.products.edges.map(mapProductFromShopify);
         
-        // Filter products by the specified category
-        let categoryProducts = allProducts.filter(product => 
-          product.category === categoryName
-        );
+        // Get all product names for the category from data files
+        const allProductNames = getProductNamesByCategory(categoryName);
+        
+        // Filter products to ensure they belong to the correct category
+        if (categoryProducts.length > 0) {
+          categoryProducts = filterProductsByCategory(categoryProducts, categoryName, allProductNames);
+        }
         
         // Apply custom sorting for houseplant products
         if (categoryName === "Houseplant Products") {
@@ -692,16 +495,123 @@ const CategoryPage = () => {
         }
         
         console.log(`Found ${categoryProducts.length} products for category ${categoryName}`);
-        setProducts(categoryProducts);
-      } else {
-        console.log(`No products found for category ${categoryName}`);
-        setProducts([]);
+        
+        // If no products found with data files, try API fallback
+        if (categoryProducts.length === 0) {
+          console.log(`No products found with data files, trying API fallback for ${categoryName}`);
+          await fetchProductsByLegacyAPI(categoryName);
+        } else {
+          setProducts(categoryProducts);
+        }
+        
+      } catch (dataError) {
+        console.error(`Error with data file fetch for ${categoryName}:`, dataError);
+        // Fallback to legacy API method
+        await fetchProductsByLegacyAPI(categoryName);
       }
       
       setLoading(false);
     } catch (error) {
       console.error("Error fetching category products:", error);
       setLoading(false);
+      setProducts([]);
+    }
+  };
+
+  // Legacy API method as fallback
+  const fetchProductsByLegacyAPI = async (categoryName) => {
+    // Updated GraphQL query to fetch products
+    const query = `
+      {
+        products(first: 100) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+          edges {
+            node {
+              id
+              title
+              description
+              tags
+              productType
+              vendor
+              handle
+              priceRange {
+                minVariantPrice {
+                  amount
+                  currencyCode
+                }
+              }
+              images(first: 5) {
+                edges {
+                  node {
+                    transformedSrc
+                    altText
+                    width
+                    height
+                  }
+                }
+              }
+              variants(first: 20) {
+                edges {
+                  node {
+                    id
+                    title
+                    price {
+                      amount
+                      currencyCode
+                    }
+                    availableForSale
+                    quantityAvailable
+                    sku
+                    compareAtPrice {
+                      amount
+                      currencyCode
+                    }
+                    selectedOptions {
+                      name
+                      value
+                    }
+                    image {
+                      transformedSrc
+                      altText
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await fetchFromStorefrontAPI(query);
+    
+    if (!result || !result.data) {
+      console.error("API returned no data or invalid response");
+      setProducts([]);
+      return;
+    }
+    
+    if (result.data.products && result.data.products.edges.length > 0) {
+      // Map products to our format
+      const allProducts = result.data.products.edges.map(mapProductFromShopify);
+      
+      // Filter products by the specified category
+      let categoryProducts = allProducts.filter(product => 
+        product.category === categoryName
+      );
+      
+      // Apply custom sorting for houseplant products
+      if (categoryName === "Houseplant Products") {
+        categoryProducts = sortHouseplantProducts(categoryProducts);
+      }
+      
+      console.log(`Found ${categoryProducts.length} products for category ${categoryName} via API fallback`);
+      setProducts(categoryProducts);
+    } else {
+      console.log(`No products found for category ${categoryName}`);
       setProducts([]);
     }
   };
@@ -811,7 +721,12 @@ const CategoryPage = () => {
         ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredProducts.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                index={index} 
+                isMobile={window.innerWidth < 640}
+              />
             ))}
           </div>
         ) : (
