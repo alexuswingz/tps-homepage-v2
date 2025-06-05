@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from './CartContext';
 import { useNav } from './NavContext';
+import ProductCard from './ProductCard';
+
+// Import data files like ShopByPlantSimple
+import { houseplantProductNames, fetchAllHouseplantProducts } from '../data/houseplantProducts';
+import { gardenProductNames, fetchAllGardenProducts } from '../data/gardenProducts';
+import { hydroponicAquaticProductNames, fetchAllHydroponicAquaticProducts } from '../data/hydroponicAquaticProducts';
+import { specialtySupplementNames, fetchAllSpecialtySupplements } from '../data/specialtySupplements';
 
 const BuildABundlePage = () => {
   const { addToCart, setDiscount } = useCart();
@@ -34,96 +41,11 @@ const BuildABundlePage = () => {
     return cardBackgrounds[backgroundIndex];
   };
   
-  // List of houseplant product names from the image
-  const houseplantProducts = [
-    "Money Tree Fertilizer",
-    "Jade Fertilizer",
-    "Christmas Cactus Fertilizer",
-    "Cactus Fertilizer",
-    "Succulent Plant Food",
-    "Bonsai Fertilizer",
-    "Air Plant Fertilizer",
-    "Snake Plant Fertilizer",
-    "House Plant Food",
-    "Mycorrhizal Fungi for Houseplants",
-    "Indoor Plant Food",
-    "Fiddle Leaf Fig Plant Food",
-    "Monstera Plant Food",
-    "African Violet Fertilizer"
-  ];
-  
-  // List of lawn and garden product names from the image
-  const lawnGardenProducts = [
-    "Bougainvillea Fertilizer",
-    "Camellia Fertilizer",
-    "Cut Flower Food",
-    "Desert Rose Fertilizer",
-    "Flowering Fertilizer",
-    "Rose Bush Fertilizer",
-    "Rose Fertilizer",
-    "Plumeria Fertilizer",
-    "Hydrangea Fertilizer",
-    "Hibiscus Fertilizer",
-    "Azalea Fertilizer",
-    "Gardenia Fertilizer",
-    "Rhododendron Fertilizer",
-    "Petunia Fertilizer",
-    "Geranium Fertilizer",
-    "Hanging Basket Plant Food",
-    "Flowering Plant Food",
-    "Daffodil Bulb Fertilizer",
-    "Tulip Bulb Fertilizer",
-    "Mum Fertilizer",
-    "Ixora Fertilizer",
-    "Bulb Fertilizer",
-    "Lilac Bush Fertilizer",
-    "Bloom Fertilizer",
-    "Berry Fertilizer",
-    "Pepper Fertilizer",
-    "Tomato Fertilizer",
-    "Strawberry Fertilizer",
-    "Blueberry Fertilizer",
-    "Herbs and Leafy Greens Plant Food",
-    "Vegetable Fertilizer",
-    "Pumpkin Fertilizer",
-    "Potato Fertilizer",
-    "Garlic Fertilizer",
-    "Water Soluble Fertilizer",
-    "Garden Fertilizer",
-    "Plant Food Outdoor",
-    "Lawn Fertilizer",
-    "All Purpose Fertilizer",
-    "All Purpose NPK Fertilizer",
-    "Starter Fertilizer",
-    "10-10-10 for General Use",
-    "10-10-10 for Vegetables",
-    "10-10-10 for Plants",
-    "Fall Fertilizer",
-    "Winter Fertilizer",
-    "Tree Fertilizer",
-    "Fruit Tree Fertilizer",
-    "Apple Tree Fertilizer",
-    "Citrus Fertilizer",
-    "Lemon Tree Fertilizer",
-    "Shrub Fertilizer"
-  ];
-  
-  // List of hydro and aquatic product names from the image
-  const hydroAquaticProducts = [
-    "Aquarium Plant Fertilizer",
-    "Aquatic Plant Fertilizer",
-    "Water Garden Fertilizer",
-    "Hydroponic Nutrients",
-    "Hydroponic Plant Food"
-  ];
-  
-  // List of specialty supplements product names from the image
-  const specialtySupplements = [
-    "Fish Fertilizer",
-    "Root Boost",
-    "Calcium for Plants",
-    "Seaweed Fertilizer"
-  ];
+  // Use imported product names from data files (like ShopByPlantSimple)
+  const houseplantProducts = houseplantProductNames;
+  const lawnGardenProducts = gardenProductNames;
+  const hydroAquaticProducts = hydroponicAquaticProductNames;
+  const specialtySupplements = specialtySupplementNames;
 
   const categories = [
     { id: 1, name: 'ALL PRODUCTS', image: '/assets/Export Landing Page Main Images/Homepage Image 2.jpg', category: ''},
@@ -814,180 +736,100 @@ const BuildABundlePage = () => {
     return categories.find(cat => cat.category === selectedCategory);
   };
 
-  // Product card component for the available products
-  const ProductCard = ({ product, onSelect, index }) => {
-    const [selectedVariant, setSelectedVariant] = useState(null);
-    const [dropdownOpen, setDropdownOpen] = useState(false);
-    const dropdownRef = useRef(null);
+  // Bundle-specific product card wrapper that adds bundle functionality to the standard ProductCard
+  const BundleProductCard = ({ product, index }) => {
+    // Check if item is in bundle (using the first available variant for display)
+    const defaultVariant = product.variants.find(v => v.available) || product.variants[0];
+    const itemInBundle = selectedItems.find(item => item.product.id === product.id);
     
-    // Initialize selected variant on mount
-    useEffect(() => {
-      // Find the 8oz variant or default to first available variant
-      const initialVariant = product.variants.find(v => 
-        (v.title.toLowerCase().includes('8 oz') || v.title.toLowerCase().includes('8 ounce')) && v.available
-      ) || product.variants.find(v => v.available) || product.variants[0];
-      
-      setSelectedVariant(initialVariant);
-    }, [product.variants]);
-    
-    // Handle click outside to close dropdown
-    useEffect(() => {
-      const handleClickOutside = (event) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-          setDropdownOpen(false);
-        }
-      };
-      
-      // Add event listener when dropdown is open
-      if (dropdownOpen) {
-        document.addEventListener('mousedown', handleClickOutside);
+    // Create a custom add to cart handler for bundle functionality
+    const handleBundleAddToCart = () => {
+      const activeVariant = defaultVariant;
+      if (activeVariant && (bundleCount < 3 || itemInBundle)) {
+        addToBundle(product, activeVariant);
       }
-      
-      // Cleanup
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }, [dropdownOpen]);
+    };
     
-    // Get active variant (selected or first available)
-    const activeVariant = selectedVariant || 
-      product.variants.find(v => v.available) || 
-      product.variants[0];
-    
-    const available = activeVariant && activeVariant.available;
-    
-    // Only show dropdown if there are multiple variants
-    const hasMultipleVariants = product.variants.length > 1;
+    // Create a modified product object that shows bundle status
+    const bundleProduct = {
+      ...product,
+      bundleStatus: itemInBundle ? `${itemInBundle.quantity} in bundle` : null,
+      bundleCount: bundleCount,
+      canAddToBundle: bundleCount < 3 || itemInBundle
+    };
     
     return (
-      <div 
-        className={`rounded-lg overflow-hidden shadow-sm relative ${product.backgroundClass || getRandomBackground(index)}`}
-        onClick={() => available && onSelect(product, activeVariant)}
-      >
-        {product.bestSeller && (
-          <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm">
-            BEST SELLER!
-          </div>
-        )}
-        {!available && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="bg-red-500 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-bold text-sm sm:text-base">OUT OF STOCK</span>
-          </div>
-        )}
-        <div className="p-3 sm:p-6">
-          <img 
-            src={product.image} 
-            alt={product.name} 
-            className="h-32 sm:h-48 mx-auto mb-2 sm:mb-4 object-contain mix-blend-multiply"
-          />
-          
-          <div className="flex items-center justify-between mb-1 sm:mb-3">
-            {renderStars()}
-            <span className="text-gray-600 text-xs sm:text-sm">{product.reviews} reviews</span>
-          </div>
-          
-          <div className="mb-2 sm:mb-4">
-            {formatProductName(product.name)}
-          </div>
-          
-          {/* Variant selection dropdown */}
-          <div className="relative mb-2 sm:mb-4" ref={dropdownRef}>
-            <div 
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent card click when clicking dropdown
-                if (hasMultipleVariants) setDropdownOpen(!dropdownOpen);
-              }}
-              className={`flex justify-between items-center ${hasMultipleVariants ? 'cursor-pointer' : 'cursor-default'}`}
-            >
-              <div className="flex items-center border border-gray-300 rounded-full bg-white relative overflow-hidden w-full">
-                <div className="w-[55%] sm:w-[65%] p-2 pl-4 text-xs sm:text-sm truncate">
-                  <span className="font-medium">{activeVariant?.title || '8 Ounces'}</span>
-                </div>
-                
-                <div className="h-5 border-l border-gray-300"></div>
-                
-                <div className="w-[45%] sm:w-[35%] p-2 pr-8 sm:pr-10 text-center text-xs sm:text-sm">
-                  <span className="font-medium">${activeVariant ? activeVariant.price.toFixed(2) : product.price.toFixed(2)}</span>
-                </div>
-                
-                {hasMultipleVariants && (
-                  <div className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <svg className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${dropdownOpen ? 'transform rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
-                
-                {hasMultipleVariants && (
-                  <div className={`absolute inset-0 bg-gray-100 bg-opacity-0 hover:bg-opacity-20 transition-all duration-200 ${dropdownOpen ? 'bg-opacity-20' : ''}`}></div>
-                )}
-              </div>
-            </div>
-            
-            {/* Dropdown options */}
-            {hasMultipleVariants && dropdownOpen && (
-              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-52 overflow-y-auto">
-                {product.variants.map((variant, idx) => (
-                  <div 
-                    key={variant.id || idx}
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent card click
-                      setSelectedVariant(variant);
-                      setDropdownOpen(false);
-                    }}
-                    className={`p-2 px-4 text-xs sm:text-sm cursor-pointer transition-colors duration-150
-                      ${!variant.available ? 'text-gray-400 hover:bg-gray-50' : 'hover:bg-gray-100'}
-                      ${activeVariant?.id === variant.id ? 'bg-gray-100 font-medium' : ''}`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span>{variant.title}</span>
-                      <span>${variant.price.toFixed(2)}</span>
-                    </div>
-                    {!variant.available && (
-                      <span className="text-xs text-red-500 block mt-1">Out of stock</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {selectedItems.find(item => item.product.id === product.id && item.variant.id === activeVariant.id) && (
-            <div className="flex items-center justify-between mb-2 sm:mb-4 bg-[#fff3e0] rounded-full p-1 sm:p-2">
+      <div className="relative">
+        {/* Bundle quantity controls overlay */}
+        {itemInBundle && (
+          <div className="absolute top-2 right-2 z-20 bg-[#fff3e0] rounded-full p-1 shadow-lg border border-orange-200">
+            <div className="flex items-center space-x-1">
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  removeFromBundle(product.id, activeVariant.id);
+                  removeFromBundle(product.id, defaultVariant.id);
                 }}
-                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white text-[#ff6b57] flex items-center justify-center font-bold shadow hover:bg-gray-100"
+                className="w-6 h-6 rounded-full bg-white text-[#ff6b57] flex items-center justify-center font-bold shadow hover:bg-gray-100 text-xs"
               >
                 -
               </button>
-              <span className="font-bold text-xs sm:text-base">
-                {selectedItems.find(item => item.product.id === product.id && item.variant.id === activeVariant.id).quantity} in bundle
+              <span className="font-bold text-xs px-1">
+                {itemInBundle.quantity}
               </span>
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  addToBundle(product, activeVariant);
+                  addToBundle(product, defaultVariant);
                 }}
-                className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${bundleCount < 3 ? 'bg-white text-[#ff6b57]' : 'bg-gray-200 text-gray-400'} flex items-center justify-center font-bold shadow ${bundleCount < 3 ? 'hover:bg-gray-100' : ''}`}
+                className={`w-6 h-6 rounded-full ${bundleCount < 3 ? 'bg-white text-[#ff6b57]' : 'bg-gray-200 text-gray-400'} flex items-center justify-center font-bold shadow ${bundleCount < 3 ? 'hover:bg-gray-100' : ''} text-xs`}
                 disabled={bundleCount >= 3}
               >
                 +
               </button>
             </div>
-          )}
-          
+          </div>
+        )}
+        
+        {/* Bundle disabled overlay when bundle is full */}
+        {bundleCount >= 3 && !itemInBundle && (
+          <div className="absolute inset-0 bg-black/30 z-10 rounded-lg flex items-center justify-center">
+            <span className="bg-gray-600 text-white px-3 py-1 rounded-full text-xs font-medium">
+              BUNDLE FULL
+            </span>
+          </div>
+        )}
+        
+        {/* Standard ProductCard with click handler */}
+        <div 
+          onClick={() => {
+            if (defaultVariant && (bundleCount < 3 || itemInBundle)) {
+              addToBundle(product, defaultVariant);
+            }
+          }}
+          className="cursor-pointer"
+        >
+          <ProductCard 
+            product={bundleProduct} 
+            index={index} 
+            isMobile={window.innerWidth < 640}
+          />
+        </div>
+        
+        {/* Custom bundle button overlay to replace the default add to cart */}
+        <div className="absolute bottom-3 left-3 right-3 z-10">
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              addToBundle(product, activeVariant);
+              handleBundleAddToCart();
             }}
-            className={`w-full font-bold py-2 sm:py-3 px-2 sm:px-4 rounded-full transition-colors text-xs sm:text-base ${available && bundleCount < 3 ? 'bg-[#ff6b57] hover:bg-[#ff5a5a] text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-            disabled={!available || bundleCount >= 3}
+            className={`w-full font-bold py-2 px-4 rounded-full transition-colors text-xs ${
+              defaultVariant && (bundleCount < 3 || itemInBundle) 
+                ? 'bg-[#ff6b57] hover:bg-[#ff5a5a] text-white' 
+                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+            }`}
+            disabled={!defaultVariant || (bundleCount >= 3 && !itemInBundle)}
           >
-            {selectedItems.find(item => item.product.id === product.id && item.variant.id === activeVariant.id) ? 'ADD ANOTHER' : 'ADD TO BUNDLE'}
+            {itemInBundle ? 'ADD ANOTHER' : 'ADD TO BUNDLE'}
           </button>
         </div>
       </div>
@@ -1288,10 +1130,9 @@ const BuildABundlePage = () => {
             ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-4 mb-8">
                 {filteredProducts.map((product, index) => (
-                  <ProductCard 
+                  <BundleProductCard 
                     key={product.id} 
                     product={product} 
-                    onSelect={(product, variant) => addToBundle(product, variant)} 
                     index={index} 
                   />
                 ))}

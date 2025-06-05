@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import LeafDivider from './LeafDivider';
 import { useCart } from './CartContext';
 import { useNav } from './NavContext';
+import ProductCard from './ProductCard';
 
 // Import data files like ShopByPlantSimple
 import { houseplantProductNames, fetchAllHouseplantProducts } from '../data/houseplantProducts';
@@ -74,622 +75,9 @@ const ShopAllCard = ({ category, index }) => {
   );
 };
 
-// Product Card Component - Updated to match ShopByPlantSimple design
-const ProductCard = ({ product, index }) => {
-  // State to prevent double-clicks
-  const [isAdding, setIsAdding] = useState(false);
-  // State for image loading
-  const [imageError, setImageError] = useState(false);
-  // State for selected variant
-  const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0] || null);
-  // State to check if it's mobile
-  const [isMobile, setIsMobile] = useState(false);
-  
-  const { addToCart } = useCart();
-  const navigate = useNavigate();
 
-  // Hook to detect mobile screen size
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
 
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
 
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
-
-  // Function to abbreviate variant titles for mobile to avoid truncation
-  const abbreviateVariantTitle = (title, isMobile = false) => {
-    if (!isMobile) return title;
-    
-    // Common abbreviations for mobile
-    const abbreviations = {
-      'ounces': 'oz',
-      'ounce': 'oz', 
-      'Ounces': 'oz',
-      'Ounce': 'oz',
-      'pounds': 'lbs',
-      'pound': 'lb',
-      'Pounds': 'lbs', 
-      'Pound': 'lb',
-      'gallon': 'gal',
-      'gallons': 'gal',
-      'Gallon': 'gal',
-      'Gallons': 'gal',
-      'bottle': 'btl',
-      'Bottle': 'btl',
-      'container': 'cont',
-      'Container': 'cont',
-      'package': 'pkg',
-      'Package': 'pkg',
-      'fertilizer': 'fert',
-      'Fertilizer': 'fert',
-      'liquid': 'liq',
-      'Liquid': 'liq',
-      'granular': 'gran',
-      'Granular': 'gran',
-      'concentrated': 'conc',
-      'Concentrated': 'conc',
-      'premium': 'prem',
-      'Premium': 'prem',
-      'standard': 'std',
-      'Standard': 'std'
-    };
-    
-    let abbreviated = title;
-    
-    // Apply abbreviations
-    Object.entries(abbreviations).forEach(([full, abbrev]) => {
-      const regex = new RegExp(`\\b${full}\\b`, 'g');
-      abbreviated = abbreviated.replace(regex, abbrev);
-    });
-    
-    // Remove common filler words on mobile
-    const fillerWords = ['for', 'and', 'the', 'with', 'plus'];
-    fillerWords.forEach(word => {
-      const regex = new RegExp(`\\s+${word}\\s+`, 'gi');
-      abbreviated = abbreviated.replace(regex, ' ');
-    });
-    
-    // Clean up extra spaces
-    abbreviated = abbreviated.replace(/\s+/g, ' ').trim();
-    
-    // If still too long, truncate to reasonable length
-    if (abbreviated.length > 15) {
-      abbreviated = abbreviated.substring(0, 15) + '...';
-    }
-    
-    return abbreviated;
-  };
-
-  // Function to format product name as single line
-  const formatProductName = (name) => {
-    const upperName = name.toUpperCase();
-    
-    return (
-      <div className="product-name-container h-8 flex items-center mb-3">
-        <h3 className="font-bold text-gray-800 text-sm sm:text-base leading-tight tracking-tight w-full truncate">
-          {upperName}
-        </h3>
-      </div>
-    );
-  };
-
-  // Function to render star ratings (same as ShopByPlantSimple)
-  const renderStars = () => {
-    return (
-      <div className="flex">
-        {[...Array(5)].map((_, i) => (
-          <svg key={i} className="h-3 w-3 sm:h-4 sm:w-4 text-[#ff6b57] fill-current" viewBox="0 0 24 24">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-          </svg>
-        ))}
-      </div>
-    );
-  };
-
-  // Generate random rating for demo purposes
-  const generateRandomRating = () => {
-    return (Math.random() * (5 - 4) + 4).toFixed(1);
-  };
-
-  const handleAddToCart = async (e) => {
-    e.stopPropagation(); // Prevent navigation when clicking add to cart
-    
-    // Prevent double-clicks
-    if (isAdding) {
-      return;
-    }
-    
-    const variantToAdd = selectedVariant || product.variants?.[0] || { price: product.price, available: true };
-    
-    if (variantToAdd && (variantToAdd.available || variantToAdd.availableForSale)) {
-      setIsAdding(true);
-      
-      try {
-        addToCart(product, variantToAdd, 1);
-      } catch (error) {
-        console.error('Error adding to cart:', error);
-      }
-      
-      // Reset the adding state after a delay
-      setTimeout(() => {
-        setIsAdding(false);
-      }, 1000);
-    }
-  };
-  
-  const handleCardClick = () => {
-    // Extract the numeric ID portion from the Shopify ID format
-    let id = product.id;
-    
-    // Check if the ID is in Shopify's gid format and extract just the numeric part
-    if (typeof id === 'string' && id.includes('gid://shopify/Product/')) {
-      id = id.split('/').pop();
-    }
-    
-    navigate(`/product/${id}`);
-  };
-
-  // Handle image error
-  const handleImageError = () => {
-    setImageError(true);
-  };
-
-  // Get image source with fallback
-  const getImageSrc = () => {
-    if (imageError) {
-      return "/assets/products/placeholder.png";
-    }
-    
-    // Ensure the image URL is properly formatted
-    let imageSrc = product.image;
-    if (imageSrc && !imageSrc.startsWith('http') && !imageSrc.startsWith('/')) {
-      imageSrc = `https:${imageSrc}`;
-    }
-    
-    return imageSrc || "/assets/products/placeholder.png";
-  };
-
-  // Handle variant selection
-  const handleVariantChange = (e) => {
-    e.stopPropagation(); // Prevent card click
-    const variantId = e.target.value;
-    const variant = product.variants?.find(v => v.id === variantId);
-    setSelectedVariant(variant);
-  };
-
-  // Format price for display
-  const formatPrice = (price) => {
-    if (typeof price === 'object' && price.amount) {
-      return `$${parseFloat(price.amount).toFixed(2)}`;
-    }
-    return `$${parseFloat(price || 0).toFixed(2)}`;
-  };
-
-  // Get current price based on selected variant
-  const getCurrentPrice = () => {
-    if (selectedVariant && selectedVariant.price) {
-      return formatPrice(selectedVariant.price);
-    }
-    if (product.variants && product.variants.length > 0) {
-      return formatPrice(product.variants[0].price);
-    }
-    return formatPrice(product.price);
-  };
-
-  // Helper function to get alternating background (same as ShopByPlantSimple)
-  const getCategoryBackground = (index) => {
-    const backgroundIndex = index % cardBackgrounds.length;
-    return cardBackgrounds[backgroundIndex];
-  };
-  
-  return (
-    <div 
-      className={`product-card ${getCategoryBackground(index)} rounded-lg shadow-sm relative cursor-pointer`}
-      onClick={handleCardClick}
-      style={{ overflow: 'visible' }}
-    >
-      {product.bestSeller && (
-        <div className="best-seller-badge absolute top-2 sm:top-4 left-2 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm z-10">
-          BEST SELLER!
-        </div>
-      )}
-      
-      <div className="p-1 sm:p-2" style={{ overflow: 'visible' }}>
-        <div className="product-image-container relative h-32 sm:h-48 mx-auto mb-2 sm:mb-3 flex items-center justify-center">
-          <img 
-            src={getImageSrc()}
-            alt={product.name} 
-            className="product-image h-full w-auto object-contain"
-            style={{ backgroundColor: 'transparent' }}
-            onError={handleImageError}
-          />
-          {imageError && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center text-gray-500">
-                <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="text-xs">Image not available</p>
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <div className="flex items-center justify-between mb-1 sm:mb-1 w-full reviews-mobile">
-          <div className="flex items-center space-x-1">
-            <span className="text-gray-800 text-xs sm:text-sm font-medium">{product.rating || generateRandomRating()}</span>
-            {renderStars()}
-            <span className="text-gray-600 text-xs sm:text-sm">({product.reviews})</span>
-          </div>
-        </div>
-        
-        {formatProductName(product.name)}
-
-        {/* Variant Selector */}
-        {product.variants && product.variants.length > 1 && (
-          <div className="mb-1 sm:mb-2 w-full variant-selector-mobile" onClick={(e) => e.stopPropagation()}>
-            <div className="relative">
-              <select
-                value={selectedVariant?.id || ''}
-                onChange={handleVariantChange}
-                className="w-full text-xs sm:text-sm border border-gray-200 rounded-lg sm:rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#ff6b57] focus:border-[#ff6b57] appearance-none cursor-pointer font-medium text-gray-700 shadow-sm hover:shadow-md transition-all duration-200 opacity-0 absolute inset-0 z-10"
-                data-no-drag="true"
-              >
-                {product.variants.map((variant) => (
-                  <option key={variant.id} value={variant.id}>
-                    {variant.title} | {formatPrice(variant.price)}
-                  </option>
-                ))}
-              </select>
-              
-              {/* Custom Dropdown Display */}
-              <div className="flex items-center justify-between p-1.5 sm:p-2 border border-gray-200 rounded-lg sm:rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 pointer-events-none custom-dropdown">
-                <span className="text-xs sm:text-sm font-medium text-gray-700 flex-1 truncate">
-                  {abbreviateVariantTitle(selectedVariant?.title || product.variants[0]?.title, isMobile)}
-                </span>
-                
-                {/* Right corner group: Divider + Price + Caret */}
-                <div className="flex items-center ml-1">
-                  {/* Full Height Divider */}
-                  <div className="h-4 sm:h-6 w-px bg-gray-300 mr-1 sm:mr-2"></div>
-                  
-                  {/* Price */}
-                  <span className="text-xs sm:text-sm font-bold text-[#ff6b57] mr-1 sm:mr-2 whitespace-nowrap">
-                    {formatPrice(selectedVariant?.price || product.variants[0]?.price)}
-                  </span>
-                  
-                  {/* Custom Caret */}
-                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 pointer-events-none flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <button 
-          onClick={handleAddToCart}
-          className={`w-full font-bold text-xs sm:text-base py-2 sm:py-2.5 px-2 sm:px-4 rounded-full transition-all duration-200 flex items-center justify-center add-to-cart-btn
-            ${selectedVariant && (selectedVariant.available || selectedVariant.availableForSale)
-              ? 'bg-[#ff6b57] hover:bg-[#ff5a43] hover:shadow-md active:scale-[0.98] text-white shadow-sm cursor-pointer' 
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-          disabled={!selectedVariant || !(selectedVariant.available || selectedVariant.availableForSale)}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-          <span className="text-xs sm:text-base">{isAdding ? 'ADDING...' : 'ADD TO CART'}</span>
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Custom styles matching ShopByPlantSimple design
-const productCardStyles = `
-  .product-card {
-    background: linear-gradient(145deg, #e8f4f2 0%, #f3e6e0 100%);
-    border-radius: 20px;
-    padding: 12px;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(255, 107, 107, 0.1);
-    position: relative;
-    overflow: visible !important;
-    backdrop-filter: blur(10px);
-  }
-
-  .product-name-container {
-    text-align: left;
-    width: 100%;
-    height: 32px;
-    display: flex;
-    align-items: center;
-  }
-
-  .product-name-container h3 {
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 1rem;
-    line-height: 1.2;
-  }
-
-  .product-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 6px;
-    background: linear-gradient(90deg, #ff6b6b 0%, #ff8c8c 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(255, 107, 107, 0.15);
-    background: linear-gradient(145deg, #e8f4f2 0%, #f5ebe6 100%);
-  }
-
-  .product-card:hover::before {
-    opacity: 1;
-  }
-
-  .product-image-container {
-    position: relative;
-    padding-bottom: 100%;
-    margin-bottom: 16px;
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .product-image {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    padding: 12px;
-    background: transparent;
-  }
-
-  .best-seller-badge {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ff8c8c 100%);
-    color: white;
-    padding: 0.25rem 1rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: bold;
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    z-index: 10;
-    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2);
-  }
-
-  .add-to-cart-btn {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ff8c8c 100%);
-    color: white;
-    border: none;
-    border-radius: 999px;
-    padding: 0.75rem 1.5rem;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .add-to-cart-btn:hover {
-    background: linear-gradient(135deg, #ff5a5a 0%, #ff7b7b 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
-  }
-
-  /* Prevent Glide/Swiper from interfering with dropdown elements */
-  [data-no-drag] {
-    pointer-events: auto !important;
-    touch-action: auto !important;
-    user-select: auto !important;
-  }
-
-  /* Mobile optimizations */
-  @media (max-width: 640px) {
-    .product-card {
-      padding: 8px;
-      min-height: 320px;
-      max-height: 320px;
-      max-width: none;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .product-name-container {
-      height: 20px;
-      margin-bottom: 0.5rem;
-      flex-shrink: 0;
-    }
-
-    .product-name-container h3 {
-      font-size: 0.75rem;
-      line-height: 1.1;
-      font-weight: 600;
-    }
-
-    .product-image-container {
-      height: 100px !important;
-      margin-bottom: 0.5rem;
-      flex-shrink: 0;
-    }
-
-    .product-image {
-      padding: 6px;
-    }
-
-    .best-seller-badge {
-      font-size: 0.6rem;
-      padding: 0.2rem 0.5rem;
-      top: 0.5rem;
-      left: 0.5rem;
-    }
-
-    .rating-container {
-      transform: scale(0.85);
-      transform-origin: left;
-      margin-bottom: 0.25rem;
-    }
-
-    /* Variant selector mobile optimization */
-    .variant-selector-mobile {
-      margin-bottom: 0.25rem;
-      flex-shrink: 0;
-    }
-
-    .variant-selector-mobile select,
-    .variant-selector-mobile .custom-dropdown {
-      font-size: 0.65rem;
-      padding: 4px;
-      height: 28px;
-    }
-
-    .variant-selector-mobile .custom-dropdown .h-4 {
-      height: 12px;
-    }
-
-    .variant-selector-mobile .custom-dropdown .h-6 {
-      height: 14px;
-    }
-
-    .variant-selector-mobile .custom-dropdown .mr-1 {
-      margin-right: 0.125rem;
-    }
-
-    .variant-selector-mobile .custom-dropdown .mr-2 {
-      margin-right: 0.25rem;
-    }
-
-    /* Button mobile optimization */
-    .add-to-cart-btn {
-      padding: 0.4rem 0.6rem;
-      font-size: 0.7rem;
-      height: 36px;
-      flex-shrink: 0;
-      margin-top: auto;
-    }
-
-    /* Reviews section mobile */
-    .reviews-mobile {
-      margin-bottom: 0.25rem;
-      transform: scale(0.85);
-      transform-origin: left;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .product-card {
-      padding: 6px;
-      min-height: 300px;
-      max-height: 300px;
-    }
-
-    .product-image-container {
-      height: 90px !important;
-    }
-
-    .product-name-container h3 {
-      font-size: 0.7rem;
-    }
-
-    .variant-selector-mobile select,
-    .variant-selector-mobile .custom-dropdown {
-      font-size: 0.6rem;
-      padding: 4px;
-      height: 28px;
-    }
-
-    .variant-selector-mobile .custom-dropdown .h-4 {
-      height: 10px;
-    }
-
-    .variant-selector-mobile .custom-dropdown .h-6 {
-      height: 12px;
-    }
-
-    .add-to-cart-btn {
-      font-size: 0.65rem;
-      height: 32px;
-    }
-  }
-
-  @media (max-width: 375px) {
-    .product-card {
-      padding: 6px;
-      min-height: 280px;
-      max-height: 280px;
-    }
-
-    .product-image-container {
-      height: 80px !important;
-    }
-
-    .product-name-container h3 {
-      font-size: 0.65rem;
-    }
-
-    .variant-selector-mobile select,
-    .variant-selector-mobile .custom-dropdown {
-      font-size: 0.55rem;
-      padding: 3px;
-      height: 26px;
-    }
-  }
-
-  @media (max-width: 320px) {
-    .product-card {
-      padding: 4px;
-      min-height: 260px;
-      max-height: 260px;
-    }
-
-    .product-image-container {
-      height: 70px !important;
-    }
-
-    .product-name-container h3 {
-      font-size: 0.6rem;
-    }
-
-    .variant-selector-mobile select,
-    .variant-selector-mobile .custom-dropdown {
-      font-size: 0.5rem;
-      padding: 2px;
-      height: 24px;
-    }
-  }
-`;
-
-// Add the styles to the document head
-if (typeof document !== 'undefined') {
-  const existingStyle = document.getElementById('product-card-styles');
-  if (!existingStyle) {
-    const styleElement = document.createElement('style');
-    styleElement.id = 'product-card-styles';
-    styleElement.textContent = productCardStyles;
-    document.head.appendChild(styleElement);
-  }
-}
 
 // Get product names from data files by category (from ShopByPlantSimple)
 const getProductNamesByCategory = (category) => {
@@ -804,11 +192,27 @@ const ProductsPage = () => {
   const [mobileCategoryExpanded, setMobileCategoryExpanded] = useState(false);
   const [isProgrammaticScroll, setIsProgrammaticScroll] = useState(false);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(false);
+  const [categorizedProducts, setCategorizedProducts] = useState({});
+  const [categoryLoadingStatus, setCategoryLoadingStatus] = useState({});
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const categoryRefs = useRef({});
   const observerRef = useRef(null);
   const overlayScrollRef = useRef(null);
   const scrollAttempts = useRef(0);
   const mobileCategoryStickyRef = useRef(null);
+
+  // Hook to detect mobile screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Separate effect to handle mobile menu state changes immediately
   useEffect(() => {
@@ -2244,133 +1648,303 @@ const ProductsPage = () => {
     ];
   };
 
-  const fetchProductsByCategory = async () => {
+  // Progressive loading - load categories one by one and show immediately
+  const loadCategoryProducts = async (category, isInitialLoad = false) => {
+    console.log(`Loading products for category: ${category}`);
+    
+    // Set loading status for this category
+    setCategoryLoadingStatus(prev => ({
+      ...prev,
+      [category]: 'loading'
+    }));
+
     try {
-      setLoading(true);
-      console.log("Starting to fetch products by category using data files...");
+      let productData = [];
       
-      const allCategorizedProducts = {};
+      // Get all product names for the category from data files
+      const allProductNames = getProductNamesByCategory(category);
       
-      // Fetch products for each category using data files like ShopByPlantSimple
-      const categoriesToFetch = [
-        "Houseplant Products",
-        "Garden Products",
-        "Hydrophonic and Aquatic", 
-        "Plant Supplements"
-      ];
+      console.log(`Found ${allProductNames.length} total product names for ${category}`);
       
-      // Fetch products for all categories in parallel
-      const promises = categoriesToFetch.map(async (category) => {
+      if (allProductNames.length > 0) {
         try {
-          console.log(`Fetching products for category: ${category}`);
+          // Import the fetchProductsByNames function and fetch ALL products for this category
+          const { fetchProductsByNames } = await import('../utils/shopifyApi');
           
-          let productData = [];
+          // Add timeout to prevent hanging
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout after 20 seconds')), 20000)
+          );
           
-          // Get all product names for the category from data files
-          const allProductNames = getProductNamesByCategory(category);
+          const fetchPromise = fetchProductsByNames(allProductNames);
+          productData = await Promise.race([fetchPromise, timeoutPromise]);
           
-          console.log(`Found ${allProductNames.length} product names for ${category}`);
+          console.log(`Found ${productData.length} products from Shopify API for ${category}`);
           
-          if (allProductNames.length > 0) {
-            try {
-              // Import the fetchProductsByNames function and fetch these specific products
-              const { fetchProductsByNames } = await import('../utils/shopifyApi');
-              
-              // Add timeout to prevent hanging
-              const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Timeout after 30 seconds')), 30000)
-              );
-              
-              const fetchPromise = fetchProductsByNames(allProductNames);
-              productData = await Promise.race([fetchPromise, timeoutPromise]);
-              
-              console.log(`Found ${productData.length} products from Shopify API for ${category}`);
-              
-              // Filter products to ensure they match the category
-              productData = filterProductsByCategory(productData, category, allProductNames);
-              console.log(`After filtering: ${productData.length} products match category ${category}`);
-            } catch (apiError) {
-              console.error(`API error for ${category}:`, apiError);
-              productData = []; // Reset to empty array if API fails
-            }
-          }
-          
-          // If no products found or API failed, try the fallback method using the complete data file functions
-          if (productData.length === 0) {
-            console.log(`No products found with API for ${category}, trying fallback data file functions`);
-            
-            try {
-              switch (category) {
-                case "Houseplant Products":
-                  productData = await fetchAllHouseplantProducts();
-                  break;
-                case "Garden Products":
-                  productData = await fetchAllGardenProducts();
-                  break;
-                case "Hydrophonic and Aquatic":
-                  productData = await fetchAllHydroponicAquaticProducts();
-                  break;
-                case "Plant Supplements":
-                  productData = await fetchAllSpecialtySupplements();
-                  break;
-              }
-              
-              // Filter these products too
-              productData = filterProductsByCategory(productData, category);
-              
-              console.log(`After fallback: ${productData.length} total products for ${category}`);
-            } catch (fallbackError) {
-              console.error('Error with fallback data fetch:', fallbackError);
-              productData = []; // Use empty array as final fallback
-            }
-          }
-          
-          // Ensure all products have the correct category assigned and proper formatting
-          const enrichedProducts = productData.map((product, index) => ({
-            ...product,
-            category: category, // Ensure category is set correctly
-            rating: product.rating || ((Math.random() * (5 - 4) + 4).toFixed(1)),
-            reviews: product.reviews || Math.floor(Math.random() * 800) + 200,
-            // Mark top product as best seller
-            bestSeller: product.bestSeller || index === 0
-          }));
-          
-          console.log(`Successfully processed ${enrichedProducts.length} products for ${category}`);
-          
-          return { category, products: enrichedProducts };
-        } catch (error) {
-          console.error(`Error fetching products for ${category}:`, error);
-          return { category, products: [] };
+          // Filter products to ensure they match the category
+          productData = filterProductsByCategory(productData, category, allProductNames);
+          console.log(`After filtering: ${productData.length} products match category ${category}`);
+        } catch (apiError) {
+          console.error(`API error for ${category}:`, apiError);
+          productData = []; // Reset to empty array if API fails
         }
-      });
+      }
       
-      // Wait for all categories to be loaded
-      const results = await Promise.all(promises);
+      // If no products found or API failed, try the fallback method
+      if (productData.length === 0) {
+        console.log(`No products found with API for ${category}, trying fallback data file functions`);
+        
+        try {
+          switch (category) {
+            case "Houseplant Products":
+              productData = await fetchAllHouseplantProducts();
+              break;
+            case "Garden Products":
+              productData = await fetchAllGardenProducts();
+              break;
+            case "Hydrophonic and Aquatic":
+              productData = await fetchAllHydroponicAquaticProducts();
+              break;
+            case "Plant Supplements":
+              productData = await fetchAllSpecialtySupplements();
+              break;
+          }
+          
+          // Filter these products too
+          productData = filterProductsByCategory(productData, category);
+          
+          console.log(`After fallback: ${productData.length} total products for ${category}`);
+        } catch (fallbackError) {
+          console.error('Error with fallback data fetch:', fallbackError);
+          
+          // Final fallback: use mock data for this category
+          productData = generateMockProductsForCategory(category);
+          console.log(`Using mock data: ${productData.length} products for ${category}`);
+        }
+      }
       
-      // Store results in the categorized products
-      results.forEach(({ category, products }) => {
-        allCategorizedProducts[category] = products;
-      });
+      // Ensure all products have the correct category assigned and proper formatting
+      const enrichedProducts = productData.map((product, index) => ({
+        ...product,
+        category: category,
+        rating: product.rating || ((Math.random() * (5 - 4) + 4).toFixed(1)),
+        reviews: product.reviews || Math.floor(Math.random() * 800) + 200,
+        bestSeller: product.bestSeller || index === 0
+      }));
       
-      // Combine all products
-      const combinedProducts = Object.values(allCategorizedProducts).flat();
+      console.log(`Successfully loaded ${enrichedProducts.length} products for ${category}`);
       
-      console.log(`Total products loaded: ${combinedProducts.length}`);
+      // Update categorized products state immediately
+      setCategorizedProducts(prev => ({
+        ...prev,
+        [category]: enrichedProducts
+      }));
       
-      // Store both individual categories and combined products
+      // Update category loading status
+      setCategoryLoadingStatus(prev => ({
+        ...prev,
+        [category]: 'loaded'
+      }));
+      
+      // Update the combined products display immediately
+      const updatedCategorizedProducts = {
+        ...categorizedProducts,
+        [category]: enrichedProducts
+      };
+      const combinedProducts = Object.values(updatedCategorizedProducts).flat();
       setProducts(combinedProducts);
       
-      console.log('All products loaded successfully using data files');
+      if (isInitialLoad) {
+        setLoading(false);
+        setInitialLoadComplete(true);
+      }
+      
+      console.log(`Total products now: ${combinedProducts.length}`);
+      return enrichedProducts;
       
     } catch (error) {
-      console.error("Error in fetchProductsByCategory:", error);
+      console.error(`Error loading products for ${category}:`, error);
       
-      // Fallback to original method if data file approach fails
-      console.log("Falling back to original fetch methods...");
-      await fetchProductsByCategoryFallback();
-    } finally {
-      setLoading(false);
+      // Set error status
+      setCategoryLoadingStatus(prev => ({
+        ...prev,
+        [category]: 'error'
+      }));
+      
+      // Return mock data for this category to prevent complete failure
+      const mockProducts = generateMockProductsForCategory(category);
+      console.log(`Using mock data for ${category}: ${mockProducts.length} products`);
+      
+      // Update categorized products with mock data
+      setCategorizedProducts(prev => ({
+        ...prev,
+        [category]: mockProducts
+      }));
+      
+      // Update combined products display
+      const updatedCategorizedProducts = {
+        ...categorizedProducts,
+        [category]: mockProducts
+      };
+      const combinedProducts = Object.values(updatedCategorizedProducts).flat();
+      setProducts(combinedProducts);
+      
+      if (isInitialLoad) {
+        setLoading(false);
+        setInitialLoadComplete(true);
+      }
+      
+      return mockProducts;
     }
+  };
+
+  // Start progressive loading - houseplants first, then others in background
+  const startProgressiveLoading = async () => {
+    console.log('Starting progressive loading...');
+    setLoading(true);
+    
+    // Categories to load
+    const categoriesToLoad = [
+      "Houseplant Products",
+      "Garden Products", 
+      "Hydrophonic and Aquatic",
+      "Plant Supplements"
+    ];
+    
+    // Load houseplants first (most popular category)
+    await loadCategoryProducts("Houseplant Products", true);
+    
+    // Load remaining categories in background
+    const remainingCategories = categoriesToLoad.filter(cat => cat !== "Houseplant Products");
+    
+    // Load remaining categories one by one in background (don't await)
+    remainingCategories.forEach((category, index) => {
+      // Stagger the loading slightly to avoid overwhelming the API
+      setTimeout(() => {
+        loadCategoryProducts(category, false);
+      }, (index + 1) * 700); // 700ms delay between each category
+    });
+  };
+
+  // Generate mock products for a category when API fails
+  const generateMockProductsForCategory = (category) => {
+    const mockData = {
+      "Houseplant Products": [
+        {
+          id: `mock-houseplant-1`,
+          name: "Indoor Plant Food",
+          description: "Perfect nutrition for your indoor plants",
+          image: "/assets/products/placeholder.png",
+          price: 12.99,
+          rating: 4.5,
+          reviews: 245,
+          bestSeller: true,
+          category: category,
+          variants: [{
+            id: "mock-variant-1",
+            title: "8 oz Bottle",
+            price: 12.99,
+            available: true,
+            quantity: 10
+          }],
+          hasAvailableVariants: true
+        },
+        {
+          id: `mock-houseplant-2`,
+          name: "Monstera Plant Food",
+          description: "Specialized nutrition for Monstera plants",
+          image: "/assets/products/placeholder.png",
+          price: 15.99,
+          rating: 4.7,
+          reviews: 189,
+          bestSeller: false,
+          category: category,
+          variants: [{
+            id: "mock-variant-2",
+            title: "8 oz Bottle",
+            price: 15.99,
+            available: true,
+            quantity: 8
+          }],
+          hasAvailableVariants: true
+        }
+      ],
+      "Garden Products": [
+        {
+          id: `mock-garden-1`,
+          name: "All Purpose Garden Fertilizer",
+          description: "Complete nutrition for outdoor plants",
+          image: "/assets/products/placeholder.png",
+          price: 18.99,
+          rating: 4.4,
+          reviews: 156,
+          bestSeller: true,
+          category: category,
+          variants: [{
+            id: "mock-variant-3",
+            title: "1 lb Container",
+            price: 18.99,
+            available: true,
+            quantity: 15
+          }],
+          hasAvailableVariants: true
+        }
+      ],
+      "Hydrophonic and Aquatic": [
+        {
+          id: `mock-hydro-1`,
+          name: "Hydroponic Nutrient Solution",
+          description: "Complete liquid nutrition for hydroponic systems",
+          image: "/assets/products/placeholder.png",
+          price: 22.99,
+          rating: 4.6,
+          reviews: 98,
+          bestSeller: true,
+          category: category,
+          variants: [{
+            id: "mock-variant-4",
+            title: "16 oz Bottle",
+            price: 22.99,
+            available: true,
+            quantity: 12
+          }],
+          hasAvailableVariants: true
+        }
+      ],
+      "Plant Supplements": [
+        {
+          id: `mock-supplement-1`,
+          name: "Calcium for Plants",
+          description: "Essential calcium supplement for plant health",
+          image: "/assets/products/placeholder.png",
+          price: 16.99,
+          rating: 4.3,
+          reviews: 134,
+          bestSeller: true,
+          category: category,
+          variants: [{
+            id: "mock-variant-5",
+            title: "8 oz Bottle",
+            price: 16.99,
+            available: true,
+            quantity: 20
+          }],
+          hasAvailableVariants: true
+        }
+      ]
+    };
+
+    return mockData[category] || [];
+  };
+
+  // Get category loading status for display
+  const getCategoryLoadingStatus = (category) => {
+    return categoryLoadingStatus[category] || 'pending';
+  };
+
+  // Check if a category has products available
+  const isCategoryReady = (category) => {
+    return categorizedProducts[category] && categorizedProducts[category].length > 0;
   };
 
   // Keep the original methods as backup
@@ -2434,9 +2008,8 @@ const ProductsPage = () => {
   };
 
   useEffect(() => {
-    // Try fetching products by category, which will first attempt to get houseplant products
-    // and then fetch all other products
-    fetchProductsByCategory();
+    // Start progressive loading instead of waiting for all categories
+    startProgressiveLoading();
     
     // Debug log to verify categories
     console.log("Available categories:", categories.map(cat => cat.category));
@@ -3766,12 +3339,28 @@ const ProductsPage = () => {
       {/* Products by Category */}
       {loading ? (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-          <p>Loading products...</p>
+          <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-[#FF6B6B] mx-auto"></div>
+          <p className="mt-4 text-gray-600 text-sm sm:text-base">
+            Loading products...
+          </p>
+          <p className="mt-2 text-gray-500 text-xs sm:text-sm">
+            {initialLoadComplete ? 'Loading additional categories...' : 'Initial load in progress...'}
+          </p>
+          <div className="mt-4 space-y-2">
+            {Object.entries(categoryLoadingStatus).map(([category, status]) => (
+              <div key={category} className="text-xs text-gray-500 flex items-center justify-center space-x-2">
+                <span>{category.replace('Hydrophonic and Aquatic', 'Hydro & Aquatic')}</span>
+                {status === 'loading' && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#ff6b6b]"></div>}
+                {status === 'loaded' && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
+                {status === 'error' && <div className="w-3 h-3 bg-red-500 rounded-full"></div>}
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <>
           {categories.map((category, index) => {
-            const categoryProducts = groupedProducts[category.category] || [];
+            const categoryProducts = categorizedProducts[category.category] || [];
             
             // Always render the category section, even if empty - we'll show a message
             return (
@@ -3822,7 +3411,7 @@ const ProductsPage = () => {
                       {/* Mobile Products Grid */}
                       <div className="grid grid-cols-2 gap-4 md:hidden">
                         {categoryProducts.slice(0, 5).map((product, index) => (
-                          <ProductCard key={product.id} product={product} index={index} />
+                          <ProductCard key={product.id} product={product} index={index} isMobile={isMobile} />
                         ))}
                         {/* Shop All Card as the last item */}
                         <ShopAllCard category={category} index={5} />
@@ -3865,7 +3454,7 @@ const ProductsPage = () => {
                         {/* Desktop Products Grid */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                           {categoryProducts.slice(0, 7).map((product, index) => (
-                            <ProductCard key={product.id} product={product} index={index} />
+                            <ProductCard key={product.id} product={product} index={index} isMobile={isMobile} />
                           ))}
                           {/* Shop All Card as the last item */}
                           <ShopAllCard category={category} index={7} />

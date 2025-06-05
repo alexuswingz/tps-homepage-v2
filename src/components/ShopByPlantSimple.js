@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCart } from './CartContext';
+import ProductCard from './ProductCard';
 import { fetchProductsByCategory as fetchProductsByCategoryAPI } from '../utils/shopifyApi';
 import Glide from '@glidejs/glide';
 import '@glidejs/glide/dist/css/glide.core.min.css';
@@ -206,14 +206,14 @@ const swiperStyles = `
 
 const ShopByPlantSimple = () => {
   const navigate = useNavigate();
-  const { addToCart } = useCart();
   const [selectedCategory, setSelectedCategory] = useState("Houseplant Products");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [glideDisabled, setGlideDisabled] = useState(false);
   const [preloadedProducts, setPreloadedProducts] = useState({});
-  const [preloadingComplete, setPreloadingComplete] = useState(false);
+  const [categoryLoadingStatus, setCategoryLoadingStatus] = useState({});
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const glideRef = useRef(null);
 
   // Hook to detect mobile screen size
@@ -261,14 +261,6 @@ const ShopByPlantSimple = () => {
     }
   }, [products, isMobile]);
 
-  // Background gradient styles for each product card (same as ProductsPage)
-  const cardBackgrounds = [
-    'bg-[#def0f9]', // Default light blue color
-    'bg-[#def0f9]', // Default light blue color
-    'bg-[#def0f9]', // Default light blue color
-    'bg-[#def0f9]'  // Default light blue color
-  ];
-
   // Product categories with their respective images
   const categories = [
     {
@@ -301,306 +293,16 @@ const ShopByPlantSimple = () => {
       category: "Bundles",
       description: "Pre-selected combinations for optimal results"
     }
-  ];
-
-  // Helper function to get alternating background (same as ProductsPage)
-  const getCategoryBackground = (index) => {
-    const backgroundIndex = index % cardBackgrounds.length;
-    return cardBackgrounds[backgroundIndex];
-  };
-
-  // Function to abbreviate variant titles for mobile to avoid truncation
-  const abbreviateVariantTitle = (title, isMobile = false) => {
-    if (!isMobile) return title;
-    
-    // Common abbreviations for mobile
-    const abbreviations = {
-      'ounces': 'oz',
-      'ounce': 'oz', 
-      'Ounces': 'oz',
-      'Ounce': 'oz',
-      'pounds': 'lbs',
-      'pound': 'lb',
-      'Pounds': 'lbs', 
-      'Pound': 'lb',
-      'gallon': 'gal',
-      'gallons': 'gal',
-      'Gallon': 'gal',
-      'Gallons': 'gal',
-      'bottle': 'btl',
-      'Bottle': 'btl',
-      'container': 'cont',
-      'Container': 'cont',
-      'package': 'pkg',
-      'Package': 'pkg',
-      'fertilizer': 'fert',
-      'Fertilizer': 'fert',
-      'liquid': 'liq',
-      'Liquid': 'liq',
-      'granular': 'gran',
-      'Granular': 'gran',
-      'concentrated': 'conc',
-      'Concentrated': 'conc',
-      'premium': 'prem',
-      'Premium': 'prem',
-      'standard': 'std',
-      'Standard': 'std'
-    };
-    
-    let abbreviated = title;
-    
-    // Apply abbreviations
-    Object.entries(abbreviations).forEach(([full, abbrev]) => {
-      const regex = new RegExp(`\\b${full}\\b`, 'g');
-      abbreviated = abbreviated.replace(regex, abbrev);
-    });
-    
-    // Remove common filler words on mobile
-    const fillerWords = ['for', 'and', 'the', 'with', 'plus'];
-    fillerWords.forEach(word => {
-      const regex = new RegExp(`\\s+${word}\\s+`, 'gi');
-      abbreviated = abbreviated.replace(regex, ' ');
-    });
-    
-    // Clean up extra spaces
-    abbreviated = abbreviated.replace(/\s+/g, ' ').trim();
-    
-    // If still too long, truncate to reasonable length
-    if (abbreviated.length > 15) {
-      abbreviated = abbreviated.substring(0, 15) + '...';
-    }
-    
-    return abbreviated;
-  };
-
-  // Function to format product name as single line
-  const formatProductName = (name) => {
-    const upperName = name.toUpperCase();
-    
-    return (
-      <div className="product-name-container h-8 flex items-center mb-3">
-        <h3 className="font-bold text-gray-800 text-sm sm:text-base leading-tight tracking-tight w-full truncate">
-          {upperName}
-        </h3>
-      </div>
-    );
-  };
-
-  // Function to render star ratings (same as ProductsPage)
-  const renderStars = () => {
-    return (
-      <div className="flex">
-        {[...Array(5)].map((_, i) => (
-          <svg key={i} className="h-3 w-3 sm:h-4 sm:w-4 text-[#ff6b57] fill-current" viewBox="0 0 24 24">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-          </svg>
-        ))}
-      </div>
-    );
-  };
+    ];
 
   // Generate random rating for demo purposes
   const generateRandomRating = () => {
     return (Math.random() * (5 - 4) + 4).toFixed(1);
   };
 
-  // Product card component (exactly same as ProductsPage)
-  const ProductCard = ({ product, index }) => {
-    // State to prevent double-clicks
-    const [isAdding, setIsAdding] = useState(false);
-    // State for image loading
-    const [imageError, setImageError] = useState(false);
-    // State for selected variant
-    const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0] || null);
-    
-    const handleAddToCart = async (e) => {
-      e.stopPropagation(); // Prevent navigation when clicking add to cart
-      
-      // Prevent double-clicks
-      if (isAdding) {
-        return;
-      }
-      
-      const variantToAdd = selectedVariant || product.variants?.[0] || { price: product.price, available: true };
-      
-      if (variantToAdd && (variantToAdd.available || variantToAdd.availableForSale)) {
-        setIsAdding(true);
-        
-        try {
-          addToCart(product, variantToAdd, 1);
-        } catch (error) {
-          console.error('Error adding to cart:', error);
-        }
-        
-        // Reset the adding state after a delay
-        setTimeout(() => {
-          setIsAdding(false);
-        }, 1000);
-      }
-    };
-    
-    const handleCardClick = () => {
-      // Extract the numeric ID portion from the Shopify ID format
-      let id = product.id;
-      
-      // Check if the ID is in Shopify's gid format and extract just the numeric part
-      if (typeof id === 'string' && id.includes('gid://shopify/Product/')) {
-        id = id.split('/').pop();
-      }
-      
-      navigate(`/product/${id}`);
-    };
 
-    // Handle image error
-    const handleImageError = () => {
-      setImageError(true);
-    };
 
-    // Get image source with fallback
-    const getImageSrc = () => {
-      if (imageError) {
-        return "/assets/products/placeholder.png";
-      }
-      
-      // Ensure the image URL is properly formatted
-      let imageSrc = product.image;
-      if (imageSrc && !imageSrc.startsWith('http') && !imageSrc.startsWith('/')) {
-        imageSrc = `https:${imageSrc}`;
-      }
-      
-      return imageSrc || "/assets/products/placeholder.png";
-    };
 
-    // Handle variant selection
-    const handleVariantChange = (e) => {
-      e.stopPropagation(); // Prevent card click
-      const variantId = e.target.value;
-      const variant = product.variants?.find(v => v.id === variantId);
-      setSelectedVariant(variant);
-    };
-
-    // Format price for display
-    const formatPrice = (price) => {
-      if (typeof price === 'object' && price.amount) {
-        return `$${parseFloat(price.amount).toFixed(2)}`;
-      }
-      return `$${parseFloat(price || 0).toFixed(2)}`;
-    };
-
-    // Get current price based on selected variant
-    const getCurrentPrice = () => {
-      if (selectedVariant && selectedVariant.price) {
-        return formatPrice(selectedVariant.price);
-      }
-      if (product.variants && product.variants.length > 0) {
-        return formatPrice(product.variants[0].price);
-      }
-      return formatPrice(product.price);
-    };
-    
-    return (
-      <div 
-        className={`product-card ${getCategoryBackground(index)} rounded-lg shadow-sm relative cursor-pointer`}
-        onClick={handleCardClick}
-        style={{ overflow: 'visible' }}
-      >
-        {product.bestSeller && (
-          <div className="best-seller-badge absolute top-2 sm:top-4 left-2 sm:left-4 bg-[#ff6b57] text-white font-bold py-1 px-2 sm:px-4 rounded-full text-xs sm:text-sm z-10">
-            BEST SELLER!
-          </div>
-        )}
-        
-        <div className="p-1 sm:p-2" style={{ overflow: 'visible' }}>
-          <div className="product-image-container relative h-32 sm:h-48 mx-auto mb-2 sm:mb-3 flex items-center justify-center">
-            <img 
-              src={getImageSrc()}
-              alt={product.name} 
-              className="product-image h-full w-auto object-contain"
-              style={{ backgroundColor: 'transparent' }}
-              onError={handleImageError}
-            />
-            {imageError && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-gray-500">
-                  <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p className="text-xs">Image not available</p>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex items-center justify-between mb-1 sm:mb-1 w-full reviews-mobile">
-            <div className="flex items-center space-x-1">
-              <span className="text-gray-800 text-xs sm:text-sm font-medium">{product.rating || generateRandomRating()}</span>
-              {renderStars()}
-              <span className="text-gray-600 text-xs sm:text-sm">({product.reviews})</span>
-            </div>
-          </div>
-          
-          {formatProductName(product.name)}
-
-          {/* Variant Selector */}
-          {product.variants && product.variants.length > 1 && (
-            <div className="mb-1 sm:mb-2 w-full variant-selector-mobile" onClick={(e) => e.stopPropagation()}>
-              <div className="relative">
-                <select
-                  value={selectedVariant?.id || ''}
-                  onChange={handleVariantChange}
-                  className="w-full text-xs sm:text-sm border border-gray-200 rounded-lg sm:rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#ff6b57] focus:border-[#ff6b57] appearance-none cursor-pointer font-medium text-gray-700 shadow-sm hover:shadow-md transition-all duration-200 opacity-0 absolute inset-0 z-10"
-                  data-no-drag="true"
-                >
-                  {product.variants.map((variant) => (
-                    <option key={variant.id} value={variant.id}>
-                      {variant.title} | {formatPrice(variant.price)}
-                    </option>
-                  ))}
-                </select>
-                
-                {/* Custom Dropdown Display */}
-                <div className="flex items-center justify-between p-1.5 sm:p-2 border border-gray-200 rounded-lg sm:rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 pointer-events-none custom-dropdown">
-                  <span className="text-xs sm:text-sm font-medium text-gray-700 flex-1 truncate">
-                    {abbreviateVariantTitle(selectedVariant?.title || product.variants[0]?.title, isMobile)}
-                  </span>
-                  
-                  {/* Right corner group: Divider + Price + Caret */}
-                  <div className="flex items-center ml-1">
-                    {/* Full Height Divider */}
-                    <div className="h-4 sm:h-6 w-px bg-gray-300 mr-1 sm:mr-2"></div>
-                    
-                    {/* Price */}
-                    <span className="text-xs sm:text-sm font-bold text-[#ff6b57] mr-1 sm:mr-2 whitespace-nowrap">
-                      {formatPrice(selectedVariant?.price || product.variants[0]?.price)}
-                    </span>
-                    
-                    {/* Custom Caret */}
-                    <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 pointer-events-none flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <button 
-            onClick={handleAddToCart}
-            className={`w-full font-bold text-xs sm:text-base py-2 sm:py-2.5 px-2 sm:px-4 rounded-full transition-all duration-200 flex items-center justify-center add-to-cart-btn
-              ${selectedVariant && (selectedVariant.available || selectedVariant.availableForSale)
-                ? 'bg-[#ff6b57] hover:bg-[#ff5a43] hover:shadow-md active:scale-[0.98] text-white shadow-sm cursor-pointer' 
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-            disabled={!selectedVariant || !(selectedVariant.available || selectedVariant.availableForSale)}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            <span className="text-xs sm:text-base">{isAdding ? 'ADDING...' : 'ADD TO CART'}</span>
-          </button>
-        </div>
-      </div>
-    );
-  };
 
   // Get product names from data files by category
   const getProductNamesByCategory = (category) => {
@@ -710,249 +412,301 @@ const ShopByPlantSimple = () => {
     });
   };
 
-  // Fetch products from data files by category
-  const fetchProductsByCategory = async (category, forceRefresh = false) => {
-    // If products are already preloaded and we're not forcing a refresh, use them immediately
-    if (preloadedProducts[category] && !forceRefresh) {
-      const categoryProducts = preloadedProducts[category];
-      const productsToShow = getProductCountForView(categoryProducts, isMobile);
-      setProducts(productsToShow);
-      return;
-    }
+  // Improved progressive loading - load categories one by one and show immediately
+  const loadCategoryProducts = async (category, isInitialLoad = false) => {
+    console.log(`Loading products for category: ${category}`);
     
-    setLoading(true);
-    
+    // Set loading status for this category
+    setCategoryLoadingStatus(prev => ({
+      ...prev,
+      [category]: 'loading'
+    }));
+
     try {
-      console.log(`Fetching products for category: ${category}, isMobile: ${isMobile}`);
-      
       let productData = [];
       
       // Get all product names for the category from data files
       const allProductNames = getProductNamesByCategory(category);
       
-      // Get the appropriate count based on mobile/web view
-      const productNamesToFetch = getProductCountForView(allProductNames, isMobile);
+      console.log(`Found ${allProductNames.length} total product names for ${category}`);
       
-      console.log(`Fetching ${productNamesToFetch.length} products for ${category}`);
-      
-      if (productNamesToFetch.length > 0) {
-        // Import the fetchProductsByNames function and fetch these specific products
-        const { fetchProductsByNames } = await import('../utils/shopifyApi');
-        productData = await fetchProductsByNames(productNamesToFetch);
-        
-        console.log(`Found ${productData.length} products from Shopify API for ${category}`);
-        
-        // Filter products to ensure they match the category
-        productData = filterProductsByCategory(productData, category, productNamesToFetch);
-        console.log(`After filtering: ${productData.length} products match category ${category}`);
+      if (allProductNames.length > 0) {
+        try {
+          // Import the fetchProductsByNames function and fetch ALL products for this category
+          const { fetchProductsByNames } = await import('../utils/shopifyApi');
+          
+          // Add timeout to prevent hanging
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout after 20 seconds')), 20000)
+          );
+          
+          const fetchPromise = fetchProductsByNames(allProductNames);
+          productData = await Promise.race([fetchPromise, timeoutPromise]);
+          
+          console.log(`Found ${productData.length} products from Shopify API for ${category}`);
+          
+          // Filter products to ensure they match the category
+          productData = filterProductsByCategory(productData, category, allProductNames);
+          console.log(`After filtering: ${productData.length} products match category ${category}`);
+        } catch (apiError) {
+          console.error(`API error for ${category}:`, apiError);
+          productData = []; // Reset to empty array if API fails
+        }
       }
       
-      // If no products found, try the fallback method using the complete data file functions
+      // If no products found or API failed, try the fallback method
       if (productData.length === 0) {
-        console.log('No products found with specific names, trying fallback data file functions');
+        console.log(`No products found with API for ${category}, trying fallback data file functions`);
         
         try {
-          let allCategoryProducts = [];
           switch (category) {
             case "Houseplant Products":
-              allCategoryProducts = await fetchAllHouseplantProducts();
+              productData = await fetchAllHouseplantProducts();
               break;
             case "Garden Products":
-              allCategoryProducts = await fetchAllGardenProducts();
+              productData = await fetchAllGardenProducts();
               break;
             case "Hydrophonic and Aquatic":
-              allCategoryProducts = await fetchAllHydroponicAquaticProducts();
+              productData = await fetchAllHydroponicAquaticProducts();
               break;
             case "Plant Supplements":
-              allCategoryProducts = await fetchAllSpecialtySupplements();
+              productData = await fetchAllSpecialtySupplements();
               break;
           }
           
           // Filter these products too
-          allCategoryProducts = filterProductsByCategory(allCategoryProducts, category);
+          productData = filterProductsByCategory(productData, category);
           
-          // Get appropriate count for view
-          productData = getProductCountForView(allCategoryProducts, isMobile);
-          
-          console.log(`After fallback: ${productData.length} total products`);
+          console.log(`After fallback: ${productData.length} total products for ${category}`);
         } catch (fallbackError) {
           console.error('Error with fallback data fetch:', fallbackError);
+          
+          // Final fallback: use mock data for this category
+          productData = generateMockProductsForCategory(category);
+          console.log(`Using mock data: ${productData.length} products for ${category}`);
         }
       }
       
       // Ensure all products have the correct category assigned and proper formatting
       const enrichedProducts = productData.map((product, index) => ({
         ...product,
-        category: category, // Ensure category is set correctly
+        category: category,
         rating: product.rating || generateRandomRating(),
         reviews: product.reviews || Math.floor(Math.random() * 800) + 200,
-        // Mark top product as best seller
         bestSeller: product.bestSeller || index === 0
       }));
       
-      console.log(`Successfully fetched ${enrichedProducts.length} products for ${category}`);
-      setProducts(enrichedProducts);
+      console.log(`Successfully loaded ${enrichedProducts.length} products for ${category}`);
+      
+      // Update preloaded products state immediately
+      setPreloadedProducts(prev => ({
+        ...prev,
+        [category]: enrichedProducts
+      }));
+      
+      // Update category loading status
+      setCategoryLoadingStatus(prev => ({
+        ...prev,
+        [category]: 'loaded'
+      }));
+      
+      // If this is the currently selected category, update products display immediately
+      if (category === selectedCategory) {
+        const productsToShow = getProductCountForView(enrichedProducts, isMobile);
+        setProducts(productsToShow);
+        
+        if (isInitialLoad) {
+          setLoading(false);
+          setInitialLoadComplete(true);
+        }
+      }
+      
+      return enrichedProducts;
       
     } catch (error) {
-      console.error('Error fetching products:', error);
-      setProducts([]);
-    } finally {
-      setLoading(false);
+      console.error(`Error loading products for ${category}:`, error);
+      
+      // Set error status
+      setCategoryLoadingStatus(prev => ({
+        ...prev,
+        [category]: 'error'
+      }));
+      
+      // Return mock data for this category to prevent complete failure
+      const mockProducts = generateMockProductsForCategory(category);
+      console.log(`Using mock data for ${category}: ${mockProducts.length} products`);
+      
+      // Update preloaded products with mock data
+      setPreloadedProducts(prev => ({
+        ...prev,
+        [category]: mockProducts
+      }));
+      
+      // If this is the currently selected category, show mock products
+      if (category === selectedCategory) {
+                 const productsToShow = getProductCountForView(mockProducts, isMobile);
+        setProducts(productsToShow);
+        
+        if (isInitialLoad) {
+          setLoading(false);
+          setInitialLoadComplete(true);
+        }
+      }
+      
+      return mockProducts;
     }
   };
 
-  // Preload products for all categories
-  const preloadAllProducts = async () => {
+  // Progressive loading - start with default category and load others in background
+  const startProgressiveLoading = async () => {
+    console.log('Starting progressive loading...');
     setLoading(true);
-    const allProducts = {};
     
-    // Categories that we want to preload
-    const categoriesToPreload = [
+    // Categories to load
+    const categoriesToLoad = [
       "Houseplant Products",
       "Garden Products", 
       "Hydrophonic and Aquatic",
       "Plant Supplements"
     ];
     
-    try {
-      // Fetch products for all categories in parallel with timeout
-      const promises = categoriesToPreload.map(async (category) => {
-        try {
-          console.log(`Preloading products for category: ${category}`);
-          
-          let productData = [];
-          
-          // Get all product names for the category from data files
-          const allProductNames = getProductNamesByCategory(category);
-          
-          console.log(`Found ${allProductNames.length} total product names for ${category}`);
-          
-          if (allProductNames.length > 0) {
-            try {
-              // Import the fetchProductsByNames function and fetch ALL products for preloading
-              const { fetchProductsByNames } = await import('../utils/shopifyApi');
-              
-              // Add timeout to prevent hanging
-              const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Timeout after 30 seconds')), 30000)
-              );
-              
-              const fetchPromise = fetchProductsByNames(allProductNames);
-              productData = await Promise.race([fetchPromise, timeoutPromise]);
-              
-              console.log(`Found ${productData.length} products from Shopify API for ${category}`);
-              
-              // Filter products to ensure they match the category
-              productData = filterProductsByCategory(productData, category, allProductNames);
-              console.log(`After filtering: ${productData.length} products match category ${category}`);
-            } catch (apiError) {
-              console.error(`API error for ${category}:`, apiError);
-              productData = []; // Reset to empty array if API fails
-            }
-          }
-          
-          // If no products found or API failed, try the fallback method using the complete data file functions
-          if (productData.length === 0) {
-            console.log(`No products found with API for ${category}, trying fallback data file functions`);
-            
-            try {
-              switch (category) {
-                case "Houseplant Products":
-                  productData = await fetchAllHouseplantProducts();
-                  break;
-                case "Garden Products":
-                  productData = await fetchAllGardenProducts();
-                  break;
-                case "Hydrophonic and Aquatic":
-                  productData = await fetchAllHydroponicAquaticProducts();
-                  break;
-                case "Plant Supplements":
-                  productData = await fetchAllSpecialtySupplements();
-                  break;
-              }
-              
-              // Filter these products too
-              productData = filterProductsByCategory(productData, category);
-              
-              console.log(`After fallback: ${productData.length} total products for ${category}`);
-            } catch (fallbackError) {
-              console.error('Error with fallback data fetch:', fallbackError);
-              
-              // Final fallback: use mock data for this category
-              productData = generateMockProductsForCategory(category);
-              console.log(`Using mock data: ${productData.length} products for ${category}`);
-            }
-          }
-          
-          // Ensure all products have the correct category assigned and proper formatting
-          const enrichedProducts = productData.map((product, index) => ({
-            ...product,
-            category: category, // Ensure category is set correctly
-            rating: product.rating || generateRandomRating(),
-            reviews: product.reviews || Math.floor(Math.random() * 800) + 200,
-            // Mark top product as best seller
-            bestSeller: product.bestSeller || index === 0
-          }));
-          
-          console.log(`Successfully preloaded ${enrichedProducts.length} products for ${category}`);
-          
-          return { category, products: enrichedProducts };
-        } catch (error) {
-          console.error(`Error preloading products for ${category}:`, error);
-          
-          // Return mock data for this category to prevent complete failure
-          const mockProducts = generateMockProductsForCategory(category);
-          console.log(`Using mock data for ${category}: ${mockProducts.length} products`);
-          
-          return { category, products: mockProducts };
-        }
-      });
-      
-      // Wait for all categories to be loaded
-      const results = await Promise.all(promises);
-      
-      // Store results in the preloaded products state
-      results.forEach(({ category, products }) => {
-        allProducts[category] = products;
-      });
-      
-      setPreloadedProducts(allProducts);
-      setPreloadingComplete(true);
-      
-      // Set initial products for the default category with appropriate count for view
-      const initialCategoryProducts = allProducts[selectedCategory] || [];
-      const productsToShow = getProductCountForView(initialCategoryProducts, isMobile);
+    // Load the initial/selected category first
+    await loadCategoryProducts(selectedCategory, true);
+    
+    // Load remaining categories in background
+    const remainingCategories = categoriesToLoad.filter(cat => cat !== selectedCategory);
+    
+    // Load remaining categories one by one in background (don't await)
+    remainingCategories.forEach((category, index) => {
+      // Stagger the loading slightly to avoid overwhelming the API
+      setTimeout(() => {
+        loadCategoryProducts(category, false);
+      }, (index + 1) * 500); // 500ms delay between each category
+    });
+  };
+
+  const handleCategoryClick = (category) => {
+    console.log(`Switching to category: ${category}`);
+    setSelectedCategory(category);
+    
+    // Check if this category is already loaded
+    if (preloadedProducts[category]) {
+      const categoryProducts = preloadedProducts[category];
+      const productsToShow = getProductCountForView(categoryProducts, isMobile);
       setProducts(productsToShow);
+      console.log(`Switched to ${category} with ${productsToShow.length} products`);
+    } else {
+      // Category not loaded yet - show loading state and start loading
+      const categoryStatus = categoryLoadingStatus[category];
       
-      console.log('All products preloaded successfully');
-      
-    } catch (error) {
-      console.error('Error preloading products:', error);
-      
-      // Create fallback products for all categories
-      const fallbackProducts = {};
-      const categoriesToPreload = [
-        "Houseplant Products",
-        "Garden Products", 
-        "Hydrophonic and Aquatic",
-        "Plant Supplements"
-      ];
-      
-      categoriesToPreload.forEach(category => {
-        fallbackProducts[category] = generateMockProductsForCategory(category);
-      });
-      
-      setPreloadedProducts(fallbackProducts);
-      setPreloadingComplete(true);
-      
-      const initialCategoryProducts = fallbackProducts[selectedCategory] || [];
-      const productsToShow = getProductCountForView(initialCategoryProducts, isMobile);
-      setProducts(productsToShow);
-      
-      console.log('Using fallback mock data for all categories');
-    } finally {
-      setLoading(false);
+      if (categoryStatus !== 'loading') {
+        console.log(`Category ${category} not loaded yet, starting load...`);
+        setLoading(true);
+        loadCategoryProducts(category, false).then(() => {
+          setLoading(false);
+        });
+      } else {
+        console.log(`Category ${category} is currently loading...`);
+        setLoading(true);
+        
+        // Set up a listener for when this category finishes loading
+        const checkCategoryLoaded = () => {
+          if (preloadedProducts[category]) {
+            const categoryProducts = preloadedProducts[category];
+            const productsToShow = getProductCountForView(categoryProducts, isMobile);
+            setProducts(productsToShow);
+            setLoading(false);
+            console.log(`Category ${category} finished loading`);
+          } else {
+            // Check again in 500ms
+            setTimeout(checkCategoryLoaded, 500);
+          }
+        };
+        checkCategoryLoaded();
+      }
     }
+  };
+
+  // Handle mobile/web view changes - refresh products with appropriate count
+  useEffect(() => {
+    if (initialLoadComplete && preloadedProducts[selectedCategory]) {
+      const categoryProducts = preloadedProducts[selectedCategory];
+      const productsToShow = getProductCountForView(categoryProducts, isMobile);
+      setProducts(productsToShow);
+      console.log(`View changed to ${isMobile ? 'mobile' : 'web'}, showing ${productsToShow.length} products`);
+    }
+  }, [isMobile, selectedCategory, initialLoadComplete, preloadedProducts]);
+
+  // Check if there are more products available than currently shown
+  const hasMoreProducts = () => {
+    if (!preloadedProducts[selectedCategory]) return false;
+    const totalProducts = preloadedProducts[selectedCategory].length;
+    const currentlyShown = products.length;
+    return totalProducts > currentlyShown;
+  };
+
+  // Handle "See All" button click with improved navigation
+  const handleSeeAllClick = () => {
+    // Navigate to products page with the current category
+    const categoryRoutes = {
+      "Houseplant Products": { route: "/products", hash: "#houseplants", category: "houseplants" },
+      "Garden Products": { route: "/products", hash: "#garden", category: "garden" }, 
+      "Hydrophonic and Aquatic": { route: "/products", hash: "#hydroponic", category: "hydroponic" },
+      "Plant Supplements": { route: "/products", hash: "#supplements", category: "supplements" }
+    };
+    
+    const targetInfo = categoryRoutes[selectedCategory] || { route: "/products", hash: "", category: "" };
+    
+    // Navigate with state to help the products page identify the target section
+    navigate(targetInfo.route, { 
+      state: { 
+        targetCategory: targetInfo.category,
+        targetHash: targetInfo.hash,
+        scrollToCategory: true,
+        fromShopByPlant: true,
+        timestamp: Date.now() // Add timestamp to ensure fresh navigation
+      } 
+    });
+  };
+
+  // See All Button Component
+  const SeeAllButton = () => (
+    <div className="see-all-card"
+      onClick={handleSeeAllClick}
+    >
+      {/* Text */}
+      <div className="text-center mb-3">
+        <h3 className="font-bold text-gray-800 text-sm mb-1">SEE ALL</h3>
+        <p className="text-xs text-gray-600 leading-tight">
+          View all {preloadedProducts[selectedCategory]?.length || 0} products
+        </p>
+        <p className="text-xs text-[#ff6b6b] font-medium mt-1">
+          in this category
+        </p>
+      </div>
+      
+      {/* Orange Arrow Icon - moved to bottom */}
+      <div className="bg-[#ff6b6b] rounded-full p-3 shadow-md">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </div>
+    </div>
+  );
+
+  // Start progressive loading on mount
+  useEffect(() => {
+    startProgressiveLoading();
+  }, []);
+
+  // Get category loading status for display
+  const getCategoryLoadingStatus = (category) => {
+    return categoryLoadingStatus[category] || 'pending';
+  };
+
+  // Check if a category has products available
+  const isCategoryReady = (category) => {
+    return preloadedProducts[category] && preloadedProducts[category].length > 0;
   };
 
   // Generate mock products for a category when API fails
@@ -1065,97 +819,6 @@ const ShopByPlantSimple = () => {
 
     return mockData[category] || [];
   };
-
-  // Get the current selected category object
-  const getCurrentCategory = () => {
-    return categories.find(cat => cat.category === selectedCategory);
-  };
-
-  const handleCategoryClick = (category) => {
-    setSelectedCategory(category);
-    
-    // If products are preloaded, switch immediately with appropriate count for current view
-    if (preloadedProducts[category]) {
-      const categoryProducts = preloadedProducts[category];
-      const productsToShow = getProductCountForView(categoryProducts, isMobile);
-      setProducts(productsToShow);
-    } else {
-      // Fallback to fetching if not preloaded
-      fetchProductsByCategory(category);
-    }
-  };
-
-  // Handle mobile/web view changes - refresh products with appropriate count
-  useEffect(() => {
-    if (preloadingComplete && preloadedProducts[selectedCategory]) {
-      const categoryProducts = preloadedProducts[selectedCategory];
-      const productsToShow = getProductCountForView(categoryProducts, isMobile);
-      setProducts(productsToShow);
-      console.log(`View changed to ${isMobile ? 'mobile' : 'web'}, showing ${productsToShow.length} products`);
-    }
-  }, [isMobile, selectedCategory, preloadingComplete, preloadedProducts]);
-
-  // Check if there are more products available than currently shown
-  const hasMoreProducts = () => {
-    if (!preloadedProducts[selectedCategory]) return false;
-    const totalProducts = preloadedProducts[selectedCategory].length;
-    const currentlyShown = products.length;
-    return totalProducts > currentlyShown;
-  };
-
-  // Handle "See All" button click with improved navigation
-  const handleSeeAllClick = () => {
-    // Navigate to products page with the current category
-    const categoryRoutes = {
-      "Houseplant Products": { route: "/products", hash: "#houseplants", category: "houseplants" },
-      "Garden Products": { route: "/products", hash: "#garden", category: "garden" }, 
-      "Hydrophonic and Aquatic": { route: "/products", hash: "#hydroponic", category: "hydroponic" },
-      "Plant Supplements": { route: "/products", hash: "#supplements", category: "supplements" }
-    };
-    
-    const targetInfo = categoryRoutes[selectedCategory] || { route: "/products", hash: "", category: "" };
-    
-    // Navigate with state to help the products page identify the target section
-    navigate(targetInfo.route, { 
-      state: { 
-        targetCategory: targetInfo.category,
-        targetHash: targetInfo.hash,
-        scrollToCategory: true,
-        fromShopByPlant: true,
-        timestamp: Date.now() // Add timestamp to ensure fresh navigation
-      } 
-    });
-  };
-
-  // See All Button Component
-  const SeeAllButton = () => (
-    <div className="see-all-card"
-      onClick={handleSeeAllClick}
-    >
-      {/* Text */}
-      <div className="text-center mb-3">
-        <h3 className="font-bold text-gray-800 text-sm mb-1">SEE ALL</h3>
-        <p className="text-xs text-gray-600 leading-tight">
-          View all {preloadedProducts[selectedCategory]?.length || 0} products
-        </p>
-        <p className="text-xs text-[#ff6b6b] font-medium mt-1">
-          in this category
-        </p>
-      </div>
-      
-      {/* Orange Arrow Icon - moved to bottom */}
-      <div className="bg-[#ff6b6b] rounded-full p-3 shadow-md">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-        </svg>
-      </div>
-    </div>
-  );
-
-  // Preload all products on mount
-  useEffect(() => {
-    preloadAllProducts();
-  }, []);
 
   return (
     <div className="bg-[#fffbef] py-2 sm:py-8">
@@ -1587,69 +1250,107 @@ const ShopByPlantSimple = () => {
           <div className="block sm:hidden">
             <div className="px-2 xs:px-4">
               <div className="space-y-0.5 pb-1">
-                {categories.map((cat, index) => (
-                  <div key={cat.category} className="block">
-                    <button
-                      onClick={() => handleCategoryClick(cat.category)}
-                      className="text-left transition-all duration-200"
-                    >
-                      <div className={`inline-block ${
-                        selectedCategory === cat.category
-                          ? 'border-2 border-[#ff6b6b] rounded-full px-2 xs:px-3 py-1 bg-white'
-                          : 'px-2 xs:px-3 py-1'
-                      }`}>
-                        <span className="text-sm xs:text-base font-medium text-black">
-                          {cat.name.replace('\n', ' ')}
-                        </span>
-                      </div>
-                    </button>
-                  </div>
-                ))}
+                {categories.map((cat, index) => {
+                  const loadingStatus = getCategoryLoadingStatus(cat.category);
+                  const isReady = isCategoryReady(cat.category);
+                  
+                  return (
+                    <div key={cat.category} className="block">
+                      <button
+                        onClick={() => handleCategoryClick(cat.category)}
+                        className="text-left transition-all duration-200 flex items-center space-x-2"
+                      >
+                        <div className={`inline-block ${
+                          selectedCategory === cat.category
+                            ? 'border-2 border-[#ff6b6b] rounded-full px-2 xs:px-3 py-1 bg-white'
+                            : 'px-2 xs:px-3 py-1'
+                        }`}>
+                          <span className="text-sm xs:text-base font-medium text-black">
+                            {cat.name.replace('\n', ' ')}
+                          </span>
+                        </div>
+                        
+                        {/* Loading indicator */}
+                        {loadingStatus === 'loading' && (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#ff6b6b]"></div>
+                        )}
+                        
+                        {/* Ready indicator */}
+                        {isReady && loadingStatus === 'loaded' && (
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
 
           {/* Desktop Tile Layout */}
           <div className="hidden sm:flex justify-center gap-6 overflow-x-auto pb-4 px-4 no-scrollbar">
-            {categories.map((cat) => (
-              <button
-                key={cat.category}
-                onClick={() => handleCategoryClick(cat.category)}
-                className="flex-shrink-0 group"
-              >
-                <div className="relative p-1">
-                  <div className={`w-32 h-32 relative overflow-hidden transition-transform duration-200 origin-center category-card ${
-                    selectedCategory === cat.category
-                      ? 'border-2 border-[#ff6b6b]'
-                      : ''
-                  }`}>
-                    <img
-                      src={cat.image}
-                      alt={cat.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-                <div className="mt-2 text-center">
-                  {cat.name.split('\n').map((line, i) => (
-                    <div 
-                      key={i} 
-                      className={`${
-                        i === 0 
-                          ? 'font-bold text-gray-800 tracking-wide'
-                          : 'text-gray-500 tracking-wider'
-                      } ${
-                        selectedCategory === cat.category
-                          ? i === 0 ? 'text-[#ff6b6b]' : 'text-gray-600'
-                          : i === 0 ? 'text-gray-600' : 'text-gray-400'
-                      } text-sm whitespace-nowrap transition-colors duration-200`}
-                    >
-                      {line}
+            {categories.map((cat) => {
+              const loadingStatus = getCategoryLoadingStatus(cat.category);
+              const isReady = isCategoryReady(cat.category);
+              
+              return (
+                <button
+                  key={cat.category}
+                  onClick={() => handleCategoryClick(cat.category)}
+                  className="flex-shrink-0 group relative"
+                >
+                  <div className="relative p-1">
+                    <div className={`w-32 h-32 relative overflow-hidden transition-transform duration-200 origin-center category-card ${
+                      selectedCategory === cat.category
+                        ? 'border-2 border-[#ff6b6b]'
+                        : ''
+                    }`}>
+                      <img
+                        src={cat.image}
+                        alt={cat.name}
+                        className="w-full h-full object-cover"
+                      />
+                      
+                      {/* Loading overlay */}
+                      {loadingStatus === 'loading' && (
+                        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                        </div>
+                      )}
+                      
+                      {/* Ready indicator */}
+                      {isReady && loadingStatus === 'loaded' && (
+                        <div className="absolute top-2 right-2">
+                          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </button>
-            ))}
+                  </div>
+                  <div className="mt-2 text-center">
+                    {cat.name.split('\n').map((line, i) => (
+                      <div 
+                        key={i} 
+                        className={`${
+                          i === 0 
+                            ? 'font-bold text-gray-800 tracking-wide'
+                            : 'text-gray-500 tracking-wider'
+                        } ${
+                          selectedCategory === cat.category
+                            ? i === 0 ? 'text-[#ff6b6b]' : 'text-gray-600'
+                            : i === 0 ? 'text-gray-600' : 'text-gray-400'
+                        } text-sm whitespace-nowrap transition-colors duration-200`}
+                      >
+                        {line}
+                      </div>
+                    ))}
+                    {/* Loading status indicator */}
+                    {loadingStatus === 'loading' && (
+                      <div className="text-xs text-[#ff6b6b] mt-1">Loading...</div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -1657,7 +1358,12 @@ const ShopByPlantSimple = () => {
         {loading ? (
           <div className="text-center py-4 sm:py-12 bg-[#fffbef]">
             <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-[#FF6B6B] mx-auto"></div>
-            <p className="mt-4 text-gray-600 text-sm sm:text-base">Loading products...</p>
+            <p className="mt-4 text-gray-600 text-sm sm:text-base">
+              Loading {categories.find(cat => cat.category === selectedCategory)?.name.replace('\n', ' ')} products...
+            </p>
+            <p className="mt-2 text-gray-500 text-xs sm:text-sm">
+              {initialLoadComplete ? 'Switching categories...' : 'Initial load in progress...'}
+            </p>
           </div>
         ) : products.length > 0 ? (
           <>
@@ -1666,7 +1372,7 @@ const ShopByPlantSimple = () => {
                 <ul className="glide__slides">
                   {products.map((product, index) => (
                     <li className="glide__slide" key={product.id}>
-                      <ProductCard product={product} index={index} />
+                      <ProductCard product={product} index={index} isMobile={isMobile} />
                     </li>
                   ))}
                   
@@ -1715,10 +1421,10 @@ const ShopByPlantSimple = () => {
           <div className="text-center py-8 sm:py-12 bg-[#fffbef]">
             <div className="bg-gradient-to-br from-[#e8f4f2] to-[#f3e6e0] rounded-lg shadow-sm p-6 sm:p-8 mx-2 sm:mx-0">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
-                {getCurrentCategory()?.name.replace('\n', ' ')}
+                {categories.find(cat => cat.category === selectedCategory)?.name.replace('\n', ' ')}
               </h2>
               <p className="text-gray-600 text-sm sm:text-base mb-6">
-                {getCurrentCategory()?.description}
+                {categories.find(cat => cat.category === selectedCategory)?.description}
               </p>
               <p className="text-gray-500 mb-4">No products found in this category.</p>
               <button
