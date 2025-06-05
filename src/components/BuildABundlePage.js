@@ -813,6 +813,7 @@ const BuildABundlePage = () => {
             isMobile={window.innerWidth < 640}
             customButtonText={itemInBundle ? 'ADD ANOTHER' : 'ADD TO BUNDLE'}
             customButtonHandler={handleBundleAddToCart}
+            bundlePageStyling={true}
           />
         </div>
       </div>

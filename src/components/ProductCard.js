@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from './CartContext';
 
-const ProductCard = ({ product, index, isMobile = false, customButtonText = null, customButtonHandler = null, enhancedMobilePadding = false }) => {
+const ProductCard = ({ product, index, isMobile = false, customButtonText = null, customButtonHandler = null, enhancedMobilePadding = false, bundlePageStyling = false }) => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   
@@ -413,8 +413,13 @@ const ProductCard = ({ product, index, isMobile = false, customButtonText = null
           @media (max-width: 480px) {
             .product-card {
               padding: 6px;
-              min-height: 300px;
-              max-height: 300px;
+              min-height: 285px;
+              max-height: 285px;
+            }
+
+            .product-card.bundle-page-styling {
+              min-height: 305px;
+              max-height: 305px;
             }
 
             .product-image-container {
@@ -513,7 +518,7 @@ const ProductCard = ({ product, index, isMobile = false, customButtonText = null
       </style>
 
       <div 
-        className={`product-card ${getCategoryBackground(index)} rounded-lg shadow-sm relative cursor-pointer ${enhancedMobilePadding ? 'enhanced-mobile-padding' : ''}`}
+        className={`product-card ${getCategoryBackground(index)} rounded-lg shadow-sm relative cursor-pointer ${enhancedMobilePadding ? 'enhanced-mobile-padding' : ''} ${bundlePageStyling ? 'bundle-page-styling' : ''}`}
         onClick={handleCardClick}
         style={{ overflow: 'visible' }}
       >

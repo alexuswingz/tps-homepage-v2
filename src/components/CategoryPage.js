@@ -726,6 +726,7 @@ const CategoryPage = () => {
                 product={product} 
                 index={index} 
                 isMobile={window.innerWidth < 640}
+                bundlePageStyling={true}
               />
             ))}
           </div>
