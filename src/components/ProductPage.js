@@ -31,7 +31,7 @@ const swiperStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    background: white;
+    background: transparent;
   }
   
   .swiper-zoom-container {
@@ -1403,18 +1403,18 @@ const ProductPage = () => {
                     onClick={() => setSelectedBundle('single')}
                     className={`relative overflow-hidden group border rounded-xl p-4 flex flex-col items-center transition-all duration-200 ${
                       selectedBundle === 'single'
-                        ? 'border-4 border-[#E94F37] bg-[#FFF9F9] scale-[1.02]'
-                        : 'border-gray-200 bg-white opacity-60'
+                        ? 'border-4 border-[#E94F37] bg-[#FFF3E6] scale-[1.02]'
+                        : 'border-gray-200 bg-transparent opacity-60'
                     }`}
                   >
-                    <div className="h-40 md:h-24 w-full mb-2 relative z-10 bg-white rounded-lg flex items-center justify-center">
+                    <div className="h-40 md:h-24 w-full mb-2 relative z-10 bg-transparent rounded-lg flex items-center justify-center">
                       <img 
                         src={
                           variantImages[selectedVariant.id] || 
                           (productImages.length > 1 ? productImages[1].src : product.image)
                         }
                         alt={product.name} 
-                        className="h-full w-full object-contain"
+                        className="h-full w-full object-contain mix-blend-multiply"
                       />
                     </div>
                     <span className="text-xs text-center font-medium relative z-10">{product.name}</span>
@@ -1427,14 +1427,14 @@ const ProductPage = () => {
                     className={`relative overflow-visible group rounded-xl p-4 flex flex-col items-center transition-all duration-200 border-2 ${
                       selectedBundle === 'bundle'
                         ? 'border-4 border-[#E94F37] bg-[#FFF3E6] scale-[1.02]'
-                        : 'border-gray-200 bg-white opacity-60'
+                        : 'border-gray-200 bg-transparent opacity-60'
                     }`}
                   >
                     <span className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs px-3 py-1 bg-[#E94F37] text-white rounded-full font-semibold whitespace-nowrap z-[100]">
                       BETTER TOGETHER
                     </span>
                     <div className="flex justify-center items-center gap-2 h-32 md:h-24 mb-2 relative z-10">
-                      <div className="h-full w-1/2 flex items-center justify-center">
+                      <div className="h-full w-1/2 flex items-center justify-center bg-transparent">
                         <img 
                           src={
                             variantImages[selectedVariant.id] || 
@@ -1445,7 +1445,7 @@ const ProductPage = () => {
                         />
                       </div>
                       <div className="text-[#E94F37] font-bold">+</div>
-                      <div className="h-full w-1/2 flex items-center justify-center">
+                      <div className="h-full w-1/2 flex items-center justify-center bg-transparent">
                         <img 
                           src={silicaProduct ? silicaProduct.image : "/assets/products/silica-plant-food.png"}
                           alt={silicaProduct ? silicaProduct.name : "Silica For Plants"}
@@ -1639,7 +1639,7 @@ const ProductPage = () => {
           <div className="md:hidden">
             <div className="flex items-center gap-2">
               {/* Product image */}
-              <div className="w-10 h-10 flex-shrink-0">
+              <div className="w-10 h-10 flex-shrink-0 bg-transparent">
                 <img 
                   src={productImages[0]?.src || product?.image} 
                   alt={product?.name} 
@@ -1705,7 +1705,7 @@ const ProductPage = () => {
           <div className="hidden md:flex md:items-center md:justify-between">
             <div className="flex items-center space-x-4">
               {/* Product Image */}
-              <div className="w-14 h-14 flex-shrink-0">
+              <div className="w-14 h-14 flex-shrink-0 bg-transparent">
                 <img 
                   src={productImages[0]?.src || product?.image} 
                   alt={product?.name} 
